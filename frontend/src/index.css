@@ -1,0 +1,25 @@
+:root {
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+#root {
+  /* Vite default template kasih max-width & text-align: center di #root —
+     kita hapus supaya layout App.jsx full-width & rapi */
+  margin: 0;
+  max-width: none;
+  text-align: left;
+}
