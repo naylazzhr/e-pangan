@@ -1,1175 +1,768 @@
-import { useMemo, useState, useEffect } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import "./App.css";
+import Navbar from "./Navbar";
+import SmartBudgetting from "./SmartBudgetting";
+import AdminLogin from "./AdminLogin";
+import AdminDashboard from "./AdminDashboard";
+import {
+  TrendingUp,
+  TrendingDown,
+  Search,
+  Store,
+  MapPin,
+  ArrowRight,
+  ShieldCheck,
+  SlidersHorizontal,
+  Calculator,
+  X,
+  ChevronRight,
+  BarChart3,
+  Sparkles,
+  ArrowUpDown,
+  Grid,
+  List,
+} from "lucide-react";
 
-const API_BASE_URL = "http://127.0.0.1:8000";
-
+// ================= CONSTANTS & DATA AWAL =================
 const CATEGORIES = [
-  { label: "Semua Komoditas", icon: "" },
-  { label: "Beras & Padi", icon: "🌾" },
-  { label: "Bumbu Dapur & Cabai", icon: "🌶️" },
-  { label: "Minyak Goreng & Mentega", icon: "🧈" },
-  { label: "Daging, Unggas & Telur", icon: "🍗" },
-  { label: "Gula & Tepung Terigu", icon: "🌿" },
+  { label: "Semua Komoditas", count: 8 },
+  { label: "Beras & Padi", categoryKey: "KEBUTUHAN POKOK" },
+  { label: "Bumbu Dapur & Cabai", categoryKey: "BUMBU DAPUR" },
+  { label: "Minyak & Mentega", categoryKey: "MINYAK GORENG" },
+  { label: "Daging, Unggas & Telur", categoryKey: "PROTEIN HEWANI" },
+  { label: "Bawang & Sayuran", categoryKey: "PRODUKSI DAERAH" },
+  { label: "Gula & Bahan Baku", categoryKey: "BAHAN BAKU" },
 ];
-
-const CATEGORY_MAP = {
-  "Beras & Padi": ["KEBUTUHAN POKOK", "SEMBAKO"],
-  "Bumbu Dapur & Cabai": ["BUMBU DAPUR"],
-  "Minyak Goreng & Mentega": ["MINYAK GORENG"],
-  "Daging, Unggas & Telur": ["PROTEIN HEWANI"],
-  "Gula & Tepung Terigu": ["BAHAN BAKU"],
-};
 
 const INITIAL_PRODUCTS = [
   {
     id: 1,
-    image: "https://images.unsplash.com/photo-1586201375761-83865001e31c?q=80&w=600",
+    name: "Beras Medium IR-64",
+    category: "KEBUTUHAN POKOK",
     badge: "Harga Stabil",
     badgeType: "stable",
-    category: "KEBUTUHAN POKOK",
-    name: "Beras Medium IR-64",
     market: "Pasar Babat & Sidoharjo",
-    price: "Rp 13.000",
+    price: 13000,
     unit: "/kg",
-    delta: "Stabil (0.0%)",
+    deltaText: "Stabil (0.0%)",
     deltaType: "flat",
+    image: "https://images.unsplash.com/photo-1586201375761-83865001e31c?q=80&w=800&auto=format&fit=crop",
+    marketPrices: [
+      { market: "Pasar Babat", price: 12800, note: "Paling Hemat" },
+      { market: "Pasar Sidoharjo", price: 13000, note: "Rata-rata Daerah" },
+      { market: "Pasar Agrobis Babat", price: 12900, note: "Grosir" },
+      { market: "Pasar Mantup", price: 13200, note: "Distribusi Selatan" },
+      { market: "Pasar Brondong", price: 13100, note: "Pesisir Pantura" },
+    ],
   },
   {
     id: 2,
-    image: "/cabaimerah.jpeg",
+    name: "Cabai Rawit Merah Super",
+    category: "BUMBU DAPUR",
     badge: "Fluktuatif",
     badgeType: "volatile",
-    category: "BUMBU DAPUR",
-    name: "Cabai Rawit Merah",
     market: "Pasar Mantup & Blawi",
-    price: "Rp 48.500",
+    price: 48500,
     unit: "/kg",
-    delta: "+Rp 1.500 (+3.1%)",
+    deltaText: "+Rp 1.500 (+3.1%)",
     deltaType: "up",
+    image: "https://images.unsplash.com/photo-1583119022894-919a68a3d0e3?q=80&w=800&auto=format&fit=crop",
+    marketPrices: [
+      { market: "Pasar Babat", price: 47000, note: "Paling Hemat" },
+      { market: "Pasar Sidoharjo", price: 48500, note: "Pasokan Harian" },
+      { market: "Pasar Agrobis Babat", price: 46500, note: "Harga Grosir Petani" },
+      { market: "Pasar Mantup", price: 50000, note: "Permintaan Tinggi" },
+      { market: "Pasar Brondong", price: 49500, note: "Stok Terbatas" },
+    ],
   },
   {
     id: 3,
-    image: "/minyakgoreng.jpg",
+    name: "Minyak Goreng Sawit Kemasan",
+    category: "MINYAK GORENG",
+    badge: "Harga Turun",
+    badgeType: "down",
+    market: "Pasar Babat & Sidoharjo",
+    price: 15700,
+    unit: "/liter",
+    deltaText: "-Rp 300 (-1.8%)",
+    deltaType: "down",
+    image: "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?q=80&w=800&auto=format&fit=crop",
+    marketPrices: [
+      { market: "Pasar Babat", price: 15500, note: "Program KPSH" },
+      { market: "Pasar Sidoharjo", price: 15700, note: "Rata-rata Kota" },
+      { market: "Pasar Agrobis Babat", price: 15400, note: "Paling Hemat" },
+      { market: "Pasar Mantup", price: 16000, note: "Stok Eceran" },
+      { market: "Pasar Brondong", price: 15800, note: "Normal" },
+    ],
+  },
+  {
+    id: 4,
+    name: "Daging Ayam Broiler Segar",
+    category: "PROTEIN HEWANI",
     badge: "Harga Stabil",
     badgeType: "stable",
-    category: "MINYAK GORENG",
-    name: "Minyak Goreng Sawit",
-    market: "Pasar Babat & Sidoharjo",
-    price: "Rp 15.700",
-    unit: "/ltr",
-    delta: "-Rp 300 (-1.8%)",
+    market: "Pasar Brondong & Sidoharjo",
+    price: 34000,
+    unit: "/kg",
+    deltaText: "Stabil (0.0%)",
+    deltaType: "flat",
+    image: "https://images.unsplash.com/photo-1587593810167-a84920ea0781?q=80&w=800&auto=format&fit=crop",
+    marketPrices: [
+      { market: "Pasar Babat", price: 34500, note: "Potong Segar" },
+      { market: "Pasar Sidoharjo", price: 34000, note: "Rata-rata" },
+      { market: "Pasar Agrobis Babat", price: 33500, note: "Paling Hemat" },
+      { market: "Pasar Mantup", price: 35000, note: "Pasokan Peternak" },
+      { market: "Pasar Brondong", price: 34000, note: "Normal" },
+    ],
+  },
+  {
+    id: 5,
+    name: "Bawang Merah Allium Brebes",
+    category: "PRODUKSI DAERAH",
+    badge: "Harga Turun",
+    badgeType: "down",
+    market: "Pasar Agrobis Babat",
+    price: 27500,
+    unit: "/kg",
+    deltaText: "-Rp 500 (-1.7%)",
     deltaType: "down",
+    image: "https://images.unsplash.com/photo-1587049352846-4a222e784d38?q=80&w=800&auto=format&fit=crop",
+    marketPrices: [
+      { market: "Pasar Babat", price: 27000, note: "Paling Hemat" },
+      { market: "Pasar Sidoharjo", price: 27500, note: "Kualitas Grade A" },
+      { market: "Pasar Agrobis Babat", price: 26800, note: "Kulakan Karungan" },
+      { market: "Pasar Mantup", price: 28500, note: "Pengecer Los" },
+      { market: "Pasar Brondong", price: 28000, note: "Kualitas Standar" },
+    ],
+  },
+  {
+    id: 6,
+    name: "Gula Pasir Kristal Putih",
+    category: "BAHAN BAKU",
+    badge: "Harga Stabil",
+    badgeType: "stable",
+    market: "Pasar Sidoharjo & Blawi",
+    price: 17500,
+    unit: "/kg",
+    deltaText: "Stabil (0.0%)",
+    deltaType: "flat",
+    image: "https://images.unsplash.com/photo-1610725664285-7c57e6eeac3f?q=80&w=800&auto=format&fit=crop",
+    marketPrices: [
+      { market: "Pasar Babat", price: 17300, note: "Paling Hemat" },
+      { market: "Pasar Sidoharjo", price: 17500, note: "Kemasan Pabrik" },
+      { market: "Pasar Agrobis Babat", price: 17200, note: "Grosir Sak" },
+      { market: "Pasar Mantup", price: 17800, note: "Eceran" },
+      { market: "Pasar Brondong", price: 17600, note: "Normal" },
+    ],
+  },
+  {
+    id: 7,
+    name: "Telur Ayam Ras Pilihan",
+    category: "PROTEIN HEWANI",
+    badge: "Harga Stabil",
+    badgeType: "stable",
+    market: "Pasar Agrobis Babat",
+    price: 28500,
+    unit: "/kg",
+    deltaText: "Stabil (0.0%)",
+    deltaType: "flat",
+    image: "https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?q=80&w=800&auto=format&fit=crop",
+    marketPrices: [
+      { market: "Pasar Babat", price: 28000, note: "Paling Hemat" },
+      { market: "Pasar Sidoharjo", price: 28500, note: "Grade A Bersih" },
+      { market: "Pasar Agrobis Babat", price: 27800, note: "Grosir Peternak" },
+      { market: "Pasar Mantup", price: 29000, note: "Eceran" },
+      { market: "Pasar Brondong", price: 28800, note: "Normal" },
+    ],
+  },
+  {
+    id: 8,
+    name: "Cabai Merah Besar Keriting",
+    category: "BUMBU DAPUR",
+    badge: "Fluktuatif",
+    badgeType: "volatile",
+    market: "Pasar Babat & Sidoharjo",
+    price: 36000,
+    unit: "/kg",
+    deltaText: "+Rp 1.000 (+2.8%)",
+    deltaType: "up",
+    image: "https://images.unsplash.com/photo-1590779033100-9f60a05a013d?q=80&w=800&auto=format&fit=crop",
+    marketPrices: [
+      { market: "Pasar Babat", price: 35000, note: "Paling Hemat" },
+      { market: "Pasar Sidoharjo", price: 36000, note: "Pasokan Segar" },
+      { market: "Pasar Agrobis Babat", price: 34500, note: "Kulakan" },
+      { market: "Pasar Mantup", price: 37000, note: "Stok Terbatas" },
+      { market: "Pasar Brondong", price: 36500, note: "Normal" },
+    ],
   },
 ];
 
-const FAMILY_OPTIONS = [
-  { label: "2 Anggota", size: 2, perOrang: 360000 },
-  { label: "4 Anggota", size: 4, perOrang: 362500 },
-  { label: "6 Anggota", size: 6, perOrang: 355000 },
+const COMMODITY_TREND_DATA = {
+  "Beras Medium IR-64": {
+    category: "Kebutuhan Pokok",
+    todayPrice: 13000,
+    unit: "kilogram",
+    points: [
+      { day: "Senin", date: "15 Sep", price: 12800 },
+      { day: "Selasa", date: "16 Sep", price: 12850 },
+      { day: "Rabu", date: "17 Sep", price: 12900 },
+      { day: "Kamis", date: "18 Sep", price: 12950 },
+      { day: "Jumat", date: "19 Sep", price: 13000 },
+      { day: "Sabtu", date: "20 Sep", price: 13000 },
+      { day: "Hari Ini", date: "21 Sep", price: 13000, active: true },
+    ],
+  },
+  "Cabai Rawit Merah Super": {
+    category: "Bumbu Dapur",
+    todayPrice: 48500,
+    unit: "kilogram",
+    points: [
+      { day: "Senin", date: "15 Sep", price: 46000 },
+      { day: "Selasa", date: "16 Sep", price: 46500 },
+      { day: "Rabu", date: "17 Sep", price: 47000 },
+      { day: "Kamis", date: "18 Sep", price: 48000 },
+      { day: "Jumat", date: "19 Sep", price: 47500 },
+      { day: "Sabtu", date: "20 Sep", price: 48000 },
+      { day: "Hari Ini", date: "21 Sep", price: 48500, active: true },
+    ],
+  },
+  "Minyak Goreng Sawit Kemasan": {
+    category: "Minyak Goreng",
+    todayPrice: 15700,
+    unit: "liter",
+    points: [
+      { day: "Senin", date: "15 Sep", price: 16200 },
+      { day: "Selasa", date: "16 Sep", price: 16100 },
+      { day: "Rabu", date: "17 Sep", price: 16000 },
+      { day: "Kamis", date: "18 Sep", price: 15900 },
+      { day: "Jumat", date: "19 Sep", price: 15800 },
+      { day: "Sabtu", date: "20 Sep", price: 15750 },
+      { day: "Hari Ini", date: "21 Sep", price: 15700, active: true },
+    ],
+  },
+};
+
+const MARKETS_LIST = [
+  { name: "Pasar Babat", address: "Jl. Raya Babat No. 45, Babat, Lamongan" },
+  { name: "Pasar Sidoharjo", address: "Jl. Sukomulyo No. 12, Sidoharjo, Lamongan" },
+  { name: "Pasar Agrobis Babat", address: "Kawasan Agrobisnis Babat, Lamongan" },
+  { name: "Pasar Mantup", address: "Jl. Raya Mantup, Kec. Mantup, Lamongan" },
+  { name: "Pasar Brondong", address: "Kawasan Pesisir Pelabuhan Brondong, Lamongan" },
 ];
 
-function formatRupiah(num) {
-  if (typeof num !== "number") return num;
-  return "Rp " + num.toLocaleString("id-ID");
+function formatRupiah(amount) {
+  if (amount === undefined || amount === null) return "Rp 0";
+  return "Rp " + Number(amount).toLocaleString("id-ID");
 }
 
-/* ==============================================================================
-   KOMPONEN MODAL LOGIN ADMIN
-   ============================================================================== */
-function LoginModal({ isOpen, onClose, onLoginSuccess }) {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [errorMsg, setErrorMsg] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-
-  if (!isOpen) return null;
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setErrorMsg("");
-    setIsLoading(true);
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.detail || "Gagal login. Kredensial tidak valid.");
-      }
-
-      // Simpan kredensial & token JWT ke localStorage
-      localStorage.setItem("epangan_admin_token", data.access_token);
-      localStorage.setItem("epangan_admin_user", JSON.stringify(data.user));
-
-      onLoginSuccess(data.access_token, data.user);
-      setUsername("");
-      setPassword("");
-    } catch (err) {
-      setErrorMsg(err.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h3>🔐 Login Administrator E-Pangan</h3>
-          <button className="modal-close" onClick={onClose}>✕</button>
-        </div>
-
-        <form onSubmit={handleSubmit}>
-          <div className="modal-body">
-            {errorMsg && (
-              <div className="modal-alert">
-                <span>⚠️</span> {errorMsg}
-              </div>
-            )}
-
-            <p style={{ fontSize: 13.5, color: "var(--ink-soft)", marginTop: 0, marginBottom: 18 }}>
-              Hanya petugas/admin terdaftar Dinas Ketahanan Pangan Lamongan yang memiliki akses ke dashboard ini.
-            </p>
-
-            <div className="form-field">
-              <label>Username Admin</label>
-              <input
-                type="text"
-                className="form-input"
-                placeholder="Masukkan username admin..."
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
-                autoFocus
-              />
-            </div>
-
-            <div className="form-field">
-              <label>Password</label>
-              <input
-                type="password"
-                className="form-input"
-                placeholder="Masukkan password..."
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
-          </div>
-
-          <div className="modal-footer">
-            <button type="button" className="btn-secondary" onClick={onClose}>
-              Batal
-            </button>
-            <button type="submit" className="btn-primary" disabled={isLoading}>
-              {isLoading ? "Memverifikasi..." : "Masuk ke Dashboard ➔"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-/* ==============================================================================
-   KOMPONEN MODAL TAMBAH KOMODITAS (ADMIN ONLY)
-   ============================================================================== */
-function TambahKomoditasModal({ isOpen, onClose, token, onSuccess, onNeedToast }) {
-  const [namaBahan, setNamaBahan] = useState("");
-  const [kategori, setKategori] = useState("KEBUTUHAN POKOK");
-  const [harga, setHarga] = useState("");
-  const [satuan, setSatuan] = useState("kg");
-  const [lokasi, setLokasi] = useState("Pasar Babat");
-  const [isLoading, setIsLoading] = useState(false);
-
-  if (!isOpen) return null;
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/komoditas`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          nama_bahan: namaBahan,
-          kategori: kategori,
-          harga: parseFloat(harga),
-          satuan: satuan,
-          lokasi: lokasi,
-        }),
-      });
-
-      const resData = await response.json();
-      if (!response.ok) {
-        throw new Error(resData.detail || "Gagal menambahkan komoditas");
-      }
-
-      onNeedToast("Berhasil! Data komoditas baru telah ditambahkan.");
-      onSuccess();
-      onClose();
-    } catch (err) {
-      alert("Error: " + err.message);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h3>🌾 Tambah Komoditas Pangan</h3>
-          <button className="modal-close" onClick={onClose}>✕</button>
-        </div>
-
-        <form onSubmit={handleSubmit}>
-          <div className="modal-body">
-            <div className="form-field">
-              <label>Nama Bahan Pokok</label>
-              <input
-                type="text"
-                className="form-input"
-                placeholder="Contoh: Beras Rojo Lele Super"
-                value={namaBahan}
-                onChange={(e) => setNamaBahan(e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="form-field">
-              <label>Kategori</label>
-              <select
-                className="form-input"
-                value={kategori}
-                onChange={(e) => setKategori(e.target.value)}
-              >
-                <option value="KEBUTUHAN POKOK">KEBUTUHAN POKOK</option>
-                <option value="BUMBU DAPUR">BUMBU DAPUR</option>
-                <option value="PROTEIN HEWANI">PROTEIN HEWANI</option>
-                <option value="MINYAK GORENG">MINYAK GORENG</option>
-                <option value="BAHAN BAKU">BAHAN BAKU</option>
-              </select>
-            </div>
-
-            <div className="form-field">
-              <label>Harga (Rupiah)</label>
-              <input
-                type="number"
-                className="form-input"
-                placeholder="Contoh: 14500"
-                value={harga}
-                onChange={(e) => setHarga(e.target.value)}
-                required
-                min="1"
-              />
-            </div>
-
-            <div className="form-field">
-              <label>Satuan (kg, liter, ikat, dll)</label>
-              <input
-                type="text"
-                className="form-input"
-                placeholder="kg"
-                value={satuan}
-                onChange={(e) => setSatuan(e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="form-field">
-              <label>Lokasi Pasar</label>
-              <input
-                type="text"
-                className="form-input"
-                placeholder="Contoh: Pasar Sidoharjo Lamongan"
-                value={lokasi}
-                onChange={(e) => setLokasi(e.target.value)}
-                required
-              />
-            </div>
-          </div>
-
-          <div className="modal-footer">
-            <button type="button" className="btn-secondary" onClick={onClose}>
-              Batal
-            </button>
-            <button type="submit" className="btn-primary" disabled={isLoading}>
-              {isLoading ? "Menyimpan..." : "Simpan Data"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-/* ==============================================================================
-   KOMPONEN DASHBOARD ADMIN (PROTECTED VIEW)
-   ============================================================================== */
-function AdminDashboard({
-  token,
-  adminUser,
-  onLogout,
-  onViewPublic,
-  onNeedToast,
-}) {
-  const [stats, setStats] = useState({ total_komoditas: 0, total_pasar: 0, total_kios: 0 });
-  const [komoditasList, setKomoditasList] = useState([]);
-  const [pasarList, setPasarList] = useState([]);
-  const [activeTab, setActiveTab] = useState("komoditas");
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [searchAdmin, setSearchAdmin] = useState("");
-
-  const fetchDashboardData = () => {
-    // 1. Ambil statistik dashboard
-    fetch(`${API_BASE_URL}/admin/stats`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((res) => {
-        if (res.status === 401) {
-          onLogout();
-          throw new Error("Sesi login berakhir. Silakan login kembali.");
-        }
-        return res.json();
-      })
-      .then((data) => {
-        if (data.stats) setStats(data.stats);
-      })
-      .catch((err) => console.error("Error fetch stats:", err));
-
-    // 2. Ambil data komoditas
-    fetch(`${API_BASE_URL}/komoditas`)
-      .then((res) => res.json())
-      .then((resData) => {
-        setKomoditasList(resData.data || []);
-      })
-      .catch((err) => console.error("Error fetch komoditas:", err));
-
-    // 3. Ambil data pasar
-    fetch(`${API_BASE_URL}/pasar`)
-      .then((res) => res.json())
-      .then((resData) => {
-        setPasarList(resData.data || []);
-      })
-      .catch((err) => console.error("Error fetch pasar:", err));
-  };
-
-  useEffect(() => {
-    fetchDashboardData();
-  }, [token]);
-
-  const handleHapusKomoditas = async (id, nama) => {
-    if (!window.confirm(`Yakin ingin menghapus komoditas "${nama}"?`)) return;
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/komoditas/${id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (!response.ok) {
-        throw new Error("Gagal menghapus data dari server");
-      }
-
-      onNeedToast(`Komoditas "${nama}" berhasil dihapus.`);
-      fetchDashboardData();
-    } catch (err) {
-      alert("Error: " + err.message);
-    }
-  };
-
-  const handleHapusPasar = async (id, nama) => {
-    if (!window.confirm(`Yakin ingin menghapus data pasar "${nama}"?`)) return;
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/pasar/${id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (!response.ok) {
-        throw new Error("Gagal menghapus pasar dari server");
-      }
-
-      onNeedToast(`Pasar "${nama}" berhasil dihapus.`);
-      fetchDashboardData();
-    } catch (err) {
-      alert("Error: " + err.message);
-    }
-  };
-
-  const filteredKomoditas = useMemo(() => {
-    return komoditasList.filter((k) =>
-      k.nama_bahan.toLowerCase().includes(searchAdmin.toLowerCase()) ||
-      (k.lokasi && k.lokasi.toLowerCase().includes(searchAdmin.toLowerCase()))
-    );
-  }, [komoditasList, searchAdmin]);
-
-  return (
-    <div className="admin-view-wrap">
-      {/* Top Banner Dashboard */}
-      <div className="admin-top-banner">
-        <div className="admin-banner-info">
-          <h2>🛡️ Dashboard Administrator E-Pangan</h2>
-          <p>
-            Portal Pengelolaan Data Pangan & Pasar Terpadu — Dinas Ketahanan Pangan dan Pertanian Kab. Lamongan
-          </p>
-        </div>
-
-        <div className="admin-banner-actions">
-          <div className="badge-admin-user">
-            👤 Petugas: <b>{adminUser?.username || "Admin"}</b>
-          </div>
-          <button className="btn-public-portal" onClick={onViewPublic}>
-            🌐 Buka Portal Publik
-          </button>
-          <button className="btn-logout" onClick={onLogout}>
-            Keluar (Logout) ➔
-          </button>
-        </div>
-      </div>
-
-      {/* Grid Statistik */}
-      <div className="admin-stats-grid">
-        <div className="admin-stat-card">
-          <div className="admin-stat-icon">🌾</div>
-          <div className="admin-stat-text">
-            <div className="num">{stats.total_komoditas}</div>
-            <div className="lbl">Total Komoditas Terdaftar</div>
-          </div>
-        </div>
-
-        <div className="admin-stat-card">
-          <div className="admin-stat-icon">🏬</div>
-          <div className="admin-stat-text">
-            <div className="num">{stats.total_pasar}</div>
-            <div className="lbl">Titik Pasar Rakyat Aktif</div>
-          </div>
-        </div>
-
-        <div className="admin-stat-card">
-          <div className="admin-stat-icon">🔒</div>
-          <div className="admin-stat-text">
-            <div className="num" style={{ fontSize: 18, color: "var(--green-700)" }}>
-              <span className="badge-secure-status">● Terotentikasi</span>
-            </div>
-            <div className="lbl">JWT Bearer &amp; Bcrypt Enkripsi</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Navigasi Tab Manajemen */}
-      <div className="admin-tabs">
-        <button
-          className={`admin-tab-btn ${activeTab === "komoditas" ? "active" : ""}`}
-          onClick={() => setActiveTab("komoditas")}
-        >
-          🌾 Manajemen Komoditas ({komoditasList.length})
-        </button>
-        <button
-          className={`admin-tab-btn ${activeTab === "pasar" ? "active" : ""}`}
-          onClick={() => setActiveTab("pasar")}
-        >
-          🏬 Manajemen Pasar ({pasarList.length})
-        </button>
-      </div>
-
-      {/* Konten Tab Komoditas */}
-      {activeTab === "komoditas" && (
-        <div className="admin-content-box">
-          <div className="admin-toolbar">
-            <h3>Daftar Data Komoditas Pangan</h3>
-            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-              <input
-                type="text"
-                className="form-input"
-                style={{ width: 240, padding: "8px 14px" }}
-                placeholder="Cari komoditas/pasar..."
-                value={searchAdmin}
-                onChange={(e) => setSearchAdmin(e.target.value)}
-              />
-              <button
-                className="btn-primary"
-                onClick={() => setIsAddModalOpen(true)}
-              >
-                + Tambah Komoditas
-              </button>
-            </div>
-          </div>
-
-          <div className="admin-table-wrap">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>No</th>
-                  <th>Nama Bahan Pokok</th>
-                  <th>Kategori</th>
-                  <th>Harga Saat Ini</th>
-                  <th>Satuan</th>
-                  <th>Lokasi Pasar</th>
-                  <th>Aksi Aman</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredKomoditas.length === 0 ? (
-                  <tr>
-                    <td colSpan="7" style={{ textAlign: "center", padding: 24, color: "var(--ink-soft)" }}>
-                      Belum ada data komoditas pangan yang sesuai.
-                    </td>
-                  </tr>
-                ) : (
-                  filteredKomoditas.map((item, idx) => (
-                    <tr key={item.id}>
-                      <td>{idx + 1}</td>
-                      <td><b>{item.nama_bahan}</b></td>
-                      <td><span className="badge-pill">{item.kategori || "-"}</span></td>
-                      <td style={{ fontWeight: 700, color: "var(--green-800)" }}>
-                        {formatRupiah(item.harga)}
-                      </td>
-                      <td>/{item.satuan}</td>
-                      <td>📍 {item.lokasi || "Semua Pasar"}</td>
-                      <td>
-                        <button
-                          className="btn-action-delete"
-                          onClick={() => handleHapusKomoditas(item.id, item.nama_bahan)}
-                        >
-                          🗑️ Hapus
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Konten Tab Pasar */}
-      {activeTab === "pasar" && (
-        <div className="admin-content-box">
-          <div className="admin-toolbar">
-            <h3>Daftar Pasar Rakyat Kabupaten Lamongan</h3>
-          </div>
-
-          <div className="admin-table-wrap">
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>No</th>
-                  <th>Nama Pasar</th>
-                  <th>Kecamatan</th>
-                  <th>Alamat</th>
-                  <th>Jam Operasional</th>
-                  <th>Aksi Aman</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pasarList.length === 0 ? (
-                  <tr>
-                    <td colSpan="6" style={{ textAlign: "center", padding: 24, color: "var(--ink-soft)" }}>
-                      Belum ada data pasar tercatat.
-                    </td>
-                  </tr>
-                ) : (
-                  pasarList.map((p, idx) => (
-                    <tr key={p.id}>
-                      <td>{idx + 1}</td>
-                      <td><b>{p.nama_pasar}</b></td>
-                      <td>{p.kecamatan || "-"}</td>
-                      <td>{p.alamat || "-"}</td>
-                      <td>{p.jam_operasional || "-"}</td>
-                      <td>
-                        <button
-                          className="btn-action-delete"
-                          onClick={() => handleHapusPasar(p.id, p.nama_pasar)}
-                        >
-                          🗑️ Hapus
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Tambah Komoditas */}
-      <TambahKomoditasModal
-        isOpen={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
-        token={token}
-        onSuccess={fetchDashboardData}
-        onNeedToast={onNeedToast}
-      />
-    </div>
-  );
-}
-
-/* ==============================================================================
-   KOMPONEN NAVBAR
-   ============================================================================== */
-function Navbar({
-  onOpenLogin,
-  isLoggedIn,
-  adminUser,
-  onGoToDashboard,
-  onGoToPublic,
-  currentView,
-  onLogout,
-}) {
-  return (
-    <header className="topbar">
-      <div className="brand" style={{ cursor: "pointer" }} onClick={onGoToPublic}>
-        <div className="logo">🌾</div>
-        <div className="name">
-          E-Pangan
-          <small>KAB. LAMONGAN</small>
-        </div>
-      </div>
-
-      <nav className="mainnav">
-        <a
-          href="#"
-          className={currentView === "public" ? "active" : ""}
-          onClick={(e) => {
-            e.preventDefault();
-            onGoToPublic();
-          }}
-        >
-          Beranda
-        </a>
-        <a href="#catalog-panel">Cari Harga</a>
-        <a href="#catalog-panel">Perbandingan Pasar</a>
-        <a
-          href="#"
-          onClick={(e) => {
-            e.preventDefault();
-            if (isLoggedIn) {
-              onGoToDashboard();
-            } else {
-              onOpenLogin();
-            }
-          }}
-        >
-          🛡️ Portal Admin {isLoggedIn ? "(Aktif)" : ""}
-        </a>
-      </nav>
-
-      <div className="topbar-right">
-        {isLoggedIn ? (
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <button
-              className="btn-login"
-              style={{ background: "var(--green-900)" }}
-              onClick={onGoToDashboard}
-            >
-              🛡️ Dashboard Admin ({adminUser?.username})
-            </button>
-            <button
-              className="btn-logout"
-              style={{ padding: "8px 12px", fontSize: 12.5 }}
-              onClick={onLogout}
-              title="Keluar dari akun admin"
-            >
-              Keluar
-            </button>
-          </div>
-        ) : (
-          <button className="btn-login" onClick={onOpenLogin}>
-            👤 Login Admin
-          </button>
-        )}
-      </div>
-    </header>
-  );
-}
-
-/* ==============================================================================
-   KOMPONEN HERO & LANDING PAGE
-   ============================================================================== */
-function Hero({ searchTerm, setSearchTerm, activeCategory, setActiveCategory }) {
-  return (
-    <section className="hero">
-      <h1>Pantau Harga Bahan Pokok Terkini di Pasar Kabupaten Lamongan</h1>
-      <p className="sub">
-        Cari dan bandingkan harga komoditas dari berbagai pasar di Lamongan secara real-time
-      </p>
-
-      <div className="search-panel">
-        <div className="search-row">
-          <input
-            className="search-input"
-            type="text"
-            placeholder="Ketik komoditas (contoh: Cabai Rawit Merah, Minyakita, Beras Premium...)"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <button
-            className="btn-solid"
-            type="button"
-            onClick={() =>
-              document.getElementById("catalog-panel")?.scrollIntoView({ behavior: "smooth" })
-            }
-          >
-            🔎 Cek Komoditas
-          </button>
-        </div>
-
-        <div className="chip-row">
-          {CATEGORIES.map((cat) => (
-            <button
-              key={cat.label}
-              type="button"
-              className={`chip${activeCategory === cat.label ? " active" : ""}`}
-              onClick={() => setActiveCategory(cat.label)}
-            >
-              {cat.icon ? `${cat.icon} ` : ""}
-              {cat.label}
-            </button>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function TrendPanel() {
-  return (
-    <div className="panel">
-      <div className="eyebrow">RANGKUMAN 7 HARI TERAKHIR</div>
-      <div className="trend-head">
-        <h2>Analisis Tren Fluktuasi Harga</h2>
-        <div className="select-commodity">🔍 Beras Medium IR-64 ▾</div>
-      </div>
-
-      <div className="price-today">
-        Harga Hari Ini: <b>Rp 13.000</b> per kilogram
-      </div>
-
-      <div className="chart-legend">
-        <span>
-          <span className="dot"></span>Kurva Dinamis 4 Titik Pantau Enumerator
-        </span>
-        <span>Skala Rupiah (IDR)</span>
-      </div>
-
-      <div className="chart-wrap">
-        <svg viewBox="0 0 760 220" width="100%" height="220" preserveAspectRatio="none">
-          <defs>
-            <linearGradient id="fillArea" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#1a8a4e" stopOpacity="0.18" />
-              <stop offset="100%" stopColor="#1a8a4e" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          <polygon points="40,150 280,115 520,60 720,55 720,210 40,210" fill="url(#fillArea)" />
-          <polyline
-            points="40,150 280,115 520,60 720,55"
-            fill="none"
-            stroke="#1a8a4e"
-            strokeWidth="3"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <circle cx="40" cy="150" r="6" fill="#fff" stroke="#1a8a4e" strokeWidth="3" />
-          <circle cx="280" cy="115" r="6" fill="#fff" stroke="#1a8a4e" strokeWidth="3" />
-          <circle cx="520" cy="60" r="6" fill="#fff" stroke="#1a8a4e" strokeWidth="3" />
-          <circle cx="720" cy="55" r="7" fill="#1a8a4e" stroke="#fff" strokeWidth="3" />
-
-          <text x="40" y="135" fontSize="13" fontWeight="700" fill="#14231a" textAnchor="middle">Rp 12.800</text>
-          <text x="280" y="100" fontSize="13" fontWeight="700" fill="#14231a" textAnchor="middle">Rp 12.900</text>
-          <text x="520" y="45" fontSize="13" fontWeight="700" fill="#14231a" textAnchor="middle">Rp 13.000</text>
-          <text x="700" y="38" fontSize="13" fontWeight="700" fill="#14231a" textAnchor="end">Rp 13.000</text>
-        </svg>
-      </div>
-
-      <div className="chart-labels">
-        <span>Senin</span>
-        <span>Rabu</span>
-        <span>Jumat</span>
-        <span className="now">Hari Ini</span>
-      </div>
-    </div>
-  );
-}
-
-function ProductCard({ product, onCompare }) {
-  return (
-    <div className="food-card">
-      <div className="thumb" style={{ backgroundImage: `url('${product.image}')` }}>
-        <span className={`badge ${product.badgeType}`}>{product.badge}</span>
-      </div>
-      <div className="body">
-        <div className="cat-label">{product.category}</div>
-        <div className="food-name">{product.name}</div>
-        <div className="market">📍 {product.market}</div>
-        <div className="price-row">
-          <span className="amt">{product.price}</span>
-          <span className="unit">{product.unit}</span>
-          <span className={`delta ${product.deltaType}`}>{product.delta}</span>
-        </div>
-        <button className="btn-compare" type="button" onClick={() => onCompare(product)}>
-          ↗ Bandingkan Harga
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function CatalogPanel({ products, onCompare }) {
-  return (
-    <div className="panel" id="catalog-panel" style={{ marginTop: 26 }}>
-      <div className="catalog-head">
-        <h2 style={{ marginBottom: 0 }}>Katalog Komoditas Pangan Populer</h2>
-        <a className="see-all" href="#catalog-panel">
-          Lihat Seluruh Komoditas →
-        </a>
-      </div>
-      <p className="catalog-sub">
-        Diperbarui berdasarkan rata-rata sampling enumerator di pasar wilayah Lamongan.
-      </p>
-
-      {products.length === 0 ? (
-        <p style={{ color: "var(--ink-soft)", fontSize: 14 }}>
-          Tidak ada komoditas yang cocok dengan pencarian/kategori ini.
-        </p>
-      ) : (
-        <div className="grid-cards">
-          {products.map((product) => (
-            <ProductCard key={product.id} product={product} onCompare={onCompare} />
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function BudgetCard({ familyIndex, setFamilyIndex, onOpenCalculator }) {
-  const selected = FAMILY_OPTIONS[familyIndex];
-  const estimate = selected.size * selected.perOrang;
-
-  return (
-    <div className="budget-card">
-      <span className="tag-new">FITUR DKPP LAMONGAN</span>
-      <h3>Smart Budgeting Pangan Bulanan</h3>
-      <p>
-        Rencanakan pengeluaran belanja bahan dapur keluarga Anda dengan rekomendasi cerdas anggaran pangan.
-      </p>
-
-      <div className="sim-box">
-        <div className="sim-label">SIMULASI CEPAT ANGGARAN:</div>
-        <div className="family-toggle">
-          {FAMILY_OPTIONS.map((opt, idx) => (
-            <button
-              key={opt.label}
-              type="button"
-              className={`family-btn${idx === familyIndex ? " active" : ""}`}
-              onClick={() => setFamilyIndex(idx)}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="sim-values">
-          <span>Keluarga ({selected.label})</span>
-          <span>~ {formatRupiah(estimate)}/bln</span>
-        </div>
-      </div>
-
-      <button className="btn-cta" type="button" onClick={onOpenCalculator}>
-        Buka Kalkulator Belanja →
-      </button>
-    </div>
-  );
-}
-
-function MapCard({ onNeedBackend }) {
-  return (
-    <button
-      className="map-card"
-      type="button"
-      onClick={() => onNeedBackend("Peta geospasial menampilkan titik sebaran pasar di Lamongan.")}
-    >
-      <div className="icon">📍</div>
-      <div className="txt">
-        <b>Peta Geospasial Pasar</b>
-        <span>Cek radius terdekat dari lokasi Anda</span>
-      </div>
-      <div className="arrow">→</div>
-    </button>
-  );
-}
-
-function Toast({ message }) {
-  if (!message) return null;
-  return <div className="toast">{message}</div>;
-}
-
-function Footer() {
-  return (
-    <footer>
-      <div className="footer-grid">
-        <div className="footer-brand">
-          <div className="brand">
-            <div className="logo">🌾</div>
-            <div className="name">
-              E-Pangan
-              <small>KAB. LAMONGAN</small>
-            </div>
-          </div>
-          <p>
-            Sistem Informasi Terpadu Pemantauan dan Stabilitas Harga Komoditas
-            Pangan Pokok Dinas Ketahanan Pangan dan Pertanian (DKPP) Kabupaten Lamongan.
-          </p>
-          <span className="ppid">PPID KABUPATEN LAMONGAN</span>
-        </div>
-
-        <div>
-          <h4>LAYANAN PUBLIK</h4>
-          <ul>
-            <li>Katalog Harga Harian</li>
-            <li>Peta Distribusi Pasar Rakyat</li>
-            <li>Simulasi Belanja Keluarga</li>
-            <li>Daftar Kios Binaan</li>
-          </ul>
-        </div>
-
-        <div>
-          <h4>HOTLINE SATGAS PANGAN</h4>
-          <div className="hotline-item">
-            📞 <span>Call Center Siaga:<br />0800-1-PANGAN-LA (0800-1-726426)</span>
-          </div>
-          <div className="hotline-item" style={{ marginTop: 10 }}>
-            💬 <span>WhatsApp Pelaporan:<br />+62 812-3456-7890 (24 Jam)</span>
-          </div>
-        </div>
-
-        <div>
-          <h4>INFORMASI PEMBARUAN</h4>
-          <p style={{ fontSize: 13, color: "var(--ink-soft)", lineHeight: 1.6, margin: 0 }}>
-            Data komoditas disinkronkan langsung dengan database pusat DKPP Lamongan.
-          </p>
-          <div className="status-box">
-            <div style={{ fontSize: 11.5, fontWeight: 700, color: "var(--ink-soft)" }}>
-              Status Keamanan Server:
-            </div>
-            <div className="status-live">
-              <span className="status-dot"></span>JWT Protected &amp; Active
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="footer-bottom">
-        <span>
-          © 2025 Pemerintah Kabupaten Lamongan — Dinas Ketahanan Pangan dan Pertanian.
-        </span>
-        <div className="links">
-          <a href="#">Kebijakan Privasi</a>
-          <a href="#">Ketentuan Layanan</a>
-        </div>
-      </div>
-    </footer>
-  );
-}
-
-/* ==============================================================================
-   KOMPONEN UTAMA (APP)
-   ============================================================================== */
+// ================= APP MAIN COMPONENT =================
 export default function App() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [activeCategory, setActiveCategory] = useState("Semua Komoditas");
-  const [familyIndex, setFamilyIndex] = useState(1);
-  const [toastMsg, setToastMsg] = useState("");
-
-  // Navigasi Tampilan ("public" atau "admin")
-  const [currentView, setCurrentView] = useState("public");
-
-  // State Autentikasi Admin
-  const [token, setToken] = useState(() => localStorage.getItem("epangan_admin_token"));
-  const [adminUser, setAdminUser] = useState(() => {
-    const saved = localStorage.getItem("epangan_admin_user");
-    return saved ? JSON.parse(saved) : null;
-  });
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
-
-  // Data Produk untuk Publik
   const [products, setProducts] = useState(INITIAL_PRODUCTS);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("Semua Komoditas");
+  const [selectedMarketFilter, setSelectedMarketFilter] = useState("Semua Pasar");
+  const [sortOption, setSortOption] = useState("default");
 
-  const showToast = (msg) => {
-    setToastMsg(msg);
-    window.clearTimeout(showToast._t);
-    showToast._t = window.setTimeout(() => setToastMsg(""), 3500);
-  };
+  const [activePage, setActivePage] = useState("dashboard"); // 'dashboard' | 'login' | 'admin-dashboard' | 'smart-budgeting'
 
-  // Validasi keaslian token admin saat aplikasi pertama kali dimuat
-  useEffect(() => {
-    if (token) {
-      fetch(`${API_BASE_URL}/auth/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-        .then((res) => {
-          if (!res.ok) {
-            // Token kedaluwarsa atau tidak sah
-            handleLogout();
-          }
-        })
-        .catch(() => {
-          // Jika server backend offline
-        });
+  const [viewMode, setViewMode] = useState("grid");
+  const [trendCommodityName, setTrendCommodityName] = useState("Beras Medium IR-64");
+  const [timeframe, setTimeframe] = useState("7 Hari");
+  const [compareProduct, setCompareProduct] = useState(null);
+  const [isMarketDirectoryOpen, setIsMarketDirectoryOpen] = useState(false);
+  const [toast, setToast] = useState(null);
+  const toastTimerRef = useRef(null);
+
+  const showToast = useCallback((message, type = "info") => {
+    setToast({ message, type });
+    if (toastTimerRef.current) {
+      window.clearTimeout(toastTimerRef.current);
     }
-  }, [token]);
-
-  // Mengambil data komoditas publik dari backend
-  const fetchPublicProducts = () => {
-    fetch(`${API_BASE_URL}/komoditas`)
-      .then((res) => res.json())
-      .then((result) => {
-        const rawData = result.data || result;
-        if (Array.isArray(rawData) && rawData.length > 0) {
-          const mappedData = rawData.map((item) => ({
-            id: item.id,
-            name: item.nama_bahan,
-            category: item.kategori || "KEBUTUHAN POKOK",
-            price: typeof item.harga === "number" ? formatRupiah(item.harga) : item.harga,
-            unit: item.satuan ? (item.satuan.startsWith("/") ? item.satuan : `/${item.satuan}`) : "/kg",
-            market: item.lokasi || "Pasar Lamongan",
-            badge: "Harga Stabil",
-            badgeType: "stable",
-            delta: "Stabil (0.0%)",
-            deltaType: "flat",
-            image: "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=500",
-          }));
-          setProducts(mappedData);
-        }
-      })
-      .catch((err) => console.error("Error fetching public data:", err));
-  };
-
-  useEffect(() => {
-    fetchPublicProducts();
+    toastTimerRef.current = window.setTimeout(() => setToast(null), 3500);
   }, []);
 
-  const handleLoginSuccess = (newToken, newUser) => {
-    setToken(newToken);
-    setAdminUser(newUser);
-    setIsLoginModalOpen(false);
-    setCurrentView("admin");
-    showToast(`Selamat datang kembali, ${newUser.username}! Anda berhasil masuk.`);
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem("epangan_admin_token");
-    localStorage.removeItem("epangan_admin_user");
-    setToken(null);
-    setAdminUser(null);
-    setCurrentView("public");
-    showToast("Anda telah keluar dari akun admin.");
-  };
-
-  // Proteksi Akses Dashboard: Hanya jika memiliki token sah
-  const handleOpenDashboard = () => {
-    if (!token) {
-      showToast("Akses Ditolak: Anda harus login sebagai admin terlebih dahulu!");
-      setIsLoginModalOpen(true);
-      return;
-    }
-    setCurrentView("admin");
-  };
-
   const filteredProducts = useMemo(() => {
-    return products.filter((p) => {
-      const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
-      if (!matchesSearch) return false;
+    return products
+      .filter((product) => {
+        const matchesSearch =
+          product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          product.category.toLowerCase().includes(searchTerm.toLowerCase());
+        if (!matchesSearch) return false;
 
-      if (activeCategory === "Semua Komoditas") return true;
-      const allowed = CATEGORY_MAP[activeCategory] || [];
-      return allowed.includes(p.category);
-    });
-  }, [searchTerm, activeCategory, products]);
+        if (selectedCategory !== "Semua Komoditas") {
+          const categoryObj = CATEGORIES.find((c) => c.label === selectedCategory);
+          if (categoryObj && categoryObj.categoryKey && product.category !== categoryObj.categoryKey) {
+            return false;
+          }
+        }
 
-  return (
-    <div className="app">
-      <Toast message={toastMsg} />
+        if (selectedMarketFilter !== "Semua Pasar") {
+          if (!product.market.toLowerCase().includes(selectedMarketFilter.toLowerCase())) {
+            return false;
+          }
+        }
 
-      <Navbar
-        onOpenLogin={() => setIsLoginModalOpen(true)}
-        isLoggedIn={!!token}
-        adminUser={adminUser}
-        onGoToDashboard={handleOpenDashboard}
-        onGoToPublic={() => setCurrentView("public")}
-        currentView={currentView}
-        onLogout={handleLogout}
+        return true;
+      })
+      .sort((a, b) => {
+        if (sortOption === "price-low") return a.price - b.price;
+        if (sortOption === "price-high") return b.price - a.price;
+        if (sortOption === "name") return a.name.localeCompare(b.name);
+        return 0;
+      });
+  }, [products, searchTerm, selectedCategory, selectedMarketFilter, sortOption]);
+
+  const currentTrend = COMMODITY_TREND_DATA[trendCommodityName] || COMMODITY_TREND_DATA["Beras Medium IR-64"];
+
+  // 1. Tampilan Login Petugas
+  if (activePage === "login" || activePage === "admin-login") {
+    return (
+      <AdminLogin
+        setActivePage={setActivePage}
+        onLoginSuccess={() => {
+          showToast("Berhasil login sebagai petugas!", "success");
+          setActivePage("admin-dashboard");
+        }}
+        onBackToPublic={() => setActivePage("dashboard")}
       />
+    );
+  }
 
-      {/* JIKA CURRENT VIEW = ADMIN (DAN SUDAH TERVERIFIKASI LOGIN) */}
-      {currentView === "admin" && token ? (
-        <AdminDashboard
-          token={token}
-          adminUser={adminUser}
-          onLogout={handleLogout}
-          onViewPublic={() => {
-            setCurrentView("public");
-            fetchPublicProducts();
-          }}
-          onNeedToast={showToast}
+  // 2. Tampilan Dashboard Admin / Petugas
+  if (activePage === "admin-dashboard") {
+    return (
+      <AdminDashboard
+        setActivePage={setActivePage}
+        showToast={showToast}
+        products={products}
+        setProducts={setProducts}
+      />
+    );
+  }
+
+  // 3. Tampilan Utama (Publik / Smart Budgeting)
+  return (
+    <div className="app-container">
+      {/* Toast Notification */}
+      {toast && (
+        <div className="toast-container">
+          <div className="toast-box">
+            <span className="toast-dot"></span>
+            <span>{toast.message}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Navigasi Header */}
+      <Navbar activePage={activePage} setActivePage={setActivePage} showToast={showToast} />
+
+      {/* Tampilan Halaman Smart Budgeting / Dashboard Utama */}
+      {activePage === "smart-budgeting" ? (
+        <SmartBudgetting
+          onBack={() => setActivePage("dashboard")}
+          onNavigate={(page) => setActivePage(page)}
         />
       ) : (
-        /* TAMPILAN BERANDA PUBLIK (WARGA / MASYARAKAT UMUM) */
         <>
-          <Hero
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-            activeCategory={activeCategory}
-            setActiveCategory={setActiveCategory}
-          />
+          {/* Hero Section */}
+          <section className="hero-wrapper" id="beranda">
+            <div className="hero-content">
+              <div className="hero-pill">
+                <ShieldCheck size={15} />
+                <span>SISTEM INFORMASI STABILITAS HARGA PANGAN DAERAH</span>
+              </div>
+              <h1 className="hero-title">
+                Pantau &amp; Bandingkan <span className="gradient-text">Harga Pangan Pokok</span> Terkini di Lamongan
+              </h1>
+              <p className="hero-desc">
+                Akses data fluktuasi komoditas pangan harian dari enumerator resmi Dinas Ketahanan Pangan
+                dan Pertanian (DKPP) di 14 pasar rakyat se-Kabupaten Lamongan secara transparan &amp; akurat.
+              </p>
 
-          <div className="content">
-            <div>
-              <TrendPanel />
-              <CatalogPanel
-                products={filteredProducts}
-                onCompare={(product) =>
-                  showToast(`Perbandingan harga "${product.name}" antar pasar sedang dimuat...`)
-                }
-              />
+              {/* Panel Cari & Filter */}
+              <div className="search-command-panel">
+                <div className="search-command-row">
+                  <div className="search-input-box">
+                    <Search size={18} color="var(--slate-400)" />
+                    <input
+                      type="text"
+                      placeholder="Cari komoditas... (contoh: Beras Medium, Cabai Rawit, Minyakita)"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                    {searchTerm && (
+                      <button onClick={() => setSearchTerm("")} style={{ color: "var(--slate-400)" }}>
+                        <X size={16} />
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="select-filter-box">
+                    <Store size={16} color="var(--primary-700)" />
+                    <select
+                      value={selectedMarketFilter}
+                      onChange={(e) => setSelectedMarketFilter(e.target.value)}
+                    >
+                      <option value="Semua Pasar">Semua Pasar Rakyat</option>
+                      <option value="Pasar Babat">Pasar Babat</option>
+                      <option value="Pasar Sidoharjo">Pasar Sidoharjo</option>
+                      <option value="Pasar Agrobis Babat">Pasar Agrobis Babat</option>
+                      <option value="Pasar Mantup">Pasar Mantup</option>
+                      <option value="Pasar Brondong">Pasar Brondong</option>
+                    </select>
+                  </div>
+
+                  <div className="select-filter-box">
+                    <ArrowUpDown size={16} color="var(--primary-700)" />
+                    <select value={sortOption} onChange={(e) => setSortOption(e.target.value)}>
+                      <option value="default">Urutan Default</option>
+                      <option value="price-low">Harga Termurah</option>
+                      <option value="price-high">Harga Tertinggi</option>
+                      <option value="name">Nama Komoditas (A-Z)</option>
+                    </select>
+                  </div>
+
+                  <button
+                    className="btn-search-action"
+                    onClick={() => {
+                      document.getElementById("katalog-pasar")?.scrollIntoView({ behavior: "smooth" });
+                    }}
+                  >
+                    <span>Lihat Hasil</span>
+                    <ArrowRight size={16} />
+                  </button>
+                </div>
+
+                <div className="category-chips-row">
+                  {CATEGORIES.map((cat) => (
+                    <button
+                      key={cat.label}
+                      className={`cat-chip${selectedCategory === cat.label ? " active" : ""}`}
+                      onClick={() => setSelectedCategory(cat.label)}
+                    >
+                      <span>{cat.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Hero Stats */}
+              <div className="hero-stats-row">
+                <div className="hero-stat-card">
+                  <div className="stat-icon-wrapper">
+                    <BarChart3 size={22} />
+                  </div>
+                  <div className="stat-info">
+                    <span className="stat-value">Rp 13.000</span>
+                    <span className="stat-label">Rata-rata Beras IR-64/kg</span>
+                  </div>
+                </div>
+
+                <div className="hero-stat-card">
+                  <div className="stat-icon-wrapper blue">
+                    <TrendingDown size={22} />
+                  </div>
+                  <div className="stat-info">
+                    <span className="stat-value">-0.4%</span>
+                    <span className="stat-label">Indeks Inflasi Terkendali</span>
+                  </div>
+                </div>
+
+                <div className="hero-stat-card">
+                  <div className="stat-icon-wrapper amber">
+                    <Store size={22} />
+                  </div>
+                  <div className="stat-info">
+                    <span className="stat-value">Pasar Babat</span>
+                    <span className="stat-label">Pasar Terhemat Hari Ini</span>
+                  </div>
+                </div>
+
+                <div className="hero-stat-card">
+                  <div className="stat-icon-wrapper rose">
+                    <ShieldCheck size={22} />
+                  </div>
+                  <div className="stat-info">
+                    <span className="stat-value">14 Pasar Pantau</span>
+                    <span className="stat-label">Enumerator Lapangan Aktif</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Main Layout Content */}
+          <main className="main-layout">
+            <div className="left-stack">
+              {/* Tren Harga */}
+              <section className="panel-card" id="tren-harga">
+                <div className="panel-header-row">
+                  <div>
+                    <div className="panel-eyebrow">
+                      <BarChart3 size={14} />
+                      <span>MONITORING MULTI-TITIK DINAS KETAHANAN PANGAN</span>
+                    </div>
+                    <h2 className="panel-title">Analisis Tren Fluktuasi Harga Komoditas</h2>
+                    <p className="panel-sub">
+                      Kurva pergerakan harga 7 hari terakhir berdasarkan sampling pedagang los.
+                    </p>
+                  </div>
+
+                  <div className="trend-controls-row">
+                    <div className="select-commodity-btn">
+                      <select
+                        value={trendCommodityName}
+                        onChange={(e) => setTrendCommodityName(e.target.value)}
+                      >
+                        {Object.keys(COMMODITY_TREND_DATA).map((name) => (
+                          <option key={name} value={name}>
+                            {name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="timeframe-pill-group">
+                      {["7 Hari", "14 Hari", "30 Hari"].map((tf) => (
+                        <button
+                          key={tf}
+                          className={`timeframe-btn${timeframe === tf ? " active" : ""}`}
+                          onClick={() => setTimeframe(tf)}
+                        >
+                          {tf}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="price-metric-banner">
+                  <div className="price-metric-left">
+                    <span className="price-metric-label">Harga Hari Ini ({currentTrend.category}):</span>
+                    <div className="price-metric-highlight">
+                      <span className="amount">{formatRupiah(currentTrend.todayPrice)}</span>
+                      <span className="unit">per {currentTrend.unit}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="chart-container-box">
+                  <InteractiveSvgChart dataPoints={currentTrend.points} />
+                </div>
+              </section>
+
+              {/* Katalog Komoditas */}
+              <section className="panel-card" id="katalog-pasar">
+                <div className="catalog-toolbar">
+                  <div>
+                    <h2 className="panel-title" style={{ marginBottom: 4 }}>
+                      Katalog Komoditas Pangan Populer
+                    </h2>
+                    <div className="catalog-counter-text">
+                      Menampilkan <strong>{filteredProducts.length}</strong> bahan pangan terpantau
+                    </div>
+                  </div>
+
+                  <div className="view-mode-toggle">
+                    <button
+                      className={`view-btn${viewMode === "grid" ? " active" : ""}`}
+                      onClick={() => setViewMode("grid")}
+                    >
+                      <Grid size={17} />
+                    </button>
+                    <button
+                      className={`view-btn${viewMode === "list" ? " active" : ""}`}
+                      onClick={() => setViewMode("list")}
+                    >
+                      <List size={17} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className={`commodity-grid ${viewMode === "list" ? "list-view" : ""}`}>
+                  {filteredProducts.map((product) => (
+                    <CommodityCard
+                      key={product.id}
+                      product={product}
+                      onCompare={(prod) => setCompareProduct(prod)}
+                    />
+                  ))}
+                </div>
+              </section>
             </div>
 
-            <div className="side-stack">
-              <BudgetCard
-                familyIndex={familyIndex}
-                setFamilyIndex={setFamilyIndex}
-                onOpenCalculator={() =>
-                  showToast("Kalkulator Smart Budgeting siap digunakan.")
-                }
-              />
-              <MapCard onNeedBackend={showToast} />
+            {/* Sidebar Right */}
+            <aside className="sidebar-stack">
+              <div className="sidebar-card-budget">
+                <div className="sidebar-badge-new">
+                  <Sparkles size={12} />
+                  <span>FITUR BARU DKPP</span>
+                </div>
+                <h3 className="sidebar-card-title">Smart Budgeting Pangan Bulanan</h3>
+                <p className="sidebar-card-desc">
+                  Rencanakan anggaran belanja bahan dapur keluarga Anda. Dapatkan rekomendasi pasar dengan harga termurah.
+                </p>
+
+                <button
+                  className="btn-open-calculator"
+                  onClick={() => setActivePage("smart-budgeting")}
+                >
+                  <Calculator size={17} />
+                  <span>Buka Halaman Smart Budgeting →</span>
+                </button>
+              </div>
+
+              <button className="sidebar-action-card" onClick={() => setIsMarketDirectoryOpen(true)}>
+                <div className="action-card-icon">
+                  <MapPin size={22} />
+                </div>
+                <div className="action-card-text">
+                  <div className="action-card-title">Direktori Pasar</div>
+                  <div className="action-card-sub">14 titik pasar tradisional Lamongan</div>
+                </div>
+                <ChevronRight size={18} />
+              </button>
+            </aside>
+          </main>
+
+          {/* Footer */}
+          <footer className="main-footer">
+            <div className="footer-bottom-bar">
+              <span>© 2026 Pemerintah Kabupaten Lamongan — DKPP.</span>
             </div>
-          </div>
+          </footer>
         </>
       )}
 
-      <Footer />
+      {/* Modal Bandingkan Pasar */}
+      {compareProduct && (
+        <MarketCompareModal product={compareProduct} onClose={() => setCompareProduct(null)} />
+      )}
 
-      {/* Modal Dialog Login Admin */}
-      <LoginModal
-        isOpen={isLoginModalOpen}
-        onClose={() => setIsLoginModalOpen(false)}
-        onLoginSuccess={handleLoginSuccess}
-      />
+      {/* Modal Direktori Pasar */}
+      {isMarketDirectoryOpen && (
+        <MarketDirectoryModal markets={MARKETS_LIST} onClose={() => setIsMarketDirectoryOpen(false)} />
+      )}
+    </div>
+  );
+}
+
+// ================= SUB KOMPONEN =================
+
+function CommodityCard({ product, onCompare }) {
+  return (
+    <div className="commodity-card">
+      <div className="card-thumb-wrap">
+        <img src={product.image} alt={product.name} className="card-thumb-img" loading="lazy" />
+      </div>
+
+      <div className="card-body">
+        <div className="card-cat-label">{product.category}</div>
+        <h3 className="card-title">{product.name}</h3>
+
+        <div className="card-market-location">
+          <MapPin size={13} color="var(--primary-600)" />
+          <span>{product.market}</span>
+        </div>
+
+        <div className="card-price-row">
+          <span className="card-price-amt">{formatRupiah(product.price)}</span>
+          <span className="card-price-unit">{product.unit}</span>
+        </div>
+
+        <button className="btn-card-compare" onClick={() => onCompare(product)}>
+          <SlidersHorizontal size={14} />
+          <span>Bandingkan Pasar</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function InteractiveSvgChart({ dataPoints }) {
+  if (!dataPoints || dataPoints.length === 0) return null;
+
+  const width = 760;
+  const height = 180;
+  const paddingX = 40;
+  const paddingTop = 20;
+  const paddingBottom = 30;
+
+  const prices = dataPoints.map((d) => d.price);
+  const minPrice = Math.min(...prices) * 0.98;
+  const maxPrice = Math.max(...prices) * 1.02;
+
+  const getX = (index) => paddingX + (index * (width - 2 * paddingX)) / (dataPoints.length - 1);
+  const getY = (val) => {
+    const ratio = (val - minPrice) / (maxPrice - minPrice || 1);
+    return height - paddingBottom - ratio * (height - paddingTop - paddingBottom);
+  };
+
+  const pointsCoordinates = dataPoints.map((d, i) => ({
+    x: getX(i),
+    y: getY(d.price),
+    ...d,
+  }));
+
+  const pathD = pointsCoordinates.reduce((acc, pt, i) => {
+    return i === 0 ? `M ${pt.x},${pt.y}` : `${acc} L ${pt.x},${pt.y}`;
+  }, "");
+
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} className="chart-svg-interactive">
+      <path d={pathD} fill="none" stroke="var(--primary-600)" strokeWidth="3" />
+      {pointsCoordinates.map((pt, i) => (
+        <circle key={i} cx={pt.x} cy={pt.y} r={4} fill="var(--primary-600)" />
+      ))}
+    </svg>
+  );
+}
+
+function MarketCompareModal({ product, onClose }) {
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content-box" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3 className="modal-title">Perbandingan Harga Antar Pasar</h3>
+          <button className="btn-close-modal" onClick={onClose}>
+            <X size={20} />
+          </button>
+        </div>
+        <div className="modal-body">
+          <p>
+            Harga komoditas <strong>{product.name}</strong> di beberapa pasar Lamongan:
+          </p>
+          <ul>
+            {product.marketPrices?.map((m, idx) => (
+              <li key={idx}>
+                {m.market}: <strong>{formatRupiah(m.price)}</strong> ({m.note})
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MarketDirectoryModal({ markets, onClose }) {
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content-box" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3 className="modal-title">Direktori Pasar Rakyat</h3>
+          <button className="btn-close-modal" onClick={onClose}>
+            <X size={20} />
+          </button>
+        </div>
+        <div className="modal-body">
+          {markets.map((m, idx) => (
+            <div key={idx} style={{ marginBottom: "12px" }}>
+              <strong>{m.name}</strong> - {m.address}
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
