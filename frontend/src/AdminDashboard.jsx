@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
     Bell,
     HelpCircle,
@@ -25,80 +25,98 @@ import {
     ShieldCheck,
 } from "lucide-react";
 
+import { getSurveiHarga, updateSurveiHarga, hapusSurveiHarga, getDashboardRingkasan, getCurrentUser, logoutPetugas } from "./api";
+
 export default function AdminDashboard({ setActivePage, showToast, products, setProducts }) {
-    // State Filter & Form Input Sederhana
+    // State Filter & Form Input
     const [activeTab, setActiveTab] = useState("Ringkasan Pasar");
     const [searchTerm, setSearchTerm] = useState("");
-    const [statusFilter, setStatusFilter] = useState("semua"); // 'semua' | 'pending'
+    const [statusFilter, setStatusFilter] = useState("semua");
 
-    // Data Dummy Tabel Hasil Survei/Input Lapangan (Sesuai gambar 2)
-    const [surveyLogs, setSurveyLogs] = useState([
-        {
-            id: 1,
-            name: "Beras Medium (IR 64)",
-            subtitle: "Kualitas Bulog Premium",
-            kios: "Kios Bu Siti",
-            lokasi: "Pasar Babat (Blok A-12)",
-            price: 13000,
-            unit: "kg",
-            priceNote: "Sesuai HET",
-            time: "08:45 WIB",
-            type: "Input Langsung",
-            status: "Terverifikasi",
-        },
-        {
-            id: 2,
-            name: "Gula Pasir Curah",
-            subtitle: "Tebu Kristal Putih",
-            kios: "Kios Barokah",
-            lokasi: "Pasar Sukodadi (Kav. B-04)",
-            price: 18000,
-            unit: "kg",
-            priceNote: "Stabil",
-            time: "09:12 WIB",
-            type: "Modul NLP",
-            status: "Terverifikasi",
-        },
-        {
-            id: 3,
-            name: "Minyak Goreng Sawit",
-            subtitle: "Minyakita Kemasan 1L",
-            kios: "Kios Makmur",
-            lokasi: "Pasar Babat (Stan Sayur 3)",
-            price: 17500,
-            unit: "liter",
-            priceNote: "+12% di atas HET",
-            time: "09:28 WIB",
-            type: "Modul NLP",
-            status: "Menunggu Cek",
-        },
-        {
-            id: 4,
-            name: "Cabai Rawit Merah",
-            subtitle: "Kualitas Grade Super",
-            kios: "Kios Sumber Rejeki",
-            lokasi: "Pasar Babat (Blok C-01)",
-            price: 42000,
-            unit: "kg",
-            priceNote: "Turun Rp2.000",
-            time: "07:50 WIB",
-            type: "Input Langsung",
-            status: "Terverifikasi",
-        },
-    ]);
+    // State data dari backend
+    const [surveyLogs, setSurveyLogs] = useState([]);
+    const [dashboardData, setDashboardData] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [loadError, setLoadError] = useState("");
 
-    // Handle Validasi
-    const handleValidate = (id) => {
-        setSurveyLogs((prev) =>
-            prev.map((item) => (item.id === id ? { ...item, status: "Terverifikasi" } : item))
-        );
-        if (showToast) showToast("Data berhasil divalidasi!", "success");
+    // Info user dari localStorage (disimpan saat login)
+    const currentUser = getCurrentUser();
+
+    // Helper: konversi format API → format JSX yang dipakai komponen ini
+    const mapSurvei = (item) => ({
+        id: item.id,
+        name: item.nama_komoditas,
+        subtitle: item.kualitas_mutu || "-",
+        kios: item.nama_kios,
+        lokasi: `${item.lokasi_pasar}${item.blok_stan ? " (" + item.blok_stan + ")" : ""}`,
+        price: item.harga,
+        unit: item.satuan,
+        priceNote: item.status_het || "-",
+        time: item.waktu_survei || "-",
+        type: item.metode_input || "Input Langsung",
+        status: item.status_verifikasi || "Terverifikasi",
+    });
+
+    // Fetch data survei dari backend
+    const fetchSurvei = useCallback(async () => {
+        setIsLoading(true);
+        setLoadError("");
+        try {
+            const filter = statusFilter === "pending" ? "Menunggu Cek" : "";
+            const res = await getSurveiHarga({ search: searchTerm, status_verifikasi: filter });
+            const items = (res.data || res || []).map(mapSurvei);
+            setSurveyLogs(items);
+        } catch (err) {
+            setLoadError(err.message || "Gagal memuat data survei.");
+        } finally {
+            setIsLoading(false);
+        }
+    }, [searchTerm, statusFilter]);
+
+    // Fetch ringkasan dashboard
+    const fetchDashboard = useCallback(async () => {
+        try {
+            const res = await getDashboardRingkasan();
+            setDashboardData(res);
+        } catch {
+            // Tidak kritis, biarkan dashboard tetap tampil
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchSurvei();
+        fetchDashboard();
+    }, [fetchSurvei, fetchDashboard]);
+
+    // Validasi item → update status di backend
+    const handleValidate = async (id) => {
+        try {
+            await updateSurveiHarga(id, { status_verifikasi: "Terverifikasi" });
+            setSurveyLogs((prev) =>
+                prev.map((item) => (item.id === id ? { ...item, status: "Terverifikasi" } : item))
+            );
+            if (showToast) showToast("Data berhasil divalidasi!", "success");
+        } catch (err) {
+            if (showToast) showToast("Gagal validasi: " + err.message, "error");
+        }
     };
 
-    // Handle Delete Log
-    const handleDeleteLog = (id) => {
-        setSurveyLogs((prev) => prev.filter((item) => item.id !== id));
-        if (showToast) showToast("Catatan survei dihapus", "info");
+    // Hapus item → delete di backend
+    const handleDeleteLog = async (id) => {
+        try {
+            await hapusSurveiHarga(id);
+            setSurveyLogs((prev) => prev.filter((item) => item.id !== id));
+            if (showToast) showToast("Catatan survei dihapus", "info");
+        } catch (err) {
+            if (showToast) showToast("Gagal hapus: " + err.message, "error");
+        }
+    };
+
+    // Logout
+    const handleLogout = () => {
+        logoutPetugas();
+        if (showToast) showToast("Berhasil logout");
+        setActivePage("dashboard");
     };
 
     const filteredLogs = surveyLogs.filter((item) => {

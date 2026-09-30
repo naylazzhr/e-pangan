@@ -1,20 +1,15 @@
 import React, { useState } from "react";
 import { User, Lock, ShieldCheck, Eye, EyeOff, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { loginPetugas } from "./api";
 
 export default function AdminLogin({ setActivePage, showToast }) {
-    // Akun Admin / Petugas Default
-    const DEFAULT_CREDENTIALS = {
-        identifier: "petugas1@gmail.com",
-        password: "hanyaadmin"
-    };
-
-    const [identifier, setIdentifier] = useState(DEFAULT_CREDENTIALS.identifier);
-    const [password, setPassword] = useState(DEFAULT_CREDENTIALS.password);
+    const [identifier, setIdentifier] = useState("");
+    const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         setErrorMessage("");
 
@@ -24,22 +19,17 @@ export default function AdminLogin({ setActivePage, showToast }) {
         }
 
         setIsLoading(true);
-
-        setTimeout(() => {
-            setIsLoading(false);
-
-            if (
-                (identifier === DEFAULT_CREDENTIALS.identifier || identifier === "petugas1") &&
-                password === DEFAULT_CREDENTIALS.password
-            ) {
-                if (showToast) showToast("Berhasil masuk ke Portal Admin!");
-                setActivePage("admin-dashboard");
-            } else {
-                setErrorMessage("Email/Username atau kata sandi tidak sesuai.");
-            }
+        try {
+            await loginPetugas(identifier, password);
+            if (showToast) showToast("Berhasil masuk ke Portal Admin!");
             setActivePage("admin-dashboard");
-        }, 800);
+        } catch (err) {
+            setErrorMessage(err.message || "Email/Username atau kata sandi tidak sesuai.");
+        } finally {
+            setIsLoading(false);
+        }
     };
+
 
     return (
         <div className="container py-5 d-flex justify-content-center align-items-center" style={{ minHeight: "85vh" }}>
