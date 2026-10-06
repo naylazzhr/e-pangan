@@ -200,7 +200,13 @@ export default function AdminDashboard({ setActivePage, showToast, products, set
                             return (
                                 <button
                                     key={menu.name}
-                                    onClick={() => setActiveTab(menu.name)}
+                                    onClick={() => {
+                                        if (menu.name === "Manajemen Kios") {
+                                            setActivePage("detail-kios");
+                                        } else {
+                                            setActiveTab(menu.name);
+                                        }
+                                    }}
                                     style={{
                                         display: "flex",
                                         alignItems: "center",
@@ -647,7 +653,10 @@ export default function AdminDashboard({ setActivePage, showToast, products, set
                                 </p>
                                 <div style={{ borderTop: "1px solid #f1f5f9", marginTop: "12px", paddingTop: "10px", display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "11px" }}>
                                     <span style={{ color: "#64748b" }}>100% Berizin Pemkab</span>
-                                    <button style={{ background: "none", border: "none", color: "#047857", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "2px" }}>
+                                    <button
+                                        onClick={() => setActivePage && setActivePage("detail-kios")}
+                                        style={{ background: "none", border: "none", color: "#047857", fontWeight: "700", cursor: "pointer", display: "flex", alignItems: "center", gap: "2px" }}
+                                    >
                                         Kelola Kios <ChevronRight size={14} />
                                     </button>
                                 </div>

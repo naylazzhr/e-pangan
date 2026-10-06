@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback, useRef } from "react";
 import "./App.css";
 import Navbar from "./Navbar";
 import SmartBudgetting from "./SmartBudgetting";
+import DetailKios from "./DetailKios";
 import AdminLogin from "./AdminLogin";
 import AdminDashboard from "./AdminDashboard";
 import {
@@ -243,11 +244,69 @@ const COMMODITY_TREND_DATA = {
 };
 
 const MARKETS_LIST = [
-  { name: "Pasar Babat", address: "Jl. Raya Babat No. 45, Babat, Lamongan" },
-  { name: "Pasar Sidoharjo", address: "Jl. Sukomulyo No. 12, Sidoharjo, Lamongan" },
-  { name: "Pasar Agrobis Babat", address: "Kawasan Agrobisnis Babat, Lamongan" },
-  { name: "Pasar Mantup", address: "Jl. Raya Mantup, Kec. Mantup, Lamongan" },
-  { name: "Pasar Brondong", address: "Kawasan Pesisir Pelabuhan Brondong, Lamongan" },
+  {
+    name: "Pasar Babat",
+    address: "Jl. Raya Babat No. 12, Babat, Lamongan",
+    lat: -7.1126,
+    lon: 112.1634,
+    maps: "https://www.google.com/maps/search/?api=1&query=-7.1126,112.1634",
+    rute: "https://www.google.com/maps/dir/?api=1&destination=-7.1126,112.1634",
+    kategori: "Pasar Perdagangan Barat"
+  },
+  {
+    name: "Pasar Sidoharjo",
+    address: "Jl. Pahlawan, Sidoharjo, Kec. Lamongan",
+    lat: -7.1205,
+    lon: 112.4152,
+    maps: "https://www.google.com/maps/search/?api=1&query=-7.1205,112.4152",
+    rute: "https://www.google.com/maps/dir/?api=1&destination=-7.1205,112.4152",
+    kategori: "Pasar Induk Pusat Kota"
+  },
+  {
+    name: "Pasar Sukodadi",
+    address: "Jl. Raya Sukodadi No. 8, Sukodadi, Lamongan",
+    lat: -7.1082,
+    lon: 112.3354,
+    maps: "https://www.google.com/maps/search/?api=1&query=-7.1082,112.3354",
+    rute: "https://www.google.com/maps/dir/?api=1&destination=-7.1082,112.3354",
+    kategori: "Pasar Tradisional Terpadu"
+  },
+  {
+    name: "Pasar Agrobis Babat",
+    address: "Kawasan Agrobisnis Babat, Babat, Lamongan",
+    lat: -7.1095,
+    lon: 112.1720,
+    maps: "https://www.google.com/maps/search/?api=1&query=-7.1095,112.1720",
+    rute: "https://www.google.com/maps/dir/?api=1&destination=-7.1095,112.1720",
+    kategori: "Grosir Pertanian"
+  },
+  {
+    name: "Pasar Mantup",
+    address: "Jl. Raya Mantup, Kec. Mantup, Lamongan",
+    lat: -7.2415,
+    lon: 112.3582,
+    maps: "https://www.google.com/maps/search/?api=1&query=-7.2415,112.3582",
+    rute: "https://www.google.com/maps/dir/?api=1&destination=-7.2415,112.3582",
+    kategori: "Pasar Komoditas Selatan"
+  },
+  {
+    name: "Pasar Brondong",
+    address: "Jl. Raya Brondong - Tuban, Brondong, Lamongan",
+    lat: -6.8924,
+    lon: 112.2856,
+    maps: "https://www.google.com/maps/search/?api=1&query=-6.8924,112.2856",
+    rute: "https://www.google.com/maps/dir/?api=1&destination=-6.8924,112.2856",
+    kategori: "Pasar Pesisir & Ikan Segar"
+  },
+  {
+    name: "Pasar Blimbing",
+    address: "Jl. Raya Daendels, Paciran, Lamongan",
+    lat: -6.8781,
+    lon: 112.3524,
+    maps: "https://www.google.com/maps/search/?api=1&query=-6.8781,112.3524",
+    rute: "https://www.google.com/maps/dir/?api=1&destination=-6.8781,112.3524",
+    kategori: "Logistik Perikanan Pantura"
+  }
 ];
 
 function formatRupiah(amount) {
@@ -356,8 +415,14 @@ export default function App() {
       {/* Navigasi Header */}
       <Navbar activePage={activePage} setActivePage={setActivePage} showToast={showToast} />
 
-      {/* Tampilan Halaman Smart Budgeting / Dashboard Utama */}
-      {activePage === "smart-budgeting" ? (
+      {/* Tampilan Halaman Detail Kios / Smart Budgeting / Dashboard Utama */}
+      {activePage === "detail-kios" ? (
+        <DetailKios
+          onBack={() => setActivePage("dashboard")}
+          showToast={showToast}
+          setActivePage={setActivePage}
+        />
+      ) : activePage === "smart-budgeting" ? (
         <SmartBudgetting
           onBack={() => setActivePage("dashboard")}
           onNavigate={(page) => setActivePage(page)}
@@ -748,19 +813,106 @@ function MarketCompareModal({ product, onClose }) {
 function MarketDirectoryModal({ markets, onClose }) {
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content-box" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-content-box" style={{ maxWidth: "650px", width: "90%" }} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h3 className="modal-title">Direktori Pasar Rakyat</h3>
+          <div>
+            <span style={{ fontSize: "11px", fontWeight: "700", color: "#047857", textTransform: "uppercase" }}>
+              DIREKTORI PASAR DAERAH
+            </span>
+            <h3 className="modal-title" style={{ margin: "2px 0 0 0" }}>Titik Pasar Rakyat di Lamongan</h3>
+          </div>
           <button className="btn-close-modal" onClick={onClose}>
             <X size={20} />
           </button>
         </div>
-        <div className="modal-body">
-          {markets.map((m, idx) => (
-            <div key={idx} style={{ marginBottom: "12px" }}>
-              <strong>{m.name}</strong> - {m.address}
-            </div>
-          ))}
+        <div className="modal-body" style={{ maxHeight: "70vh", overflowY: "auto" }}>
+          <p style={{ fontSize: "13px", color: "#64748b", marginTop: 0, marginBottom: "16px" }}>
+            Seluruh titik pasar pantau resmi Dinas Ketahanan Pangan dan Pertanian (DKPP) Kabupaten Lamongan terhubung langsung dengan navigasi Google Maps.
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+            {markets.map((m, idx) => (
+              <div
+                key={idx}
+                style={{
+                  padding: "14px 16px",
+                  borderRadius: "10px",
+                  border: "1px solid #e2e8f0",
+                  backgroundColor: "#f8fafc",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                  gap: "10px",
+                }}
+              >
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                    <MapPin size={16} color="#047857" />
+                    <strong style={{ fontSize: "14px", color: "#0f172a" }}>{m.name}</strong>
+                    {m.kategori && (
+                      <span
+                        style={{
+                          fontSize: "10px",
+                          fontWeight: "700",
+                          backgroundColor: "#dcfce7",
+                          color: "#166534",
+                          padding: "2px 6px",
+                          borderRadius: "4px",
+                        }}
+                      >
+                        {m.kategori}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: "12px", color: "#64748b", marginTop: "4px", paddingLeft: "24px" }}>
+                    {m.address}
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", gap: "8px" }}>
+                  <a
+                    href={m.rute || m.maps}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      backgroundColor: "#047857",
+                      color: "#ffffff",
+                      padding: "6px 12px",
+                      borderRadius: "6px",
+                      fontSize: "12px",
+                      fontWeight: "600",
+                      textDecoration: "none",
+                    }}
+                  >
+                    🧭 Rute Maps
+                  </a>
+                  <a
+                    href={m.maps}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      backgroundColor: "#ffffff",
+                      border: "1px solid #cbd5e1",
+                      color: "#334155",
+                      padding: "6px 10px",
+                      borderRadius: "6px",
+                      fontSize: "12px",
+                      fontWeight: "600",
+                      textDecoration: "none",
+                    }}
+                  >
+                    🔍 Titik Peta
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

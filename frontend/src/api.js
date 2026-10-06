@@ -149,3 +149,62 @@ export async function submitNLPSuara(transcript, simpan_langsung = true) {
   });
   return handleResponse(res);
 }
+
+// ----------------------------------------------------------------
+// DETAIL KIOS & KATALOG KOMODITAS
+// ----------------------------------------------------------------
+
+/** Ambil seluruh daftar kios mitra */
+export async function getSemuaKios({ lokasi = "", search = "" } = {}) {
+  const params = new URLSearchParams();
+  if (lokasi) params.append("lokasi", lokasi);
+  if (search) params.append("search", search);
+  const res = await fetch(`${BASE_URL}/kios?${params}`);
+  return handleResponse(res);
+}
+
+/** Ambil detail kios tertentu beserta katalog komoditas & alamatnya */
+export async function getDetailKios(kiosId) {
+  const res = await fetch(`${BASE_URL}/kios/${kiosId}`);
+  return handleResponse(res);
+}
+
+/** Update profil detail kios (Nama, Alamat lengkap, Pemilik, Blok, Jam Buka, Telp) */
+export async function updateDetailKios(kiosId, data) {
+  const res = await fetch(`${BASE_URL}/kios/${kiosId}`, {
+    method: "PUT",
+    headers: authHeaders(),
+    body: JSON.stringify(data),
+  });
+  return handleResponse(res);
+}
+
+/** Admin: Tambah komoditas ke katalog kios */
+export async function tambahKomoditasKios(kiosId, data) {
+  const res = await fetch(`${BASE_URL}/kios/${kiosId}/komoditas`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify(data),
+  });
+  return handleResponse(res);
+}
+
+/** Admin: Update komoditas di katalog kios (Nama, Harga, Satuan, Status, Keterangan) */
+export async function updateKomoditasKios(kiosId, komoditasId, data) {
+  const res = await fetch(`${BASE_URL}/kios/${kiosId}/komoditas/${komoditasId}`, {
+    method: "PUT",
+    headers: authHeaders(),
+    body: JSON.stringify(data),
+  });
+  return handleResponse(res);
+}
+
+/** Admin: Hapus komoditas dari katalog kios */
+export async function hapusKomoditasKios(kiosId, komoditasId) {
+  const res = await fetch(`${BASE_URL}/kios/${kiosId}/komoditas/${komoditasId}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  return handleResponse(res);
+}
+

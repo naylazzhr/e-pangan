@@ -35,14 +35,25 @@ def migrate_sqlite_columns():
     add_col_if_missing("komoditas", "het", "FLOAT")
     add_col_if_missing("komoditas", "toleransi_fluktuasi", "FLOAT DEFAULT 5.0")
     add_col_if_missing("komoditas", "is_active", "BOOLEAN DEFAULT 1")
+    add_col_if_missing("komoditas", "kios_id", "INTEGER")
+    add_col_if_missing("komoditas", "varian_keterangan", "VARCHAR(100)")
+    add_col_if_missing("komoditas", "stok_fisik", "VARCHAR(50) DEFAULT 'Tersedia'")
+    add_col_if_missing("komoditas", "status_label", "VARCHAR(50) DEFAULT 'Stabil'")
+    add_col_if_missing("komoditas", "updated_at", "DATETIME")
 
     # Kolom untuk tabel pasar
     add_col_if_missing("pasar", "radius_gps_aktif", "BOOLEAN DEFAULT 1")
 
     # Kolom untuk tabel kios
     add_col_if_missing("kios", "blok_stan", "VARCHAR(50)")
+    add_col_if_missing("kios", "alamat_lengkap", "VARCHAR(255)")
+    add_col_if_missing("kios", "jam_buka", "VARCHAR(50) DEFAULT '06:00 - 16:00 WIB'")
+    add_col_if_missing("kios", "latitude", "FLOAT")
+    add_col_if_missing("kios", "longitude", "FLOAT")
     add_col_if_missing("kios", "status_izin", "VARCHAR(50) DEFAULT '100% Berizin Pemkab'")
     add_col_if_missing("kios", "is_active", "BOOLEAN DEFAULT 1")
+    add_col_if_missing("kios", "created_at", "DATETIME")
+    add_col_if_missing("kios", "updated_at", "DATETIME")
 
     conn.commit()
     conn.close()
@@ -366,8 +377,75 @@ def init_db():
             db.add_all(items_gambar)
             db.commit()
             print(f"BERHASIL! Ditambahkan {len(items_gambar)} catatan survei harga harian.")
-        else:
-            print(f"Database sudah memiliki {survei_count} catatan survei harga.")
+        # F. SEEDING & SINKRONISASI ALAMAT LENGKAP KIOS DAN KATALOG KOMODITAS
+        all_kios = db.query(models.Kios).all()
+        for k in all_kios:
+            # Pastikan alamat lengkap terisi dan terhubung dengan pasar Lamongan
+            if not k.alamat_lengkap:
+                if "Babat" in k.lokasi_pasar:
+                    k.alamat_lengkap = f"{k.lokasi_pasar}, Jl. Raya Babat No. 12, {k.blok_stan or 'Stan Pasar'}, Babat, Lamongan"
+                elif "Sukodadi" in k.lokasi_pasar:
+                    k.alamat_lengkap = f"{k.lokasi_pasar}, Jl. Raya Sukodadi No. 8, {k.blok_stan or 'Stan Pasar'}, Sukodadi, Lamongan"
+                elif "Sidoharjo" in k.lokasi_pasar:
+                    k.alamat_lengkap = f"{k.lokasi_pasar}, Jl. Pahlawan, {k.blok_stan or 'Stan Pasar'}, Sidoharjo, Lamongan"
+                elif "Brondong" in k.lokasi_pasar:
+                    k.alamat_lengkap = f"{k.lokasi_pasar}, Jl. Raya Brondong - Tuban, {k.blok_stan or 'Stan Pasar'}, Brondong, Lamongan"
+                elif "Blimbing" in k.lokasi_pasar:
+                    k.alamat_lengkap = f"{k.lokasi_pasar}, Jl. Raya Daendels, {k.blok_stan or 'Stan Pasar'}, Paciran, Lamongan"
+                else:
+                    k.alamat_lengkap = f"{k.lokasi_pasar}, {k.blok_stan or 'Stan Pasar'}, Lamongan"
+
+            if not k.jam_buka:
+                k.jam_buka = "06:00 - 16:30 WIB"
+
+            # Periksa katalog komoditas kios ini
+            katalog_count = db.query(models.Komoditas).filter(models.Komoditas.kios_id == k.id).count()
+            if katalog_count == 0:
+                if k.id == 1:
+                    items_katalog = [
+                        {"nama_bahan": "Beras Medium (IR 64)", "harga": 13000.0, "satuan": "kg", "varian_keterangan": "Kualitas Bulog Premium", "stok_fisik": "Melimpah (500 kg)", "status_label": "Sesuai HET", "kategori": "KEBUTUHAN POKOK"},
+                        {"nama_bahan": "Beras Premium Pandan Wangi", "harga": 15500.0, "satuan": "kg", "varian_keterangan": "Grade A Bulir Utuh", "stok_fisik": "Tersedia (200 kg)", "status_label": "Stabil", "kategori": "KEBUTUHAN POKOK"},
+                        {"nama_bahan": "Minyak Goreng Sawit", "harga": 17500.0, "satuan": "liter", "varian_keterangan": "Minyakita Kemasan 1L", "stok_fisik": "Tersedia (120 L)", "status_label": "+12% di atas HET", "kategori": "MINYAK GORENG"},
+                        {"nama_bahan": "Gula Pasir Kristal", "harga": 17500.0, "satuan": "kg", "varian_keterangan": "Tebu Kristal Putih Pabrikasi", "stok_fisik": "Tersedia (80 kg)", "status_label": "Sesuai HET", "kategori": "BAHAN BAKU"},
+                        {"nama_bahan": "Tepung Terigu Segitiga", "harga": 11500.0, "satuan": "kg", "varian_keterangan": "Protein Sedang 1kg", "stok_fisik": "Tersedia (150 kg)", "status_label": "Stabil", "kategori": "BAHAN BAKU"},
+                    ]
+                elif k.id == 2:
+                    items_katalog = [
+                        {"nama_bahan": "Gula Pasir Curah", "harga": 18000.0, "satuan": "kg", "varian_keterangan": "Tebu Kristal Putih", "stok_fisik": "Tersedia (100 kg)", "status_label": "Stabil", "kategori": "BAHAN BAKU"},
+                        {"nama_bahan": "Minyak Goreng Curah", "harga": 15200.0, "satuan": "liter", "varian_keterangan": "Curah Higienis", "stok_fisik": "Melimpah (250 L)", "status_label": "Sesuai HET", "kategori": "MINYAK GORENG"},
+                        {"nama_bahan": "Cabai Merah Keriting", "harga": 48500.0, "satuan": "kg", "varian_keterangan": "Segar Petik Petani", "stok_fisik": "Stok Terbatas (30 kg)", "status_label": "+15% di atas HET", "kategori": "BUMBU DAPUR"},
+                        {"nama_bahan": "Bawang Merah Allium", "harga": 28000.0, "satuan": "kg", "varian_keterangan": "Varietas Super Lokal", "stok_fisik": "Tersedia (60 kg)", "status_label": "Sesuai HET", "kategori": "BUMBU DAPUR"},
+                    ]
+                elif k.id == 3:
+                    items_katalog = [
+                        {"nama_bahan": "Minyak Goreng Sawit", "harga": 17500.0, "satuan": "liter", "varian_keterangan": "Minyakita Kemasan 1L", "stok_fisik": "Tersedia (90 L)", "status_label": "+12% di atas HET", "kategori": "MINYAK GORENG"},
+                        {"nama_bahan": "Cabai Rawit Merah", "harga": 42000.0, "satuan": "kg", "varian_keterangan": "Kualitas Grade Super", "stok_fisik": "Tersedia (45 kg)", "status_label": "Turun Rp2.000", "kategori": "BUMBU DAPUR"},
+                        {"nama_bahan": "Bawang Putih Honan", "harga": 36000.0, "satuan": "kg", "varian_keterangan": "Kering Bersih", "stok_fisik": "Tersedia (50 kg)", "status_label": "Sesuai HET", "kategori": "BUMBU DAPUR"},
+                        {"nama_bahan": "Telur Ayam Ras", "harga": 28500.0, "satuan": "kg", "varian_keterangan": "Grade A Bersih", "stok_fisik": "Tersedia (100 kg)", "status_label": "Stabil", "kategori": "PROTEIN HEWANI"},
+                    ]
+                else:
+                    items_katalog = [
+                        {"nama_bahan": "Beras Medium (IR 64)", "harga": 13000.0, "satuan": "kg", "varian_keterangan": "Kemasan Curah Karung", "stok_fisik": "Tersedia (150 kg)", "status_label": "Sesuai HET", "kategori": "KEBUTUHAN POKOK"},
+                        {"nama_bahan": "Minyak Goreng Sawit", "harga": 16000.0, "satuan": "liter", "varian_keterangan": "Kemasan Botol / Bantal", "stok_fisik": "Tersedia (50 L)", "status_label": "Stabil", "kategori": "MINYAK GORENG"},
+                        {"nama_bahan": "Gula Pasir Kristal", "harga": 17500.0, "satuan": "kg", "varian_keterangan": "Grade Konsumsi Rumah Tangga", "stok_fisik": "Tersedia (75 kg)", "status_label": "Sesuai HET", "kategori": "BAHAN BAKU"},
+                    ]
+
+                for item in items_katalog:
+                    db.add(models.Komoditas(
+                        kios_id=k.id,
+                        nama_bahan=item["nama_bahan"],
+                        harga=item["harga"],
+                        satuan=item["satuan"],
+                        varian_keterangan=item["varian_keterangan"],
+                        stok_fisik=item["stok_fisik"],
+                        status_label=item["status_label"],
+                        kategori=item["kategori"],
+                        lokasi=k.lokasi_pasar,
+                        created_at=datetime.now(),
+                        updated_at=datetime.now()
+                    ))
+        db.commit()
+        print("Data Alamat Lengkap Kios dan Katalog Komoditas Kios siap.")
 
     finally:
         db.close()

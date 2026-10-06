@@ -64,10 +64,8 @@ export default function Navbar({ activePage, setActivePage, showToast }) {
 
         <button
           type="button"
-          className="nav-link"
-          onClick={() => {
-            if (showToast) showToast("Halaman Detail Kios dalam tahap pengembangan.");
-          }}
+          className={`nav-link ${activePage === "detail-kios" ? "active" : ""}`}
+          onClick={() => setActivePage && setActivePage("detail-kios")}
         >
           Detail Kios
         </button>
