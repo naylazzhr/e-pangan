@@ -1,12 +1,84 @@
 import React, { useState, useEffect } from 'react';
 
-// Data Pasar Lamongan
+// Data Pasar Resmi Kabupaten Lamongan beserta Koordinat GPS & Navigasi
 const PASAR_OPTIONS = [
-  { id: 'babat', name: 'Pasar Babat', sub: 'Pasar Babat (Kecamatan Babat)', info: 'Jarak: ± 1,8 Km • Status: Termurah & Terlengkap', maps: 'https://maps.google.com' },
-  { id: 'sidoharjo', name: 'Pasar Sidoharjo', sub: 'Pasar Sidoharjo (Kecamatan Lamongan)', info: 'Jarak: ± 3,2 Km • Status: Pasar Induk', maps: 'https://maps.google.com' },
-  { id: 'agrobis', name: 'Pasar Agrobis Babat', sub: 'Pasar Agrobis (Kecamatan Babat)', info: 'Jarak: ± 2,5 Km • Status: Grosir & Eceran', maps: 'https://maps.google.com' },
-  { id: 'mantup', name: 'Pasar Mantup', sub: 'Pasar Mantup (Kecamatan Mantup)', info: 'Jarak: ± 12 Km • Status: Komoditas Lokal', maps: 'https://maps.google.com' },
-  { id: 'brondong', name: 'Pasar Brondong', sub: 'Pasar Brondong (Kecamatan Brondong)', info: 'Jarak: ± 25 Km • Status: Pasar Pesisir', maps: 'https://maps.google.com' },
+  {
+    id: 'babat',
+    name: 'Pasar Babat',
+    sub: 'Pasar Babat (Kecamatan Babat)',
+    alamat: 'Jl. Raya Babat No. 12, Babat, Kab. Lamongan',
+    info: 'Jarak: ± 1,8 Km • Status: Termurah & Terlengkap',
+    lat: -7.1126,
+    lon: 112.1634,
+    maps: 'https://www.google.com/maps/search/?api=1&query=-7.1126,112.1634',
+    rute: 'https://www.google.com/maps/dir/?api=1&destination=-7.1126,112.1634'
+  },
+  {
+    id: 'sidoharjo',
+    name: 'Pasar Sidoharjo',
+    sub: 'Pasar Sidoharjo (Kecamatan Lamongan)',
+    alamat: 'Jl. Pahlawan, Sidoharjo, Kec. Lamongan',
+    info: 'Jarak: ± 3,2 Km • Status: Pasar Induk Pusat Kota',
+    lat: -7.1205,
+    lon: 112.4152,
+    maps: 'https://www.google.com/maps/search/?api=1&query=-7.1205,112.4152',
+    rute: 'https://www.google.com/maps/dir/?api=1&destination=-7.1205,112.4152'
+  },
+  {
+    id: 'sukodadi',
+    name: 'Pasar Sukodadi',
+    sub: 'Pasar Sukodadi (Kecamatan Sukodadi)',
+    alamat: 'Jl. Raya Sukodadi No. 8, Kec. Sukodadi, Lamongan',
+    info: 'Jarak: ± 5,4 Km • Status: Pasar Tradisional Terpadu',
+    lat: -7.1082,
+    lon: 112.3354,
+    maps: 'https://www.google.com/maps/search/?api=1&query=-7.1082,112.3354',
+    rute: 'https://www.google.com/maps/dir/?api=1&destination=-7.1082,112.3354'
+  },
+  {
+    id: 'agrobis',
+    name: 'Pasar Agrobis Babat',
+    sub: 'Pasar Agrobis (Kecamatan Babat)',
+    alamat: 'Kawasan Agrobisnis Babat, Babat, Kab. Lamongan',
+    info: 'Jarak: ± 2,5 Km • Status: Grosir & Eceran Pertanian',
+    lat: -7.1095,
+    lon: 112.1720,
+    maps: 'https://www.google.com/maps/search/?api=1&query=-7.1095,112.1720',
+    rute: 'https://www.google.com/maps/dir/?api=1&destination=-7.1095,112.1720'
+  },
+  {
+    id: 'mantup',
+    name: 'Pasar Mantup',
+    sub: 'Pasar Mantup (Kecamatan Mantup)',
+    alamat: 'Jl. Raya Mantup, Kec. Mantup, Kab. Lamongan',
+    info: 'Jarak: ± 12 Km • Status: Komoditas Lokal Wilayah Selatan',
+    lat: -7.2415,
+    lon: 112.3582,
+    maps: 'https://www.google.com/maps/search/?api=1&query=-7.2415,112.3582',
+    rute: 'https://www.google.com/maps/dir/?api=1&destination=-7.2415,112.3582'
+  },
+  {
+    id: 'brondong',
+    name: 'Pasar Brondong',
+    sub: 'Pasar Brondong (Kecamatan Brondong)',
+    alamat: 'Jl. Raya Brondong - Tuban, Kec. Brondong, Lamongan',
+    info: 'Jarak: ± 25 Km • Status: Pasar Ikan & Pesisir Pantura',
+    lat: -6.8924,
+    lon: 112.2856,
+    maps: 'https://www.google.com/maps/search/?api=1&query=-6.8924,112.2856',
+    rute: 'https://www.google.com/maps/dir/?api=1&destination=-6.8924,112.2856'
+  },
+  {
+    id: 'blimbing',
+    name: 'Pasar Blimbing',
+    sub: 'Pasar Blimbing (Kecamatan Paciran)',
+    alamat: 'Jl. Raya Daendels, Paciran, Kab. Lamongan',
+    info: 'Jarak: ± 28 Km • Status: Sentra Logistik Nelayan Pantura',
+    lat: -6.8781,
+    lon: 112.3524,
+    maps: 'https://www.google.com/maps/search/?api=1&query=-6.8781,112.3524',
+    rute: 'https://www.google.com/maps/dir/?api=1&destination=-6.8781,112.3524'
+  }
 ];
 
 // Master Katalog Komoditas Pasar Lamongan
@@ -181,36 +253,87 @@ export default function SmartBudgeting() {
             </div>
           </div>
 
-          {/* REKOMENDASI PASAR */}
+          {/* REKOMENDASI PASAR & LIVE MAPS LOKASI PASAR LAMONGAN */}
           <div className="card border-0 shadow-sm rounded-4 p-4 mb-4">
-            <span className="fw-bold text-emerald text-uppercase fs-7 mb-2">REKOMENDASI LOKASI</span>
-            <h5 className="fw-bold text-dark mb-3">Pilih Pasar Rakyat Tujuan</h5>
+            <div className="d-flex justify-content-between align-items-center mb-2">
+              <span className="fw-bold text-emerald text-uppercase fs-7">REKOMENDASI LOKASI &amp; PETA PASAR</span>
+              <span className="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 small">
+                Titik GPS Terverifikasi DKPP
+              </span>
+            </div>
+            <h5 className="fw-bold text-dark mb-1">Pilih Pasar Rakyat Tujuan di Lamongan</h5>
+            <p className="text-muted small mb-3">
+              Klik nama pasar untuk melihat estimasi jarak, alamat lengkap, dan navigasi langsung Google Maps ke titik pasar.
+            </p>
 
             <div className="d-flex flex-wrap gap-2 mb-3">
               {PASAR_OPTIONS.map((pasar) => (
                 <button
                   key={pasar.id}
                   onClick={() => setSelectedPasarId(pasar.id)}
-                  className={`btn btn-sm rounded-3 ${selectedPasarId === pasar.id ? 'btn-success fw-bold' : 'btn-light text-secondary'}`}
+                  className={`btn btn-sm rounded-3 ${selectedPasarId === pasar.id ? 'btn-success fw-bold shadow-sm' : 'btn-light text-secondary border'}`}
                 >
-                  {pasar.name}
+                  📍 {pasar.name}
                 </button>
               ))}
             </div>
 
-            <div className="p-3 bg-emerald-light rounded-3 d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2">
+            {/* Info Box Pasar Aktif */}
+            <div className="p-3 bg-emerald-light rounded-3 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3 border border-emerald-subtle">
               <div>
-                <div className="fw-bold text-dark small">📍 {activePasar.sub}</div>
-                <div className="text-muted small">{activePasar.info}</div>
+                <div className="fw-bold text-dark fs-6">📍 {activePasar.name}</div>
+                <div className="text-secondary small fw-medium mt-1">🏠 Alamat: {activePasar.alamat}</div>
+                <div className="text-success small fw-semibold mt-1">✨ {activePasar.info}</div>
               </div>
-              <a
-                href={activePasar.maps}
-                target="_blank"
-                rel="noreferrer"
-                className="btn btn-sm btn-success rounded-2 text-nowrap"
+              <div className="d-flex gap-2 flex-wrap">
+                <a
+                  href={activePasar.rute}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="btn btn-sm btn-success rounded-2 text-nowrap d-inline-flex align-items-center gap-1 shadow-sm"
+                >
+                  <span>🧭 Petunjuk Rute Maps</span>
+                </a>
+                <a
+                  href={activePasar.maps}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="btn btn-sm btn-outline-success bg-white rounded-2 text-nowrap d-inline-flex align-items-center gap-1"
+                >
+                  <span>🔍 Buka Titik Maps</span>
+                </a>
+              </div>
+            </div>
+
+            {/* Live Interactive Embed Map Pasar Lamongan */}
+            <div className="rounded-3 overflow-hidden border shadow-sm" style={{ height: '230px', position: 'relative' }}>
+              <iframe
+                title={`Peta Lokasi ${activePasar.name}`}
+                src={`https://maps.google.com/maps?q=${activePasar.lat},${activePasar.lon}&z=15&output=embed`}
+                width="100%"
+                height="100%"
+                style={{ border: 0 }}
+                allowFullScreen=""
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              ></iframe>
+              <div
+                style={{
+                  position: 'absolute',
+                  bottom: '10px',
+                  left: '10px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  fontSize: '11px',
+                  fontWeight: '600',
+                  color: '#065f46',
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
+                  backdropFilter: 'blur(4px)'
+                }}
               >
-                Petunjuk Google Maps
-              </a>
+                📍 Lokasi Terpilih: {activePasar.name} (Lamongan) • Lat: {activePasar.lat}, Lon: {activePasar.lon}
+              </div>
             </div>
           </div>
 

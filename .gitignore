@@ -1,10 +1,16 @@
-# --- Backend (Python) ---[cite: 1]
+# --- Backend (Python) ---
 backend/__pycache__/
 backend/*.pyc
 backend/*.db
 backend/.env
+backend/venv/
+backend/.venv/
+venv/
+.venv/
+*.db
+*.sqlite3
 
-# --- Frontend (Node/Vite) ---[cite: 2]
+# --- Frontend (Node/Vite) ---
 frontend/node_modules/
 frontend/dist/
 frontend/.env
@@ -13,3 +19,4 @@ frontend/.vite/
 # --- Environment & Editor ---
 .vscode/
 .DS_Store
+pyrightconfig.json
