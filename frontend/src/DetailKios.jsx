@@ -1,1013 +1,328 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
-  Store,
-  MapPin,
-  Clock,
-  Phone,
-  ShieldCheck,
-  Plus,
-  Edit2,
-  Trash2,
-  Navigation,
-  ExternalLink,
-  Search,
-  CheckCircle2,
-  AlertCircle,
-  Save,
-  X,
-  ArrowLeft,
-  RefreshCw,
-  ShoppingBag,
-  SlidersHorizontal,
+  ChevronRight, Store, User, MapPin, Navigation, Clock, Search, Wheat, Package, Droplet, Egg,
+  Leaf, Flame, ShieldCheck, RefreshCw, Plus, Minus, ShoppingBasket, Copy, Send, X,
+  CheckCircle2, TrendingDown, TrendingUp, Minus as Flat, Flag,
 } from "lucide-react";
-import {
-  getSemuaKios,
-  getDetailKios,
-  updateDetailKios,
-  tambahKomoditasKios,
-  updateKomoditasKios,
-  hapusKomoditasKios,
-  isLoggedIn,
-} from "./api";
 
-function formatRupiah(amount) {
-  if (amount === undefined || amount === null) return "Rp 0";
-  return "Rp " + Number(amount).toLocaleString("id-ID");
+/* ---------- Token: diambil dari tema dashboard E-Pangan ---------- */
+const C = {
+  ink: "#0b1b2b", mute: "#5b6b7b", line: "#e3ece7", mint: "#e6f6ef", green: "#0fa361",
+  greenDeep: "#0b5a3e", greenInk: "#064e3b", chip: "#0f6b45", amber: "#b45309", amberSoft: "#fef3c7",
+  red: "#dc2626", redSoft: "#fee2e2", okSoft: "#d1fae5",
+};
+
+const KATEGORI = ["Semua Komoditas", "Beras & Padi", "Bumbu Dapur & Cabai", "Minyak & Mentega", "Daging, Unggas & Telur", "Bawang & Sayuran", "Gula & Bahan Baku"];
+const IKON = { beras: Wheat, gula: Package, minyak: Droplet, telur: Egg, bawang: Leaf, cabai: Flame };
+
+/* ---------- Data contoh (ganti lewat prop `kios` / API) ---------- */
+const KIOS_DEFAULT = {
+  nama: "Kios Bu Siti", pasar: "Pasar Babat", blok: "Blok B-12 (Los Beras & Sembako)",
+  pemilik: "Ibu Siti Khodijah", alamat: "Jl. Raya Pasar Babat No. 45, Babat, Lamongan",
+  jarak: "0.8 km (3 menit berkendara)", buka: "06:00", tutup: "16:00",
+  telepon: "6281234567890", foto: null, update: "Hari ini, 07:45 WIB",
+  komoditas: [
+    { id: 1, ikon: "beras", kategori: "Beras & Padi", nama: "Beras Medium IR-64", varian: "Grade A Bulog", harga: 13000, rataPasar: 13500, het: 13500, satuan: "kg", stok: 120, riwayat: [13400, 13300, 13200, 13200, 13100, 13000, 13000] },
+    { id: 2, ikon: "gula", kategori: "Gula & Bahan Baku", nama: "Gula Pasir Curah", varian: "Pabrik Gula Kebonagung", harga: 17800, rataPasar: 17500, het: 18500, satuan: "kg", stok: 60, riwayat: [17500, 17500, 17600, 17700, 17800, 17800, 17800] },
+    { id: 3, ikon: "minyak", kategori: "Minyak & Mentega", nama: "Minyak Goreng MinyaKita", varian: "Kemasan botol 1 liter", harga: 15700, rataPasar: 16000, het: 15700, satuan: "liter", stok: 45, riwayat: [15900, 15800, 15800, 15700, 15700, 15700, 15700] },
+    { id: 4, ikon: "telur", kategori: "Daging, Unggas & Telur", nama: "Telur Ayam Ras", varian: "Peternak Tiung, ukuran sedang", harga: 29500, rataPasar: 29000, satuan: "kg", stok: 30, riwayat: [28500, 28800, 29000, 29200, 29300, 29500, 29500] },
+    { id: 5, ikon: "bawang", kategori: "Bawang & Sayuran", nama: "Bawang Merah Lokal", varian: "Sukorame, jemur super", harga: 28000, rataPasar: 30000, satuan: "kg", stok: 25, riwayat: [31000, 30500, 30000, 29500, 29000, 28500, 28000] },
+    { id: 6, ikon: "cabai", kategori: "Bumbu Dapur & Cabai", nama: "Cabai Rawit Merah", varian: "Panen lokal Modo", harga: 44000, rataPasar: 41000, satuan: "kg", stok: 8, riwayat: [38000, 39000, 40500, 41500, 42500, 43500, 44000] },
+  ],
+};
+
+const rp = (n) => "Rp" + Math.round(n).toLocaleString("id-ID");
+const qtyTxt = (n) => String(n).replace(".", ",");
+const mnt = (s) => { const [h, m] = s.split(":").map(Number); return h * 60 + m; };
+const STOK_TIPIS = 20;
+
+function Sparkline({ data, naik }) {
+  const min = Math.min(...data), max = Math.max(...data), r = max - min || 1;
+  const pts = data.map((v, i) => `${(i / (data.length - 1)) * 64},${22 - ((v - min) / r) * 18 - 2}`).join(" ");
+  return (
+    <svg width="64" height="22" viewBox="0 0 64 22" role="img" aria-label="Tren harga 7 hari terakhir">
+      <polyline points={pts} fill="none" stroke={naik ? C.red : C.green} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
 }
 
-export default function DetailKios({ onBack, showToast, setActivePage }) {
-  const [kiosList, setKiosList] = useState([]);
-  const [selectedKiosId, setSelectedKiosId] = useState(1);
-  const [kiosDetail, setKiosDetail] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isUpdating, setIsUpdating] = useState(false);
+export default function DetailKios({ kios = KIOS_DEFAULT, onBack, onNavigate }) {
+  const k = { ...KIOS_DEFAULT, ...kios };
+  const [cari, setCari] = useState("");
+  const [kat, setKat] = useState(KATEGORI[0]);
+  const [urut, setUrut] = useState("default");
+  const [keranjang, setKeranjang] = useState({});
+  const [modal, setModal] = useState(false);
+  const [toast, setToast] = useState("");
+  const [now, setNow] = useState(new Date());
 
-  // Modal states
-  const [showEditKiosModal, setShowEditKiosModal] = useState(false);
-  const [kiosFormData, setKiosFormData] = useState({
-    nama_kios: "",
-    pemilik: "",
-    lokasi_pasar: "",
-    blok_stan: "",
-    alamat_lengkap: "",
-    jam_buka: "",
-    no_telepon: "",
+  useEffect(() => { const t = setInterval(() => setNow(new Date()), 60000); return () => clearInterval(t); }, []);
+  useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(""), 3200); return () => clearTimeout(t); }, [toast]);
+
+  const menitNow = now.getHours() * 60 + now.getMinutes();
+  const buka = menitNow >= mnt(k.buka) && menitNow < mnt(k.tutup);
+
+  const olah = (it) => {
+    const selisih = ((it.harga - it.rataPasar) / it.rataPasar) * 100;
+    const kemarin = it.riwayat[it.riwayat.length - 2];
+    return { ...it, selisih, tren: ((it.harga - kemarin) / kemarin) * 100, naik: it.harga > it.riwayat[0] };
+  };
+  const semua = useMemo(() => k.komoditas.map(olah), [k.komoditas]);
+
+  const daftar = useMemo(() => {
+    let a = semua.filter((i) => (kat === KATEGORI[0] || i.kategori === kat) && i.nama.toLowerCase().includes(cari.trim().toLowerCase()));
+    if (urut === "murah") a = [...a].sort((x, y) => x.harga - y.harga);
+    if (urut === "mahal") a = [...a].sort((x, y) => y.harga - x.harga);
+    if (urut === "hemat") a = [...a].sort((x, y) => x.selisih - y.selisih);
+    return a;
+  }, [semua, cari, kat, urut]);
+
+  const lebihMurah = semua.filter((i) => i.selisih < 0).length;
+  const tipis = semua.filter((i) => i.stok < STOK_TIPIS).length;
+  const termurah = [...semua].sort((a, b) => a.selisih - b.selisih)[0];
+
+  const ubah = (it, d) => setKeranjang((s) => {
+    const q = Math.min(it.stok, Math.max(0, (s[it.id] || 0) + d));
+    const n = { ...s }; q ? (n[it.id] = q) : delete n[it.id]; return n;
   });
+  const isi = semua.filter((i) => keranjang[i.id]);
+  const total = isi.reduce((t, i) => t + i.harga * keranjang[i.id], 0);
+  const hemat = isi.reduce((t, i) => t + (i.rataPasar - i.harga) * keranjang[i.id], 0);
+  const teks = `Daftar belanja di ${k.nama} (${k.pasar})\n` + isi.map((i) => `- ${i.nama} ${qtyTxt(keranjang[i.id])} ${i.satuan} = ${rp(i.harga * keranjang[i.id])}`).join("\n") + `\nTotal: ${rp(total)}`;
 
-  const [showKomoditasModal, setShowKomoditasModal] = useState(false);
-  const [editingKomoditasId, setEditingKomoditasId] = useState(null);
-  const [komoditasFormData, setKomoditasFormData] = useState({
-    nama_bahan: "",
-    harga: "",
-    satuan: "kg",
-    status_label: "Sesuai HET",
-    varian_keterangan: "",
-    stok_fisik: "Tersedia",
-    kategori: "KEBUTUHAN POKOK",
-  });
-
-  const isAdmin = isLoggedIn();
-
-  // 1. Fetch seluruh kios
-  const fetchKiosList = useCallback(async () => {
-    try {
-      const res = await getSemuaKios();
-      if (res && res.data) {
-        setKiosList(res.data);
-      }
-    } catch (err) {
-      console.error("Gagal memuat daftar kios:", err);
-    }
-  }, []);
-
-  // 2. Fetch detail kios terpilih
-  const fetchDetail = useCallback(async (id) => {
-    setIsLoading(true);
-    try {
-      const res = await getDetailKios(id);
-      setKiosDetail(res);
-      setKiosFormData({
-        nama_kios: res.nama_kios || "",
-        pemilik: res.pemilik || "",
-        lokasi_pasar: res.lokasi_pasar || "",
-        blok_stan: res.blok_stan || res.blok || "",
-        alamat_lengkap: res.alamat_lengkap || "",
-        jam_buka: res.jam_buka || "",
-        no_telepon: res.no_telepon || "",
-      });
-    } catch (err) {
-      console.error("Gagal memuat detail kios:", err);
-      if (showToast) showToast("Gagal memuat detail kios: " + err.message, "error");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [showToast]);
-
-  useEffect(() => {
-    fetchKiosList();
-  }, [fetchKiosList]);
-
-  useEffect(() => {
-    if (selectedKiosId) {
-      fetchDetail(selectedKiosId);
-    }
-  }, [selectedKiosId, fetchDetail]);
-
-  // Handle Simpan Edit Profil Kios
-  const handleSaveKios = async (e) => {
-    e.preventDefault();
-    setIsUpdating(true);
-    try {
-      const res = await updateDetailKios(selectedKiosId, kiosFormData);
-      if (showToast) showToast(res.message || "Data Kios berhasil diperbarui!", "success");
-      setShowEditKiosModal(false);
-      fetchDetail(selectedKiosId);
-      fetchKiosList();
-    } catch (err) {
-      if (showToast) showToast("Gagal memperbarui kios: " + err.message, "error");
-    } finally {
-      setIsUpdating(false);
-    }
+  const salin = async () => {
+    try { await navigator.clipboard.writeText(teks); setToast("Daftar belanja disalin."); }
+    catch { setToast("Gagal menyalin. Salin manual dari tombol WhatsApp."); }
   };
-
-  // Buka Modal Tambah Komoditas
-  const openAddKomoditas = () => {
-    setEditingKomoditasId(null);
-    setKomoditasFormData({
-      nama_bahan: "",
-      harga: "",
-      satuan: "kg",
-      status_label: "Sesuai HET",
-      varian_keterangan: "",
-      stok_fisik: "Tersedia",
-      kategori: "KEBUTUHAN POKOK",
-    });
-    setShowKomoditasModal(true);
-  };
-
-  // Buka Modal Edit Komoditas
-  const openEditKomoditas = (item) => {
-    setEditingKomoditasId(item.id_komoditas);
-    setKomoditasFormData({
-      nama_bahan: item.nama_bahan,
-      harga: item.harga,
-      satuan: item.satuan,
-      status_label: item.status_label,
-      varian_keterangan: item.varian_keterangan,
-      stok_fisik: item.stok_fisik,
-      kategori: item.kategori,
-    });
-    setShowKomoditasModal(true);
-  };
-
-  // Handle Simpan Komoditas (Tambah / Edit)
-  const handleSaveKomoditas = async (e) => {
-    e.preventDefault();
-    if (!komoditasFormData.nama_bahan || !komoditasFormData.harga) {
-      if (showToast) showToast("Nama komoditas dan harga wajib diisi!", "error");
-      return;
-    }
-
-    setIsUpdating(true);
-    try {
-      const payload = {
-        ...komoditasFormData,
-        harga: Number(komoditasFormData.harga),
-      };
-
-      if (editingKomoditasId) {
-        const res = await updateKomoditasKios(selectedKiosId, editingKomoditasId, payload);
-        if (showToast) showToast(res.message || "Komoditas berhasil diperbarui!", "success");
-      } else {
-        const res = await tambahKomoditasKios(selectedKiosId, payload);
-        if (showToast) showToast(res.message || "Komoditas berhasil ditambahkan!", "success");
-      }
-
-      setShowKomoditasModal(false);
-      fetchDetail(selectedKiosId);
-    } catch (err) {
-      if (showToast) showToast("Gagal menyimpan komoditas: " + err.message, "error");
-    } finally {
-      setIsUpdating(false);
-    }
-  };
-
-  // Handle Hapus Komoditas
-  const handleDeleteKomoditas = async (komoditasId, namaBahan) => {
-    if (!window.confirm(`Yakin ingin menghapus komoditas "${namaBahan}" dari katalog kios ini?`)) {
-      return;
-    }
-
-    try {
-      const res = await hapusKomoditasKios(selectedKiosId, komoditasId);
-      if (showToast) showToast(res.message || "Komoditas berhasil dihapus", "info");
-      fetchDetail(selectedKiosId);
-    } catch (err) {
-      if (showToast) showToast("Gagal menghapus komoditas: " + err.message, "error");
-    }
-  };
-
-  // Filter katalog berdasarkan search
-  const filteredKatalog = (kiosDetail?.katalog || []).filter((item) =>
-    item.nama_bahan.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.varian_keterangan.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (item.kategori && item.kategori.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
 
   return (
-    <div style={{ backgroundColor: "#f8fafc", minHeight: "100vh", padding: "28px 20px" }}>
-      <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
-        {/* TOP BAR / BREADCRUMB */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px", flexWrap: "wrap", gap: "12px" }}>
-          <button
-            onClick={onBack}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-              backgroundColor: "#ffffff",
-              border: "1px solid #e2e8f0",
-              color: "#0f172a",
-              padding: "8px 16px",
-              borderRadius: "8px",
-              fontSize: "14px",
-              fontWeight: "600",
-              cursor: "pointer",
-              boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
-            }}
-          >
-            <ArrowLeft size={16} /> Kembali ke Beranda
-          </button>
+    <div className="dk" style={{ fontFamily: "inherit", color: C.ink, minHeight: "100vh", background: `linear-gradient(180deg, ${C.mint} 0%, #f7fbf9 340px, #fff 100%)` }}>
+      <style>{`
+        .dk *{box-sizing:border-box}
+        .dk button{font-family:inherit;cursor:pointer}
+        .dk button:focus-visible,.dk input:focus-visible,.dk select:focus-visible,.dk a:focus-visible{outline:2px solid ${C.green};outline-offset:2px}
+        .dk-card{background:#fff;border-radius:20px;box-shadow:0 2px 12px rgba(11,90,62,.08);border:1px solid ${C.line}}
+        .dk-pill{border:none;background:transparent;color:${C.ink};font-size:13px;font-weight:600;padding:9px 16px;border-radius:999px;white-space:nowrap}
+        .dk-pill:hover{background:${C.mint}} .dk-pill.on{background:${C.chip};color:#fff}
+        .dk-grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;align-items:start}
+        .dk-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+        .dk-item{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:16px;align-items:center;padding:16px 18px;border-top:1px solid ${C.line}}
+        .dk-side{position:sticky;top:16px}
+        @media (max-width:960px){.dk-grid{grid-template-columns:1fr}.dk-side{position:static}.dk-stats{grid-template-columns:repeat(2,1fr)}}
+        @media (max-width:620px){.dk-item{grid-template-columns:1fr auto}.dk-spark{display:none}}
+      `}</style>
 
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-            {isAdmin ? (
-              <span
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  backgroundColor: "#dcfce7",
-                  color: "#166534",
-                  padding: "6px 14px",
-                  borderRadius: "20px",
-                  fontSize: "12px",
-                  fontWeight: "700",
-                }}
-              >
-                <CheckCircle2 size={14} /> Mode Admin Aktif (Bisa Update Katalog &amp; Alamat)
+      <div style={{ maxWidth: 1180, margin: "0 auto", padding: "20px 20px 56px" }}>
+        {/* Breadcrumb */}
+        <nav aria-label="Breadcrumb" style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, color: C.mute, flexWrap: "wrap", marginBottom: 16 }}>
+          <button onClick={() => onBack?.()} style={link}>Beranda</button><ChevronRight size={12} />
+          <button onClick={() => onNavigate?.("cari-harga")} style={link}>Cari Harga</button><ChevronRight size={12} />
+          <span>{k.pasar}</span><ChevronRight size={12} />
+          <strong style={{ color: C.greenDeep }}>{k.nama}</strong>
+        </nav>
+
+        {/* Profil kios */}
+        <section className="dk-card" style={{ padding: 22, display: "flex", gap: 22, flexWrap: "wrap", marginBottom: 16 }}>
+          <div style={{ width: 168, height: 128, borderRadius: 16, overflow: "hidden", flexShrink: 0, display: "grid", placeItems: "center", background: `linear-gradient(135deg, ${C.okSoft}, #a7f3d0)` }}>
+            {k.foto ? <img src={k.foto} alt={`Foto ${k.nama}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <Store size={44} color={C.greenDeep} />}
+          </div>
+          <div style={{ flex: 1, minWidth: 260 }}>
+            <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+              <h1 style={{ fontSize: 30, fontWeight: 800, margin: 0, letterSpacing: "-.02em" }}>{k.nama}</h1>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, padding: "5px 12px", borderRadius: 999, background: buka ? C.okSoft : C.redSoft, color: buka ? C.greenDeep : "#991b1b" }}>
+                <span style={{ width: 7, height: 7, borderRadius: "50%", background: buka ? C.green : C.red }} />{buka ? "Buka sekarang" : "Sedang tutup"}
               </span>
-            ) : (
-              <button
-                onClick={() => setActivePage && setActivePage("login")}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  backgroundColor: "#047857",
-                  color: "#ffffff",
-                  border: "none",
-                  padding: "8px 16px",
-                  borderRadius: "8px",
-                  fontSize: "13px",
-                  fontWeight: "600",
-                  cursor: "pointer",
-                }}
-              >
-                Login Admin untuk Kelola
-              </button>
+            </div>
+            <p style={{ ...meta, color: C.greenDeep, fontWeight: 700, fontSize: 14, marginTop: 6 }}><Store size={15} /> {k.pasar}, {k.blok}</p>
+            <p style={meta}><User size={14} /> Pemilik: {k.pemilik} <Clock size={14} style={{ marginLeft: 8 }} /> {k.buka} - {k.tutup} WIB</p>
+            <p style={meta}><MapPin size={14} /> {k.alamat} <Navigation size={14} style={{ marginLeft: 8 }} /> {k.jarak}</p>
+            <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+              <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(k.nama + " " + k.alamat)}`} target="_blank" rel="noreferrer" style={{ ...btn, background: C.greenDeep, color: "#fff", textDecoration: "none" }}><Navigation size={14} /> Petunjuk arah</a>
+              {k.telepon && <a href={`https://wa.me/${k.telepon}?text=${encodeURIComponent("Halo, saya lihat harga di E-Pangan Lamongan. Apakah stok masih ada?")}`} target="_blank" rel="noreferrer" style={{ ...btn, textDecoration: "none" }}><Send size={14} /> Tanya stok via WhatsApp</a>}
+            </div>
+          </div>
+        </section>
+
+        {/* Statistik */}
+        <section className="dk-stats" style={{ marginBottom: 20 }} aria-label="Ringkasan kios">
+          <Stat ikon={ShoppingBasket} warna={C.okSoft} fg={C.green} nilai={`${semua.length} komoditas`} ket="Dipantau di kios ini" />
+          <Stat ikon={TrendingDown} warna="#e0f2fe" fg="#0369a1" nilai={`${lebihMurah} dari ${semua.length}`} ket="Lebih murah dari rata-rata pasar" />
+          <Stat ikon={Package} warna={C.amberSoft} fg={C.amber} nilai={`${tipis} stok tipis`} ket={`Di bawah ${STOK_TIPIS} ${"kg/liter"}`} />
+          <Stat ikon={ShieldCheck} warna="#fce7f3" fg="#be185d" nilai={termurah.nama.split(" ").slice(0, 2).join(" ")} ket={`Paling hemat: ${Math.abs(termurah.selisih).toFixed(1).replace(".", ",")}% di bawah pasar`} />
+        </section>
+
+        <div className="dk-grid">
+          {/* Katalog */}
+          <section className="dk-card" style={{ overflow: "hidden" }}>
+            <div style={{ padding: 18, display: "grid", gap: 12 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+                <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0 }}>Harga komoditas hari ini</h2>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, color: C.greenDeep, background: C.mint, padding: "5px 12px", borderRadius: 999 }}><RefreshCw size={12} /> Diperbarui {k.update}</span>
+              </div>
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <label style={{ flex: 1, minWidth: 200, display: "flex", alignItems: "center", gap: 8, border: `1px solid ${C.line}`, borderRadius: 14, padding: "0 14px", background: "#f9fcfb" }}>
+                  <Search size={16} color={C.mute} />
+                  <input value={cari} onChange={(e) => setCari(e.target.value)} placeholder="Cari komoditas di kios ini..." aria-label="Cari komoditas" style={{ border: "none", background: "transparent", padding: "12px 0", flex: 1, fontSize: 13.5, fontFamily: "inherit", outline: "none", minWidth: 0 }} />
+                </label>
+                <select value={urut} onChange={(e) => setUrut(e.target.value)} aria-label="Urutkan" style={{ border: `1px solid ${C.line}`, borderRadius: 14, padding: "0 14px", height: 44, background: "#fff", fontSize: 13.5, fontFamily: "inherit", fontWeight: 600 }}>
+                  <option value="default">Urutan default</option><option value="murah">Harga termurah</option><option value="mahal">Harga termahal</option><option value="hemat">Paling hemat vs pasar</option>
+                </select>
+              </div>
+              <div style={{ display: "flex", gap: 4, overflowX: "auto", paddingBottom: 2 }} role="tablist" aria-label="Kategori">
+                {KATEGORI.map((x) => <button key={x} role="tab" aria-selected={kat === x} className={`dk-pill ${kat === x ? "on" : ""}`} onClick={() => setKat(x)}>{x}</button>)}
+              </div>
+            </div>
+
+            {daftar.length === 0 && (
+              <div style={{ padding: "36px 20px", textAlign: "center", color: C.mute, borderTop: `1px solid ${C.line}`, fontSize: 14 }}>
+                Tidak ada komoditas yang cocok. <button style={{ ...link, color: C.green, fontWeight: 700 }} onClick={() => { setCari(""); setKat(KATEGORI[0]); }}>Reset filter</button>
+              </div>
             )}
-          </div>
-        </div>
 
-        {/* SELECTOR KIOS */}
-        <div
-          style={{
-            backgroundColor: "#ffffff",
-            borderRadius: "16px",
-            padding: "20px",
-            border: "1px solid #e2e8f0",
-            marginBottom: "24px",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
-          }}
-        >
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px", flexWrap: "wrap", gap: "10px" }}>
-            <div>
-              <span style={{ fontSize: "11px", fontWeight: "700", color: "#047857", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-                DIREKTORI KIOS MITRA RESMI
-              </span>
-              <h2 style={{ fontSize: "18px", fontWeight: "800", color: "#0f172a", margin: "4px 0 0 0" }}>
-                Pilih Kios Pasar di Kabupaten Lamongan
-              </h2>
-            </div>
-            <span style={{ fontSize: "12px", color: "#64748b" }}>
-              Total <strong>{kiosList.length}</strong> Kios Terdaftar
-            </span>
-          </div>
-
-          <div style={{ display: "flex", gap: "8px", overflowX: "auto", paddingBottom: "6px" }}>
-            {kiosList.map((k) => (
-              <button
-                key={k.id}
-                onClick={() => setSelectedKiosId(k.id)}
-                style={{
-                  padding: "8px 16px",
-                  borderRadius: "10px",
-                  border: selectedKiosId === k.id ? "2px solid #047857" : "1px solid #e2e8f0",
-                  backgroundColor: selectedKiosId === k.id ? "#ecfdf5" : "#ffffff",
-                  color: selectedKiosId === k.id ? "#065f46" : "#334155",
-                  fontWeight: selectedKiosId === k.id ? "700" : "500",
-                  fontSize: "13px",
-                  cursor: "pointer",
-                  whiteSpace: "nowrap",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  transition: "all 0.15s ease",
-                }}
-              >
-                <Store size={14} color={selectedKiosId === k.id ? "#047857" : "#94a3b8"} />
-                <span>{k.nama_kios}</span>
-                <small style={{ fontSize: "11px", opacity: 0.75 }}>({k.lokasi_pasar})</small>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {isLoading || !kiosDetail ? (
-          <div style={{ textAlign: "center", padding: "60px 20px", color: "#64748b" }}>
-            <RefreshCw size={32} className="spinning-icon" style={{ marginBottom: "12px", color: "#047857" }} />
-            <p>Memuat rincian kios &amp; katalog komoditas...</p>
-          </div>
-        ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "24px" }}>
-            {/* HERO PROFILE KIOS & ALAMAT TERKONEKSI */}
-            <div
-              style={{
-                backgroundColor: "#ffffff",
-                borderRadius: "16px",
-                padding: "24px",
-                border: "1px solid #e2e8f0",
-                boxShadow: "0 2px 4px rgba(0,0,0,0.04)",
-              }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "16px", marginBottom: "20px" }}>
-                <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "6px" }}>
-                    <span
-                      style={{
-                        backgroundColor: "#ecfdf5",
-                        color: "#047857",
-                        padding: "4px 10px",
-                        borderRadius: "20px",
-                        fontSize: "11px",
-                        fontWeight: "700",
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "4px",
-                      }}
-                    >
-                      <ShieldCheck size={13} /> {kiosDetail.status_izin}
-                    </span>
-                    <span
-                      style={{
-                        backgroundColor: kiosDetail.status_buka_sekarang ? "#dcfce7" : "#fee2e2",
-                        color: kiosDetail.status_buka_sekarang ? "#166534" : "#991b1b",
-                        padding: "4px 10px",
-                        borderRadius: "20px",
-                        fontSize: "11px",
-                        fontWeight: "700",
-                      }}
-                    >
-                      ● {kiosDetail.status_buka_sekarang ? "BUKA SEKARANG" : "TUTUP"}
-                    </span>
+            {daftar.map((it) => {
+              const Ikon = IKON[it.ikon] || Package;
+              const q = keranjang[it.id] || 0;
+              const murah = it.selisih < -0.05, mahal = it.selisih > 0.05;
+              const TrenIc = it.tren < -0.05 ? TrendingDown : it.tren > 0.05 ? TrendingUp : Flat;
+              return (
+                <article key={it.id} className="dk-item">
+                  <div style={{ display: "flex", gap: 12, alignItems: "center", minWidth: 0 }}>
+                    <span style={{ width: 44, height: 44, borderRadius: 14, display: "grid", placeItems: "center", background: it.stok < STOK_TIPIS ? C.redSoft : C.okSoft, flexShrink: 0 }}><Ikon size={20} color={it.stok < STOK_TIPIS ? C.red : C.green} /></span>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 700, fontSize: 14.5 }}>{it.nama}</div>
+                      <div style={{ fontSize: 12, color: C.mute }}>{it.varian}</div>
+                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 6 }}>
+                        <span style={{ ...tag, background: murah ? C.okSoft : mahal ? C.amberSoft : "#eef2f7", color: murah ? C.greenDeep : mahal ? C.amber : C.mute }}>
+                          {murah ? `${Math.abs(it.selisih).toFixed(1).replace(".", ",")}% di bawah pasar` : mahal ? `${it.selisih.toFixed(1).replace(".", ",")}% di atas pasar` : "Setara harga pasar"}
+                        </span>
+                        {it.het && <span style={{ ...tag, background: it.harga <= it.het ? "#ccfbf1" : C.redSoft, color: it.harga <= it.het ? "#0f766e" : "#991b1b" }}>{it.harga <= it.het ? "Sesuai HET" : "Di atas HET"}</span>}
+                        <span style={{ ...tag, background: it.stok < STOK_TIPIS ? C.redSoft : "#eef2f7", color: it.stok < STOK_TIPIS ? "#991b1b" : C.mute }}>Stok {qtyTxt(it.stok)} {it.satuan}</span>
+                      </div>
+                    </div>
                   </div>
-
-                  <h1 style={{ fontSize: "24px", fontWeight: "800", color: "#0f172a", margin: "0 0 6px 0" }}>
-                    {kiosDetail.nama_kios}
-                  </h1>
-                  <p style={{ fontSize: "14px", color: "#64748b", margin: 0 }}>
-                    Penanggung Jawab / Pemilik: <strong>{kiosDetail.pemilik}</strong> • Stan: <strong>{kiosDetail.blok_stan || kiosDetail.blok}</strong>
-                  </p>
-                </div>
-
-                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                  <button
-                    onClick={() => setShowEditKiosModal(true)}
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "6px",
-                      backgroundColor: "#f8fafc",
-                      border: "1px solid #cbd5e1",
-                      color: "#334155",
-                      padding: "8px 14px",
-                      borderRadius: "8px",
-                      fontSize: "13px",
-                      fontWeight: "600",
-                      cursor: "pointer",
-                    }}
-                  >
-                    <Edit2 size={14} /> Edit Kios &amp; Alamat
-                  </button>
-
-                  <a
-                    href={kiosDetail.google_maps_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "6px",
-                      backgroundColor: "#047857",
-                      border: "none",
-                      color: "#ffffff",
-                      padding: "8px 14px",
-                      borderRadius: "8px",
-                      fontSize: "13px",
-                      fontWeight: "600",
-                      textDecoration: "none",
-                      boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-                    }}
-                  >
-                    <Navigation size={14} /> Buka Google Maps
-                  </a>
-                </div>
-              </div>
-
-              {/* DETAIL INFO & ALAMAT KIOS (MASIH NYAMBUNG) */}
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-                  gap: "16px",
-                  padding: "16px",
-                  backgroundColor: "#f8fafc",
-                  borderRadius: "12px",
-                  border: "1px solid #e2e8f0",
-                  marginBottom: "20px",
-                }}
-              >
-                <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "#64748b", marginBottom: "4px" }}>
-                    <MapPin size={14} color="#047857" />
-                    <strong>Alamat Lengkap Kios:</strong>
+                  <div className="dk-spark" style={{ textAlign: "center" }}>
+                    <Sparkline data={it.riwayat} naik={it.naik} />
+                    <div style={{ fontSize: 11, color: it.tren > 0.05 ? C.red : C.mute, display: "flex", gap: 3, justifyContent: "center", alignItems: "center" }}><TrenIc size={11} />{Math.abs(it.tren).toFixed(1).replace(".", ",")}% vs kemarin</div>
                   </div>
-                  <div style={{ fontSize: "13px", fontWeight: "600", color: "#0f172a", lineHeight: "1.4" }}>
-                    {kiosDetail.alamat_lengkap}
-                  </div>
-                  <small style={{ color: "#047857", fontWeight: "500", display: "block", marginTop: "2px" }}>
-                    ✓ Terhubung ke {kiosDetail.lokasi_pasar} (Lamongan)
-                  </small>
-                </div>
-
-                <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "#64748b", marginBottom: "4px" }}>
-                    <Clock size={14} color="#047857" />
-                    <strong>Jam Operasional &amp; Status:</strong>
-                  </div>
-                  <div style={{ fontSize: "13px", fontWeight: "600", color: "#0f172a" }}>
-                    {kiosDetail.jam_buka}
-                  </div>
-                  <small style={{ color: "#64748b" }}>Update: {kiosDetail.waktu_update_terakhir}</small>
-                </div>
-
-                <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", color: "#64748b", marginBottom: "4px" }}>
-                    <Phone size={14} color="#047857" />
-                    <strong>Kontak / WhatsApp:</strong>
-                  </div>
-                  <div style={{ fontSize: "13px", fontWeight: "600", color: "#0f172a" }}>
-                    {kiosDetail.no_telepon}
-                  </div>
-                  <small style={{ color: "#64748b" }}>Layanan Konsumen &amp; Pemesanan</small>
-                </div>
-              </div>
-
-              {/* EMBED PETA GOOGLE MAPS LOKASI KIOS & PASAR */}
-              <div style={{ borderRadius: "12px", overflow: "hidden", border: "1px solid #e2e8f0", height: "180px", position: "relative" }}>
-                <iframe
-                  title={`Maps Lokasi ${kiosDetail.nama_kios}`}
-                  src={`https://maps.google.com/maps?q=${encodeURIComponent(kiosDetail.alamat_lengkap || (kiosDetail.lokasi_pasar + ' Lamongan'))}&z=15&output=embed`}
-                  width="100%"
-                  height="100%"
-                  style={{ border: 0 }}
-                  allowFullScreen=""
-                  loading="lazy"
-                ></iframe>
-                <div
-                  style={{
-                    position: "absolute",
-                    bottom: "8px",
-                    left: "8px",
-                    backgroundColor: "rgba(255,255,255,0.95)",
-                    padding: "4px 10px",
-                    borderRadius: "6px",
-                    fontSize: "11px",
-                    fontWeight: "700",
-                    color: "#065f46",
-                    boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-                  }}
-                >
-                  📍 Titik Pasar: {kiosDetail.lokasi_pasar} • Stan: {kiosDetail.blok_stan}
-                </div>
-              </div>
-            </div>
-
-            {/* KATALOG KOMODITAS KIOS (BISA UPDATE SESUAI ADMIN) */}
-            <div
-              style={{
-                backgroundColor: "#ffffff",
-                borderRadius: "16px",
-                padding: "24px",
-                border: "1px solid #e2e8f0",
-                boxShadow: "0 2px 4px rgba(0,0,0,0.04)",
-              }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "14px", marginBottom: "20px" }}>
-                <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <ShoppingBag size={20} color="#047857" />
-                    <h3 style={{ fontSize: "18px", fontWeight: "800", color: "#0f172a", margin: 0 }}>
-                      Katalog Komoditas Pangan Kios
-                    </h3>
-                  </div>
-                  <p style={{ fontSize: "13px", color: "#64748b", margin: "4px 0 0 0" }}>
-                    Daftar harga komoditas (Nama, Harga satuan/kg, Status &amp; Keterangan varian mutu).
-                  </p>
-                </div>
-
-                <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                  <div style={{ position: "relative" }}>
-                    <Search size={15} style={{ position: "absolute", left: "10px", top: "10px", color: "#94a3b8" }} />
-                    <input
-                      type="text"
-                      placeholder="Cari dalam katalog..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      style={{
-                        padding: "7px 12px 7px 32px",
-                        borderRadius: "8px",
-                        border: "1px solid #cbd5e1",
-                        fontSize: "13px",
-                        width: "180px",
-                      }}
-                    />
-                  </div>
-
-                  <button
-                    onClick={openAddKomoditas}
-                    style={{
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: "6px",
-                      backgroundColor: "#047857",
-                      color: "#ffffff",
-                      border: "none",
-                      padding: "8px 16px",
-                      borderRadius: "8px",
-                      fontSize: "13px",
-                      fontWeight: "700",
-                      cursor: "pointer",
-                      boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-                    }}
-                  >
-                    <Plus size={16} /> Tambah Komoditas
-                  </button>
-                </div>
-              </div>
-
-              {/* TABEL KATALOG KOMODITAS */}
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "13px" }}>
-                  <thead>
-                    <tr style={{ backgroundColor: "#f8fafc", borderBottom: "2px solid #e2e8f0" }}>
-                      <th style={{ padding: "12px", color: "#475569", fontWeight: "700" }}>KOMODITAS</th>
-                      <th style={{ padding: "12px", color: "#475569", fontWeight: "700" }}>KETERANGAN / MUTU</th>
-                      <th style={{ padding: "12px", color: "#475569", fontWeight: "700" }}>HARGA SATUAN</th>
-                      <th style={{ padding: "12px", color: "#475569", fontWeight: "700" }}>STATUS &amp; STOK</th>
-                      <th style={{ padding: "12px", color: "#475569", fontWeight: "700", textAlign: "center" }}>AKSI</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredKatalog.length === 0 ? (
-                      <tr>
-                        <td colSpan="5" style={{ textAlign: "center", padding: "40px 12px", color: "#94a3b8" }}>
-                          Belum ada komoditas di katalog kios ini. Klik tombol <strong>+ Tambah Komoditas</strong> untuk menambahkan.
-                        </td>
-                      </tr>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontWeight: 800, fontSize: 18, color: C.greenDeep }}>{rp(it.harga)}</div>
+                    <div style={{ fontSize: 11.5, color: C.mute, marginBottom: 8 }}>per {it.satuan}</div>
+                    {q === 0 ? (
+                      <button onClick={() => ubah(it, 0.5)} style={{ ...btn, padding: "6px 12px", fontSize: 12 }}><Plus size={13} /> Tambah</button>
                     ) : (
-                      filteredKatalog.map((item) => (
-                        <tr key={item.id_komoditas} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                          {/* Nama Komoditas */}
-                          <td style={{ padding: "14px 12px" }}>
-                            <div style={{ fontWeight: "700", color: "#0f172a" }}>{item.nama_bahan}</div>
-                            <small style={{ color: "#64748b" }}>{item.kategori}</small>
-                          </td>
-
-                          {/* Keterangan & Varian Mutu */}
-                          <td style={{ padding: "14px 12px" }}>
-                            <span style={{ color: "#334155", fontWeight: "500" }}>{item.varian_keterangan}</span>
-                          </td>
-
-                          {/* Harga Satuan */}
-                          <td style={{ padding: "14px 12px" }}>
-                            <span style={{ fontWeight: "800", color: "#047857", fontSize: "14px" }}>
-                              {formatRupiah(item.harga)}
-                            </span>
-                            <span style={{ color: "#64748b", fontSize: "12px" }}> /{item.satuan}</span>
-                          </td>
-
-                          {/* Status & Stok */}
-                          <td style={{ padding: "14px 12px" }}>
-                            <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
-                              <span
-                                style={{
-                                  display: "inline-block",
-                                  padding: "2px 8px",
-                                  borderRadius: "12px",
-                                  fontSize: "11px",
-                                  fontWeight: "700",
-                                  backgroundColor: item.status_label?.includes("+")
-                                    ? "#fee2e2"
-                                    : item.status_label?.includes("Turun")
-                                    ? "#ecfdf5"
-                                    : "#e0f2fe",
-                                  color: item.status_label?.includes("+")
-                                    ? "#b91c1c"
-                                    : item.status_label?.includes("Turun")
-                                    ? "#047857"
-                                    : "#0369a1",
-                                  width: "fit-content",
-                                }}
-                              >
-                                {item.status_label}
-                              </span>
-                              <small style={{ color: "#64748b" }}>Stok: {item.stok_fisik}</small>
-                            </div>
-                          </td>
-
-                          {/* Tombol Aksi */}
-                          <td style={{ padding: "14px 12px", textAlign: "center" }}>
-                            <div style={{ display: "inline-flex", gap: "6px" }}>
-                              <button
-                                onClick={() => openEditKomoditas(item)}
-                                title="Edit Komoditas"
-                                style={{
-                                  padding: "6px",
-                                  borderRadius: "6px",
-                                  border: "1px solid #cbd5e1",
-                                  backgroundColor: "#ffffff",
-                                  color: "#334155",
-                                  cursor: "pointer",
-                                }}
-                              >
-                                <Edit2 size={13} />
-                              </button>
-                              <button
-                                onClick={() => handleDeleteKomoditas(item.id_komoditas, item.nama_bahan)}
-                                title="Hapus Komoditas"
-                                style={{
-                                  padding: "6px",
-                                  borderRadius: "6px",
-                                  border: "1px solid #fecaca",
-                                  backgroundColor: "#fff5f5",
-                                  color: "#dc2626",
-                                  cursor: "pointer",
-                                }}
-                              >
-                                <Trash2 size={13} />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
+                      <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: C.mint, borderRadius: 999, padding: 3 }}>
+                        <button aria-label="Kurangi" onClick={() => ubah(it, -0.5)} style={step}><Minus size={13} /></button>
+                        <span style={{ fontSize: 12.5, fontWeight: 700, minWidth: 34, textAlign: "center" }}>{qtyTxt(q)}</span>
+                        <button aria-label="Tambah" onClick={() => ubah(it, 0.5)} style={step}><Plus size={13} /></button>
+                      </div>
                     )}
-                  </tbody>
-                </table>
+                  </div>
+                </article>
+              );
+            })}
+
+            <footer style={{ padding: "14px 18px", background: C.mint, display: "flex", justifyContent: "space-between", gap: 10, flexWrap: "wrap", alignItems: "center", fontSize: 12.5, color: C.greenDeep }}>
+              <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}><ShieldCheck size={15} /> Data dicatat enumerator Dinas Ketahanan Pangan.</span>
+              <button onClick={() => setModal(true)} style={{ ...link, color: C.greenDeep, fontWeight: 800, display: "inline-flex", gap: 5, alignItems: "center" }}><Flag size={13} /> Harga di lapangan berbeda? Laporkan</button>
+            </footer>
+          </section>
+
+          {/* Daftar belanja */}
+          <aside className="dk-side" aria-label="Daftar belanja">
+            <div style={{ borderRadius: 20, padding: 22, color: "#fff", background: `linear-gradient(160deg, ${C.greenDeep}, ${C.greenInk})`, boxShadow: "0 8px 24px rgba(6,78,59,.25)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, fontWeight: 800, fontSize: 18 }}><ShoppingBasket size={20} /> Daftar Belanja</div>
+              <p style={{ fontSize: 12.5, opacity: 0.8, margin: "4px 0 14px" }}>Tambahkan komoditas untuk menghitung estimasi belanja di kios ini.</p>
+              {isi.length === 0 ? (
+                <div style={{ border: "1px dashed rgba(255,255,255,.35)", borderRadius: 14, padding: 18, fontSize: 13, textAlign: "center", opacity: 0.85 }}>Belum ada item. Tekan "Tambah" pada komoditas.</div>
+              ) : (
+                <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gap: 8 }}>
+                  {isi.map((i) => (
+                    <li key={i.id} style={{ display: "flex", justifyContent: "space-between", gap: 10, fontSize: 13 }}>
+                      <span>{i.nama}<br /><span style={{ opacity: 0.7, fontSize: 11.5 }}>{qtyTxt(keranjang[i.id])} {i.satuan} x {rp(i.harga)}</span></span>
+                      <strong>{rp(i.harga * keranjang[i.id])}</strong>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <div style={{ borderTop: "1px solid rgba(255,255,255,.2)", margin: "16px 0 12px", paddingTop: 14 }}>
+                <div style={{ fontSize: 12, opacity: 0.75 }}>Estimasi total</div>
+                <div style={{ fontSize: 28, fontWeight: 800 }}>{rp(total)}</div>
+                {isi.length > 0 && hemat > 0 && <div style={{ fontSize: 12.5, color: "#6ee7b7", marginTop: 2 }}>Hemat sekitar {rp(hemat)} dibanding rata-rata pasar</div>}
+              </div>
+              <div style={{ display: "grid", gap: 8 }}>
+                <a aria-disabled={!isi.length} href={isi.length ? `https://wa.me/${k.telepon || ""}?text=${encodeURIComponent(teks)}` : undefined} target="_blank" rel="noreferrer"
+                  style={{ ...btnW, background: "#fff", color: C.greenDeep, opacity: isi.length ? 1 : 0.5, pointerEvents: isi.length ? "auto" : "none", textDecoration: "none" }}><Send size={15} /> Kirim pesanan ke kios</a>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button disabled={!isi.length} onClick={salin} style={{ ...btnW, flex: 1, opacity: isi.length ? 1 : 0.5 }}><Copy size={14} /> Salin</button>
+                  <button disabled={!isi.length} onClick={() => setKeranjang({})} style={{ ...btnW, flex: 1, opacity: isi.length ? 1 : 0.5 }}><X size={14} /> Kosongkan</button>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          </aside>
+        </div>
+      </div>
 
-        {/* MODAL EDIT KIOS & ALAMAT */}
-        {showEditKiosModal && (
-          <div
-            style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: "rgba(15, 23, 42, 0.6)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              zIndex: 9999,
-              padding: "16px",
-            }}
-          >
-            <div
-              style={{
-                backgroundColor: "#ffffff",
-                borderRadius: "16px",
-                width: "100%",
-                maxWidth: "520px",
-                maxHeight: "90vh",
-                overflowY: "auto",
-                padding: "24px",
-                boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)",
-              }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-                <h3 style={{ fontSize: "18px", fontWeight: "800", color: "#0f172a", margin: 0 }}>
-                  Edit Profil &amp; Alamat Kios
-                </h3>
-                <button onClick={() => setShowEditKiosModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#64748b" }}>
-                  <X size={20} />
-                </button>
-              </div>
+      {modal && <Lapor komoditas={semua} onClose={() => setModal(false)} onKirim={(m) => { setModal(false); setToast(m); }} />}
+      {toast && <div role="status" style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", background: C.greenInk, color: "#fff", padding: "12px 18px", borderRadius: 14, fontSize: 13, fontWeight: 600, display: "flex", gap: 8, alignItems: "center", boxShadow: "0 8px 24px rgba(0,0,0,.2)", zIndex: 80 }}><CheckCircle2 size={16} /> {toast}</div>}
+    </div>
+  );
+}
 
-              <form onSubmit={handleSaveKios} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-                <div>
-                  <label style={{ display: "block", fontSize: "12px", fontWeight: "700", color: "#334155", marginBottom: "4px" }}>
-                    NAMA KIOS
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={kiosFormData.nama_kios}
-                    onChange={(e) => setKiosFormData({ ...kiosFormData, nama_kios: e.target.value })}
-                    style={{ width: "100%", padding: "8px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px" }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ display: "block", fontSize: "12px", fontWeight: "700", color: "#334155", marginBottom: "4px" }}>
-                    NAMA PEMILIK / PENANGGUNG JAWAB
-                  </label>
-                  <input
-                    type="text"
-                    value={kiosFormData.pemilik}
-                    onChange={(e) => setKiosFormData({ ...kiosFormData, pemilik: e.target.value })}
-                    style={{ width: "100%", padding: "8px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px" }}
-                  />
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-                  <div>
-                    <label style={{ display: "block", fontSize: "12px", fontWeight: "700", color: "#334155", marginBottom: "4px" }}>
-                      LOKASI PASAR
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={kiosFormData.lokasi_pasar}
-                      onChange={(e) => setKiosFormData({ ...kiosFormData, lokasi_pasar: e.target.value })}
-                      style={{ width: "100%", padding: "8px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px" }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: "block", fontSize: "12px", fontWeight: "700", color: "#334155", marginBottom: "4px" }}>
-                      BLOK / NOMOR STAN
-                    </label>
-                    <input
-                      type="text"
-                      value={kiosFormData.blok_stan}
-                      onChange={(e) => setKiosFormData({ ...kiosFormData, blok_stan: e.target.value })}
-                      style={{ width: "100%", padding: "8px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px" }}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label style={{ display: "block", fontSize: "12px", fontWeight: "700", color: "#334155", marginBottom: "4px" }}>
-                    ALAMAT LENGKAP KIOS (TERSAMBUNG KE PASAR LAMONGAN)
-                  </label>
-                  <textarea
-                    rows="3"
-                    value={kiosFormData.alamat_lengkap}
-                    onChange={(e) => setKiosFormData({ ...kiosFormData, alamat_lengkap: e.target.value })}
-                    placeholder="Contoh: Pasar Babat, Jl. Raya Babat No. 12, Blok A-12, Babat, Lamongan"
-                    style={{ width: "100%", padding: "8px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px" }}
-                  />
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-                  <div>
-                    <label style={{ display: "block", fontSize: "12px", fontWeight: "700", color: "#334155", marginBottom: "4px" }}>
-                      JAM OPERASIONAL
-                    </label>
-                    <input
-                      type="text"
-                      value={kiosFormData.jam_buka}
-                      onChange={(e) => setKiosFormData({ ...kiosFormData, jam_buka: e.target.value })}
-                      placeholder="06:00 - 16:30 WIB"
-                      style={{ width: "100%", padding: "8px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px" }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: "block", fontSize: "12px", fontWeight: "700", color: "#334155", marginBottom: "4px" }}>
-                      NO. TELEPON / WHATSAPP
-                    </label>
-                    <input
-                      type="text"
-                      value={kiosFormData.no_telepon}
-                      onChange={(e) => setKiosFormData({ ...kiosFormData, no_telepon: e.target.value })}
-                      style={{ width: "100%", padding: "8px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px" }}
-                    />
-                  </div>
-                </div>
-
-                <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "10px" }}>
-                  <button
-                    type="button"
-                    onClick={() => setShowEditKiosModal(false)}
-                    style={{ padding: "8px 16px", borderRadius: "8px", border: "1px solid #cbd5e1", backgroundColor: "#fff", cursor: "pointer" }}
-                  >
-                    Batal
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isUpdating}
-                    style={{
-                      padding: "8px 18px",
-                      borderRadius: "8px",
-                      border: "none",
-                      backgroundColor: "#047857",
-                      color: "#fff",
-                      fontWeight: "700",
-                      cursor: "pointer",
-                    }}
-                  >
-                    {isUpdating ? "Menyimpan..." : "Simpan Perubahan Kios"}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
-
-        {/* MODAL TAMBAH / EDIT KOMODITAS KATALOG */}
-        {showKomoditasModal && (
-          <div
-            style={{
-              position: "fixed",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              backgroundColor: "rgba(15, 23, 42, 0.6)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              zIndex: 9999,
-              padding: "16px",
-            }}
-          >
-            <div
-              style={{
-                backgroundColor: "#ffffff",
-                borderRadius: "16px",
-                width: "100%",
-                maxWidth: "500px",
-                padding: "24px",
-                boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1)",
-              }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-                <h3 style={{ fontSize: "18px", fontWeight: "800", color: "#0f172a", margin: 0 }}>
-                  {editingKomoditasId ? "Edit Komoditas Katalog" : "Tambah Komoditas ke Katalog"}
-                </h3>
-                <button onClick={() => setShowKomoditasModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#64748b" }}>
-                  <X size={20} />
-                </button>
-              </div>
-
-              <form onSubmit={handleSaveKomoditas} style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-                <div>
-                  <label style={{ display: "block", fontSize: "12px", fontWeight: "700", color: "#334155", marginBottom: "4px" }}>
-                    NAMA KOMODITAS PANGAN *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Contoh: Beras Medium (IR 64), Minyakita"
-                    value={komoditasFormData.nama_bahan}
-                    onChange={(e) => setKomoditasFormData({ ...komoditasFormData, nama_bahan: e.target.value })}
-                    style={{ width: "100%", padding: "8px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px" }}
-                  />
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "10px" }}>
-                  <div>
-                    <label style={{ display: "block", fontSize: "12px", fontWeight: "700", color: "#334155", marginBottom: "4px" }}>
-                      HARGA SATUAN (RP) *
-                    </label>
-                    <input
-                      type="number"
-                      required
-                      min="100"
-                      placeholder="Contoh: 13000"
-                      value={komoditasFormData.harga}
-                      onChange={(e) => setKomoditasFormData({ ...komoditasFormData, harga: e.target.value })}
-                      style={{ width: "100%", padding: "8px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px" }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: "block", fontSize: "12px", fontWeight: "700", color: "#334155", marginBottom: "4px" }}>
-                      SATUAN
-                    </label>
-                    <select
-                      value={komoditasFormData.satuan}
-                      onChange={(e) => setKomoditasFormData({ ...komoditasFormData, satuan: e.target.value })}
-                      style={{ width: "100%", padding: "8px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px" }}
-                    >
-                      <option value="kg">kg</option>
-                      <option value="liter">liter</option>
-                      <option value="butir">butir</option>
-                      <option value="ikat">ikat</option>
-                      <option value="bungkus">bungkus</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label style={{ display: "block", fontSize: "12px", fontWeight: "700", color: "#334155", marginBottom: "4px" }}>
-                    KETERANGAN / SPESIFIKASI MUTU *
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="Contoh: Kualitas Bulog Premium, Grade A Bulir Utuh, Minyakita Kemasan 1L"
-                    value={komoditasFormData.varian_keterangan}
-                    onChange={(e) => setKomoditasFormData({ ...komoditasFormData, varian_keterangan: e.target.value })}
-                    style={{ width: "100%", padding: "8px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px" }}
-                  />
-                </div>
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
-                  <div>
-                    <label style={{ display: "block", fontSize: "12px", fontWeight: "700", color: "#334155", marginBottom: "4px" }}>
-                      STATUS HARGA / HET
-                    </label>
-                    <select
-                      value={komoditasFormData.status_label}
-                      onChange={(e) => setKomoditasFormData({ ...komoditasFormData, status_label: e.target.value })}
-                      style={{ width: "100%", padding: "8px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px" }}
-                    >
-                      <option value="Sesuai HET">Sesuai HET</option>
-                      <option value="Stabil">Stabil</option>
-                      <option value="+12% di atas HET">+12% di atas HET</option>
-                      <option value="+15% di atas HET">+15% di atas HET</option>
-                      <option value="Turun Rp2.000">Turun Rp2.000</option>
-                      <option value="Turun Rp1.000">Turun Rp1.000</option>
-                      <option value="Tersedia">Tersedia</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label style={{ display: "block", fontSize: "12px", fontWeight: "700", color: "#334155", marginBottom: "4px" }}>
-                      STOK FISIK
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Contoh: Melimpah (500 kg), Tersedia"
-                      value={komoditasFormData.stok_fisik}
-                      onChange={(e) => setKomoditasFormData({ ...komoditasFormData, stok_fisik: e.target.value })}
-                      style={{ width: "100%", padding: "8px 12px", borderRadius: "8px", border: "1px solid #cbd5e1", fontSize: "13px" }}
-                    />
-                  </div>
-                </div>
-
-                <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "12px" }}>
-                  <button
-                    type="button"
-                    onClick={() => setShowKomoditasModal(false)}
-                    style={{ padding: "8px 16px", borderRadius: "8px", border: "1px solid #cbd5e1", backgroundColor: "#fff", cursor: "pointer" }}
-                  >
-                    Batal
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isUpdating}
-                    style={{
-                      padding: "8px 18px",
-                      borderRadius: "8px",
-                      border: "none",
-                      backgroundColor: "#047857",
-                      color: "#fff",
-                      fontWeight: "700",
-                      cursor: "pointer",
-                    }}
-                  >
-                    {isUpdating ? "Menyimpan..." : (editingKomoditasId ? "Update Komoditas" : "Tambahkan ke Katalog")}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
+function Stat({ ikon: I, warna, fg, nilai, ket }) {
+  return (
+    <div className="dk-card" style={{ padding: 16, display: "flex", gap: 12, alignItems: "center" }}>
+      <span style={{ width: 46, height: 46, borderRadius: 14, background: warna, display: "grid", placeItems: "center", flexShrink: 0 }}><I size={21} color={fg} /></span>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontWeight: 800, fontSize: 16, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{nilai}</div>
+        <div style={{ fontSize: 12, color: C.mute, lineHeight: 1.3 }}>{ket}</div>
       </div>
     </div>
   );
 }
+
+function Lapor({ komoditas, onClose, onKirim }) {
+  const [id, setId] = useState(komoditas[0].id);
+  const [harga, setHarga] = useState("");
+  const [err, setErr] = useState("");
+  const it = komoditas.find((x) => x.id === Number(id));
+  const angka = Number(harga), sel = angka > 0 ? angka - it.harga : null;
+  useEffect(() => { const f = (e) => e.key === "Escape" && onClose(); window.addEventListener("keydown", f); return () => window.removeEventListener("keydown", f); }, [onClose]);
+  const kirim = () => {
+    if (!angka || angka <= 0) return setErr("Isi harga yang Anda temukan di lapangan.");
+    if (angka === it.harga) return setErr("Harga sama dengan data kami, tidak ada selisih untuk dilaporkan.");
+    onKirim(`Laporan ${it.nama} (${rp(angka)}/${it.satuan}) terkirim. Terima kasih!`);
+  };
+  const lbl = { display: "block", fontSize: 12.5, fontWeight: 700, marginBottom: 12 };
+  const inp = { display: "block", width: "100%", marginTop: 6, padding: "11px 12px", borderRadius: 12, border: `1px solid ${C.line}`, fontSize: 14, fontFamily: "inherit" };
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(6,40,30,.5)", display: "grid", placeItems: "center", padding: 16, zIndex: 70 }}>
+      <div role="dialog" aria-modal="true" aria-label="Laporkan selisih harga" onClick={(e) => e.stopPropagation()} className="dk-card" style={{ width: "100%", maxWidth: 420, padding: 22 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14 }}>
+          <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800 }}>Laporkan selisih harga</h3>
+          <button aria-label="Tutup" onClick={onClose} style={{ background: "none", border: "none" }}><X size={18} /></button>
+        </div>
+        <label style={lbl}>Komoditas
+          <select value={id} onChange={(e) => { setId(e.target.value); setErr(""); }} style={inp}>{komoditas.map((x) => <option key={x.id} value={x.id}>{x.nama}</option>)}</select>
+        </label>
+        <p style={{ fontSize: 12.5, color: C.mute, margin: "0 0 12px" }}>Harga di sistem: <strong>{rp(it.harga)}/{it.satuan}</strong></p>
+        <label style={lbl}>Harga di lapangan (Rp)
+          <input type="number" min="0" inputMode="numeric" value={harga} placeholder="Contoh: 14000" onChange={(e) => { setHarga(e.target.value); setErr(""); }} style={inp} />
+        </label>
+        {sel !== null && sel !== 0 && <p style={{ fontSize: 12.5, fontWeight: 700, color: sel > 0 ? C.red : C.green, margin: "0 0 8px" }}>Selisih {sel > 0 ? "+" : "-"}{rp(Math.abs(sel))} dari data sistem</p>}
+        {err && <p role="alert" style={{ fontSize: 12.5, color: C.red, margin: "0 0 8px" }}>{err}</p>}
+        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 14 }}>
+          <button onClick={onClose} style={btn}>Batal</button>
+          <button onClick={kirim} style={{ ...btn, background: C.greenDeep, color: "#fff", borderColor: C.greenDeep }}>Kirim laporan</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Style bersama ---------- */
+const link = { background: "none", border: "none", padding: 0, color: C.mute, fontSize: "inherit" };
+const meta = { fontSize: 13, color: C.mute, margin: "4px 0 0", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" };
+const btn = { display: "inline-flex", alignItems: "center", gap: 6, padding: "10px 16px", borderRadius: 999, border: `1px solid ${C.line}`, background: "#fff", color: C.ink, fontSize: 13, fontWeight: 700 };
+const btnW = { display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, padding: "11px 14px", borderRadius: 999, border: "1px solid rgba(255,255,255,.35)", background: "transparent", color: "#fff", fontSize: 13, fontWeight: 700 };
+const tag = { fontSize: 11, fontWeight: 700, padding: "3px 9px", borderRadius: 999 };
+const step = { width: 26, height: 26, borderRadius: "50%", border: "none", background: "#fff", color: C.greenDeep, display: "grid", placeItems: "center" };

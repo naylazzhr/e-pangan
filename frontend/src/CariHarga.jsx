@@ -26,7 +26,7 @@ function MapRecenter({ center }) {
     return null;
 }
 
-export default function CariHarga() {
+export default function CariHarga({ onSelectKios, onNavigate }) {
     // State Data Backend & Filter
     const [stalls, setStalls] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -212,14 +212,13 @@ export default function CariHarga() {
         else setMapCenter([-7.1186, 112.4158]);
     };
 
-    // Klik tombol "Detail" untuk ke posisi kios di peta & buka popup
-    const handleFocusStallOnMap = (stall) => {
-        if (stall.lat && stall.lng) {
-            setMapCenter([stall.lat, stall.lng]);
-            const marker = markerRefs.current[stall.id];
-            if (marker) {
-                marker.openPopup();
-            }
+    // Pindah ke detail kios
+    const handleGoToDetail = (stall) => {
+        if (onSelectKios) {
+            onSelectKios(stall);
+        }
+        if (onNavigate) {
+            onNavigate("detail-kios");
         }
     };
 
@@ -398,7 +397,11 @@ export default function CariHarga() {
                         ) : (
                             <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}>
                                 {currentStalls.map((stall) => (
-                                    <div key={stall.id} style={{ backgroundColor: "#ffffff", borderRadius: "16px", border: stall.isCheap ? "2px solid #22c55e" : "1px solid #f0fdf4", padding: "1.1rem", boxShadow: "0 4px 15px rgba(0,0,0,0.02)" }}>
+                                    <div
+                                        key={stall.id}
+                                        onClick={() => handleGoToDetail(stall)}
+                                        style={{ backgroundColor: "#ffffff", borderRadius: "16px", border: stall.isCheap ? "2px solid #22c55e" : "1px solid #f0fdf4", padding: "1.1rem", boxShadow: "0 4px 15px rgba(0,0,0,0.02)", cursor: "pointer" }}
+                                    >
                                         <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", marginBottom: "0.75rem" }}>
                                             <div style={{ flex: 1 }}>
                                                 <div style={{ display: "flex", gap: "0.4rem", marginBottom: "0.4rem" }}>
@@ -414,7 +417,7 @@ export default function CariHarga() {
                                                     <p style={{ margin: 0, fontSize: "0.75rem", color: "#64748b" }}>{stall.addressDetail}</p>
                                                 )}
                                                 <div style={{ display: "flex", gap: "0.8rem", marginTop: "6px", fontSize: "0.75rem", color: "#64748b" }}>
-                                                    <span>📏 {stall.distance}</span>
+                                                    <span>🚴 {stall.distance}</span>
                                                     <span>🕒 {stall.time}</span>
                                                 </div>
                                             </div>
@@ -432,14 +435,20 @@ export default function CariHarga() {
                                             <span style={{ fontSize: "0.75rem", color: "#475569" }}>Komoditas: <strong>{stall.commodities}</strong></span>
                                             <div style={{ display: "flex", gap: "0.4rem" }}>
                                                 <button
-                                                    onClick={() => handleFocusStallOnMap(stall)}
-                                                    style={{ backgroundColor: "#f8fafc", border: "1px solid #f1f5f9", padding: "0.4rem 0.75rem", borderRadius: "8px", fontSize: "0.75rem", fontWeight: "600", color: "#334155", cursor: "pointer" }}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleGoToDetail(stall);
+                                                    }}
+                                                    style={{ backgroundColor: "#16a34a", border: "none", padding: "0.4rem 0.75rem", borderRadius: "8px", fontSize: "0.75rem", fontWeight: "600", color: "#fff", cursor: "pointer" }}
                                                 >
-                                                    Detail Peta
+                                                    Detail Kios
                                                 </button>
                                                 <button
-                                                    onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${stall.lat},${stall.lng}`, '_blank')}
-                                                    style={{ backgroundColor: "#16a34a", color: "#fff", border: "none", padding: "0.4rem 0.75rem", borderRadius: "8px", fontSize: "0.75rem", fontWeight: "600", cursor: "pointer" }}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        window.open(`https://www.google.com/maps/search/?api=1&query=${stall.lat},${stall.lng}`, '_blank');
+                                                    }}
+                                                    style={{ backgroundColor: "#f8fafc", color: "#334155", border: "1px solid #e2e8f0", padding: "0.4rem 0.75rem", borderRadius: "8px", fontSize: "0.75rem", fontWeight: "600", cursor: "pointer" }}
                                                 >
                                                     Rute
                                                 </button>
@@ -532,10 +541,10 @@ export default function CariHarga() {
                                                             <strong style={{ color: "#16a34a", fontSize: "1rem" }}>Rp{stall.price?.toLocaleString("id-ID")}/kg</strong>
                                                         </div>
                                                         <button
-                                                            onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${stall.lat},${stall.lng}`, '_blank')}
+                                                            onClick={() => handleGoToDetail(stall)}
                                                             style={{ marginTop: "6px", width: "100%", backgroundColor: "#16a34a", color: "#fff", border: "none", padding: "4px", borderRadius: "6px", fontSize: "0.7rem", fontWeight: "bold", cursor: "pointer" }}
                                                         >
-                                                            Buka di Google Maps ↗
+                                                            Lihat Detail Kios &rarr;
                                                         </button>
                                                     </div>
                                                 </Popup>

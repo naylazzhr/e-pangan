@@ -6,6 +6,7 @@ import AdminLogin from "./AdminLogin";
 import AdminDashboard from "./AdminDashboard";
 import CariHarga from "./CariHarga";
 import KomparasiPasar from "./KomparasiPasar";
+import DetailKios from "./DetailKios";
 import {
   TrendingUp,
   TrendingDown,
@@ -26,6 +27,8 @@ import {
 } from "lucide-react";
 
 // ================= CONSTANTS & DATA AWAL =================
+
+const [selectedKios, setSelectedKios] = useState(null);
 const CATEGORIES = [
   { label: "Semua Komoditas", count: 8 },
   { label: "Beras & Padi", categoryKey: "KEBUTUHAN POKOK" },
@@ -367,6 +370,14 @@ export default function App() {
         />
       ) : activePage === "cari-harga" ? (
         <CariHarga />
+      ) : activePage === "komparasi-pasar" ? (
+        <KomparasiPasar setActivePage={setActivePage} />
+      ) : activePage === "detail-kios" ? (
+        <DetailKios
+          kios={selectedKios}
+          onBack={() => setActivePage("dashboard")}
+          onNavigate={(page) => setActivePage(page)}
+        />
       ) : (
         <>
           {/* Hero Section */}
