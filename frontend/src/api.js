@@ -141,6 +141,9 @@ export async function parseNLPSuara(transcript) {
   return handleResponse(res);
 }
 
+// Alias untuk kompatibilitas AdminDashboard
+export const prosesSuaraNLP = parseNLPSuara;
+
 export async function submitNLPSuara(transcript, simpan_langsung = true) {
   const res = await fetch(`${BASE_URL}/nlp/submit-suara`, {
     method: "POST",
@@ -149,3 +152,17 @@ export async function submitNLPSuara(transcript, simpan_langsung = true) {
   });
   return handleResponse(res);
 }
+
+// ----------------------------------------------------------------
+// KOMPARASI HARGA ANTAR PASAR
+// ----------------------------------------------------------------
+
+export async function getKomparasiPasar({ search = "", kategori = "" } = {}) {
+  const params = new URLSearchParams();
+  if (search) params.append("search", search);
+  if (kategori && kategori !== "Semua") params.append("kategori", kategori);
+
+  const res = await fetch(`${BASE_URL}/komparasi-pasar?${params}`);
+  return handleResponse(res);
+}
+

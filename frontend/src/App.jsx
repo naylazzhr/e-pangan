@@ -4,6 +4,8 @@ import Navbar from "./Navbar";
 import SmartBudgetting from "./SmartBudgetting";
 import AdminLogin from "./AdminLogin";
 import AdminDashboard from "./AdminDashboard";
+import CariHarga from "./CariHarga";
+import KomparasiPasar from "./KomparasiPasar";
 import {
   TrendingUp,
   TrendingDown,
@@ -176,6 +178,7 @@ const INITIAL_PRODUCTS = [
     ],
   },
   {
+
     id: 8,
     name: "Cabai Merah Besar Keriting",
     category: "BUMBU DAPUR",
@@ -263,7 +266,7 @@ export default function App() {
   const [selectedMarketFilter, setSelectedMarketFilter] = useState("Semua Pasar");
   const [sortOption, setSortOption] = useState("default");
 
-  const [activePage, setActivePage] = useState("dashboard"); // 'dashboard' | 'login' | 'admin-dashboard' | 'smart-budgeting'
+  const [activePage, setActivePage] = useState("dashboard"); // 'dashboard' | 'cari-harga' | 'login' | 'admin-dashboard' | 'smart-budgeting'
 
   const [viewMode, setViewMode] = useState("grid");
   const [trendCommodityName, setTrendCommodityName] = useState("Beras Medium IR-64");
@@ -340,7 +343,7 @@ export default function App() {
     );
   }
 
-  // 3. Tampilan Utama (Publik / Smart Budgeting)
+  // 3. Tampilan Utama (Publik / Smart Budgeting / Cari Harga)
   return (
     <div className="app-container">
       {/* Toast Notification */}
@@ -356,12 +359,14 @@ export default function App() {
       {/* Navigasi Header */}
       <Navbar activePage={activePage} setActivePage={setActivePage} showToast={showToast} />
 
-      {/* Tampilan Halaman Smart Budgeting / Dashboard Utama */}
+      {/* RENDER KONTEN SESUAI ACTIVE PAGE */}
       {activePage === "smart-budgeting" ? (
         <SmartBudgetting
           onBack={() => setActivePage("dashboard")}
           onNavigate={(page) => setActivePage(page)}
         />
+      ) : activePage === "cari-harga" ? (
+        <CariHarga />
       ) : (
         <>
           {/* Hero Section */}
@@ -647,7 +652,153 @@ export default function App() {
   );
 }
 
-// ================= SUB KOMPONEN =================
+// ================= KOMPONEN HALAMAN CARI HARGA =================
+function CariHargaView() {
+  const [selectedRadius, setSelectedRadius] = useState('< 1 km');
+
+  return (
+    <div className="main-layout" style={{ display: 'block', padding: '24px' }}>
+      {/* GPS BAR */}
+      <div className="panel-card" style={{ padding: '12px 20px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{ background: '#e6f4ea', color: '#137333', padding: '4px 12px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 600 }}>
+            📍 GPS Terdeteksi: Babat, Lamongan
+          </span>
+          <span style={{ fontSize: '0.85rem', color: '#5f6368' }}>• Akurasi sinyal 12 meter</span>
+        </div>
+        <a href="#ubah-lokasi" style={{ color: '#137333', fontSize: '0.85rem', fontWeight: 600 }}>Ubah Titik Lokasi</a>
+      </div>
+
+      {/* BANNER HEMAT */}
+      <div className="panel-card" style={{ background: 'linear-gradient(135deg, #0f5132, #198754)', color: 'white', padding: '20px', marginBottom: '24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <span style={{ background: 'white', color: '#198754', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 700 }}>
+              PELUANG HEMAT WARGA — Zona Babat
+            </span>
+            <h3 style={{ margin: '8px 0 4px 0' }}>Hemat hingga <span style={{ color: '#ffc107' }}>Rp1.000 / kg</span> belanja di Pasar Babat</h3>
+            <small style={{ opacity: 0.8 }}>Harga terendah Rp13.000 (Kios Bu Siti) vs tertinggi Rp14.000 (Pasar Kota).</small>
+          </div>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <div style={{ background: 'rgba(255,255,255,0.15)', padding: '8px 16px', borderRadius: '8px', textAlign: 'center' }}>
+              <div style={{ fontSize: '0.7rem' }}>RATA-RATA BABAT</div>
+              <div style={{ fontWeight: 700, fontSize: '1.1rem' }}>Rp13.150/kg</div>
+            </div>
+            <div style={{ background: 'rgba(255,255,255,0.15)', padding: '8px 16px', borderRadius: '8px', textAlign: 'center' }}>
+              <div style={{ fontSize: '0.7rem' }}>HET NASIONAL</div>
+              <div style={{ fontWeight: 700, fontSize: '1.1rem' }}>Rp13.500/kg</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* KONTEN 3 KOLOM */}
+      <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr 300px', gap: '20px' }}>
+        {/* KOLOM KIRI - FILTER */}
+        <div className="panel-card" style={{ padding: '16px' }}>
+          <h4 style={{ margin: '0 0 16px 0', fontSize: '1rem' }}>Filter Presisi</h4>
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ fontSize: '0.8rem', color: '#5f6368', display: 'block', marginBottom: '8px' }}>Radius Jarak</label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              {['< 1 km', '3 km', '5 km', '10 km'].map((r) => (
+                <button
+                  key={r}
+                  onClick={() => setSelectedRadius(r)}
+                  style={{
+                    padding: '6px',
+                    borderRadius: '6px',
+                    border: '1px solid #dadce0',
+                    background: selectedRadius === r ? '#198754' : 'white',
+                    color: selectedRadius === r ? 'white' : '#3c4043',
+                    cursor: 'pointer',
+                    fontSize: '0.8rem'
+                  }}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label style={{ fontSize: '0.8rem', color: '#5f6368', display: 'block', marginBottom: '8px' }}>Varietas & Mutu Beras</label>
+            {['Medium IR 64', 'Premium Mentik Wangi', 'Rojolele Delanggu', 'Beras Bulog SPHP'].map((item, i) => (
+              <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '8px', fontSize: '0.85rem' }}>
+                <input type="checkbox" defaultChecked={i === 0} id={`c-${i}`} />
+                <label htmlFor={`c-${i}`}>{item}</label>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* KOLOM TENGAH - KIOS LIST */}
+        <div>
+          <h4 style={{ margin: '0 0 12px 0', fontSize: '1rem' }}>Daftar Kios Terdekat</h4>
+
+          <div className="panel-card" style={{ padding: '16px', borderLeft: '4px solid #198754', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div>
+                <span style={{ background: '#198754', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '0.7rem', marginRight: '6px' }}>HARGA TERMURAH</span>
+                <span style={{ background: '#cff4fc', color: '#055160', padding: '2px 6px', borderRadius: '4px', fontSize: '0.7rem' }}>Binaan DKPP</span>
+                <h3 style={{ margin: '8px 0 2px 0', fontSize: '1.1rem' }}>Kios Bu Siti</h3>
+                <small style={{ color: '#5f6368', display: 'block' }}>Pasar Babat, Los Beras Blok B-12</small>
+                <small style={{ color: '#5f6368' }}>📍 0.8 km • Buka s/d 16.30 WIB</small>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <small style={{ color: '#5f6368' }}>HARGA TERKINI</small>
+                <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#198754' }}>Rp13.000<span style={{ fontSize: '0.8rem' }}>/kg</span></div>
+                <span style={{ background: '#e6f4ea', color: '#137333', padding: '2px 6px', borderRadius: '4px', fontSize: '0.75rem' }}>Rp1.000 di bawah HET</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="panel-card" style={{ padding: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div>
+                <span style={{ background: '#0d6efd', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '0.7rem' }}>PALING DEKAT</span>
+                <h3 style={{ margin: '8px 0 2px 0', fontSize: '1.1rem' }}>Kios Berkah Tani</h3>
+                <small style={{ color: '#5f6368', display: 'block' }}>Pasar Babat, Sektor Barat Blok A-05</small>
+                <small style={{ color: '#5f6368' }}>📍 0.5 km • Buka s/d 17.00 WIB</small>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <small style={{ color: '#5f6368' }}>HARGA TERKINI</small>
+                <div style={{ fontSize: '1.4rem', fontWeight: 700 }}>Rp13.200<span style={{ fontSize: '0.8rem' }}>/kg</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* KOLOM KANAN - PETA */}
+        <div>
+          <div className="panel-card" style={{ padding: '16px', marginBottom: '16px' }}>
+            <h4 style={{ margin: '0 0 12px 0', fontSize: '0.9rem' }}>Peta Sebaran Kios</h4>
+            <div style={{ background: '#e9ecef', height: '180px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6c757d', fontSize: '0.85rem' }}>
+              [ Area Peta Leaflet ]
+            </div>
+          </div>
+
+          <div className="panel-card" style={{ padding: '16px' }}>
+            <h4 style={{ margin: '0 0 12px 0', fontSize: '0.9rem' }}>Sebaran Harga per Pasar</h4>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '8px' }}>
+              <span>Pasar Babat</span>
+              <strong style={{ color: '#198754' }}>Rp13.000</strong>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '8px' }}>
+              <span>Pasar Sidoharjo</span>
+              <strong>Rp13.500</strong>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
+              <span>Pasar Lamongan Kota</span>
+              <strong style={{ color: '#dc3545' }}>Rp14.000</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ================= SUB KOMPONEN LAINNYA =================
 
 function CommodityCard({ product, onCompare }) {
   return (

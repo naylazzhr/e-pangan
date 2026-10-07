@@ -9,7 +9,6 @@ export default function Navbar({ activePage, setActivePage, showToast }) {
         onClick={() => setActivePage("dashboard")}
         style={{ cursor: "pointer" }}
       >
-        {/* Langsung panggil nama file yang ada di folder public */}
         <img
           src="/logo-epangan.png"
           alt="E-Pangan Kab. Lamongan"
@@ -27,29 +26,19 @@ export default function Navbar({ activePage, setActivePage, showToast }) {
           Beranda
         </button>
 
+        {/* DIUBAH: Pindah halaman ke 'cari-harga' */}
         <button
           type="button"
-          className="nav-link"
-          onClick={() => {
-            if (activePage !== "dashboard") {
-              setActivePage("dashboard");
-              setTimeout(() => {
-                document.getElementById("katalog-pasar")?.scrollIntoView({ behavior: "smooth" });
-              }, 100);
-            } else {
-              document.getElementById("katalog-pasar")?.scrollIntoView({ behavior: "smooth" });
-            }
-          }}
+          className={`nav-link ${activePage === "cari-harga" ? "active" : ""}`}
+          onClick={() => setActivePage("cari-harga")}
         >
           Cari Harga
         </button>
 
         <button
           type="button"
-          className="nav-link"
-          onClick={() => {
-            if (showToast) showToast("Halaman Perbandingan Antar Pasar sedang disiapkan.");
-          }}
+          className={`nav-link ${activePage === "komparasi-pasar" ? "active" : ""}`}
+          onClick={() => setActivePage("komparasi-pasar")}
         >
           Perbandingan Antar Pasar
         </button>

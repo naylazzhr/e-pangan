@@ -30,7 +30,6 @@ export default function AdminLogin({ setActivePage, showToast }) {
         }
     };
 
-
     return (
         <div className="container py-5 d-flex justify-content-center align-items-center" style={{ minHeight: "85vh" }}>
             <div className="card shadow-lg border-0 rounded-4" style={{ maxWidth: "420px", width: "100%" }}>
@@ -63,7 +62,8 @@ export default function AdminLogin({ setActivePage, showToast }) {
                         </div>
                     )}
 
-                    <form onSubmit={handleSubmit}>
+                    {/* Tambahkan autoComplete="off" pada tag form */}
+                    <form onSubmit={handleSubmit} autoComplete="off">
                         {/* Input Username / Email */}
                         <div className="mb-3">
                             <label className="form-label text-muted small fw-semibold d-flex align-items-center gap-1">
@@ -72,8 +72,10 @@ export default function AdminLogin({ setActivePage, showToast }) {
                             <div className="input-group">
                                 <input
                                     type="text"
+                                    name="username_nofill"
+                                    autoComplete="off"
                                     className="form-control bg-light border-end-0 rounded-start-3 py-2 fs-6"
-                                    placeholder="petugas1@gmail.com"
+                                    placeholder="Masukkan Email atau Username"
                                     value={identifier}
                                     onChange={(e) => setIdentifier(e.target.value)}
                                     disabled={isLoading}
@@ -92,8 +94,10 @@ export default function AdminLogin({ setActivePage, showToast }) {
                             <div className="input-group">
                                 <input
                                     type={showPassword ? "text" : "password"}
+                                    name="password_nofill"
+                                    autoComplete="new-password"
                                     className="form-control bg-light border-end-0 rounded-start-3 py-2 fs-6"
-                                    placeholder="hanyaadmin"
+                                    placeholder="Masukkan Kata Sandi"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     disabled={isLoading}
