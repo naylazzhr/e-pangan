@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getKomoditas, getPasar, kalkulasiSmartBudgeting } from './api';
 
 // Data Pasar Resmi Kabupaten Lamongan beserta Koordinat GPS & Navigasi
 const PASAR_OPTIONS = [
@@ -109,22 +110,74 @@ export default function SmartBudgeting() {
   const [selectedPasarId, setSelectedPasarId] = useState('babat');
   const [items, setItems] = useState([]);
   const [searchKatalog, setSearchKatalog] = useState('');
+  const [pasarList, setPasarList] = useState(PASAR_OPTIONS);
+  const [katalogList, setKatalogList] = useState(MASTER_KOMODITAS);
+  const [isOptimizing, setIsOptimizing] = useState(false);
 
   const periodMultiplier = { harian: 1, mingguan: 7, bulanan: 30 };
 
+  // Ambil Master Pasar & Komoditas Resmi dari Backend
+  useEffect(() => {
+    getPasar().then(res => {
+      if (res && res.data && Array.isArray(res.data) && res.data.length > 0) {
+        const mapped = res.data.map(p => ({
+          id: String(p.id),
+          name: p.nama_pasar,
+          sub: `${p.nama_pasar} (${p.kecamatan || 'Kabupaten Lamongan'})`,
+          alamat: p.alamat || `${p.nama_pasar}, Lamongan`,
+          info: `Titik Pantau Resmi • ${p.jam_operasional || '05:00 - 15:00 WIB'}`,
+          lat: p.latitude || -7.1126,
+          lon: p.longitude || 112.1634,
+          maps: `https://www.google.com/maps/search/?api=1&query=${p.latitude || -7.1126},${p.longitude || 112.1634}`,
+          rute: `https://www.google.com/maps/dir/?api=1&destination=${p.latitude || -7.1126},${p.longitude || 112.1634}`
+        }));
+        setPasarList(mapped);
+        if (mapped.length > 0) setSelectedPasarId(mapped[0].id);
+      }
+    }).catch(() => null);
+
+    getKomoditas().then(res => {
+      if (res && res.data && Array.isArray(res.data) && res.data.length > 0) {
+        const unique = [];
+        const seen = new Set();
+        res.data.forEach(item => {
+          if (!seen.has(item.nama_bahan)) {
+            seen.add(item.nama_bahan);
+            unique.push({
+              id: String(item.id),
+              name: item.nama_bahan,
+              price: item.harga,
+              unit: item.satuan || 'kg',
+              category: item.kategori || 'Bahan Pokok'
+            });
+          }
+        });
+        if (unique.length > 0) {
+          setKatalogList(unique);
+        }
+      }
+    }).catch(() => null);
+  }, []);
+
   useEffect(() => {
     const days = periodMultiplier[period];
+    // Gunakan harga real dari katalog backend jika ada
+    const getPrice = (name, fallback) => {
+      const found = katalogList.find(k => k.name.toLowerCase().includes(name.toLowerCase()));
+      return found ? found.price : fallback;
+    };
+
     const initialList = [
-      { id: '1', name: 'Beras Medium IR-64', price: 13000, unit: 'kg', qty: Math.max(1, Math.round(0.25 * familyMembers * days)) },
-      { id: '3', name: 'Minyak Goreng Sawit', price: 15700, unit: 'liter', qty: Math.max(1, Math.round(0.04 * familyMembers * days)) },
-      { id: '4', name: 'Telur Ayam Ras Segar', price: 28500, unit: 'kg', qty: Math.max(1, Math.round(0.05 * familyMembers * days)) },
-      { id: '5', name: 'Daging Ayam Broiler', price: 34000, unit: 'kg', qty: Math.max(1, Math.round(0.03 * familyMembers * days)) },
-      { id: '6', name: 'Cabai Rawit Merah', price: 48500, unit: 'kg', qty: Math.max(1, Math.round(0.01 * familyMembers * days)) },
-      { id: '8', name: 'Bawang Merah Allium', price: 27500, unit: 'kg', qty: Math.max(1, Math.round(0.015 * familyMembers * days)) },
-      { id: '9', name: 'Gula Pasir Kristal', price: 17500, unit: 'kg', qty: Math.max(1, Math.round(0.02 * familyMembers * days)) },
+      { id: '1', name: 'Beras Medium IR-64', price: getPrice('Beras Medium', 13000), unit: 'kg', qty: Math.max(1, Math.round(0.25 * familyMembers * days)) },
+      { id: '3', name: 'Minyak Goreng Sawit', price: getPrice('Minyak Goreng', 15700), unit: 'liter', qty: Math.max(1, Math.round(0.04 * familyMembers * days)) },
+      { id: '4', name: 'Telur Ayam Ras Segar', price: getPrice('Telur Ayam', 28500), unit: 'kg', qty: Math.max(1, Math.round(0.05 * familyMembers * days)) },
+      { id: '5', name: 'Daging Ayam Broiler', price: getPrice('Daging Ayam', 34000), unit: 'kg', qty: Math.max(1, Math.round(0.03 * familyMembers * days)) },
+      { id: '6', name: 'Cabai Rawit Merah', price: getPrice('Cabai Rawit', 48500), unit: 'kg', qty: Math.max(1, Math.round(0.01 * familyMembers * days)) },
+      { id: '8', name: 'Bawang Merah Allium', price: getPrice('Bawang Merah', 27500), unit: 'kg', qty: Math.max(1, Math.round(0.015 * familyMembers * days)) },
+      { id: '9', name: 'Gula Pasir Kristal', price: getPrice('Gula Pasir', 17500), unit: 'kg', qty: Math.max(1, Math.round(0.02 * familyMembers * days)) },
     ];
     setItems(initialList);
-  }, [period, familyMembers]);
+  }, [period, familyMembers, katalogList]);
 
   const updateQty = (id, delta) => {
     setItems(prev =>
@@ -144,9 +197,35 @@ export default function SmartBudgeting() {
   };
 
   const handleApplySubstitution = (oldName, newName) => {
-    const subItem = MASTER_KOMODITAS.find(m => m.name === newName);
+    const subItem = katalogList.find(m => m.name === newName);
     if (!subItem) return;
     setItems(prev => prev.map(item => item.name === oldName ? { ...item, ...subItem } : item));
+  };
+
+  // Panggil endpoint resmi FastAPI /smart-budgeting
+  const handleOptimasiOtomatis = async () => {
+    setIsOptimizing(true);
+    try {
+      const activeP = pasarList.find(p => p.id === selectedPasarId);
+      const res = await kalkulasiSmartBudgeting({
+        budget,
+        lokasi_pasar: activeP ? activeP.name : ""
+      });
+      if (res && res.rekomendasi_paket && res.rekomendasi_paket.length > 0) {
+        const paketItems = res.rekomendasi_paket.map((r, idx) => ({
+          id: String(r.id || idx + 1),
+          name: r.nama_bahan,
+          price: r.harga,
+          unit: r.satuan || 'kg',
+          qty: 1
+        }));
+        setItems(paketItems);
+      }
+    } catch (e) {
+      console.warn("Optimasi backend error:", e);
+    } finally {
+      setIsOptimizing(false);
+    }
   };
 
   const totalCost = items.reduce((sum, item) => sum + item.qty * item.price, 0);
@@ -155,10 +234,10 @@ export default function SmartBudgeting() {
   const daysInPeriod = periodMultiplier[period];
   const dailySpend = Math.round(totalCost / daysInPeriod);
 
-  const activePasar = PASAR_OPTIONS.find(p => p.id === selectedPasarId) || PASAR_OPTIONS[0];
+  const activePasar = pasarList.find(p => p.id === selectedPasarId) || pasarList[0] || PASAR_OPTIONS[0];
   const expensiveItem = items.find(i => SUBSTITUSI_MAP[i.name]);
 
-  const filteredKatalog = MASTER_KOMODITAS.filter(item =>
+  const filteredKatalog = katalogList.filter(item =>
     item.name.toLowerCase().includes(searchKatalog.toLowerCase()) ||
     item.category.toLowerCase().includes(searchKatalog.toLowerCase())
   );
@@ -191,12 +270,22 @@ export default function SmartBudgeting() {
           <div className="card border-0 shadow-sm rounded-4 p-4 mb-4">
             <div className="d-flex justify-content-between align-items-center mb-2">
               <span className="fw-bold text-emerald text-uppercase fs-7">ALOKASI ANGGARAN</span>
-              <button
-                onClick={() => { setBudget(200000); setPeriod('bulanan'); setFamilyMembers(4); }}
-                className="btn btn-sm btn-link text-muted text-decoration-none p-0 small"
-              >
-                🔄 Reset
-              </button>
+              <div className="d-flex gap-2 align-items-center">
+                <button
+                  onClick={handleOptimasiOtomatis}
+                  disabled={isOptimizing}
+                  className="btn btn-sm btn-success rounded-pill px-3 py-1 small fw-bold"
+                  title="Hitung paket belanja paling optimal dari database resmi"
+                >
+                  {isOptimizing ? "⏳ Menghitung..." : "⚡ Optimasi Paket Otomatis"}
+                </button>
+                <button
+                  onClick={() => { setBudget(200000); setPeriod('bulanan'); setFamilyMembers(4); }}
+                  className="btn btn-sm btn-link text-muted text-decoration-none p-0 small"
+                >
+                  🔄 Reset
+                </button>
+              </div>
             </div>
 
             <h5 className="fw-bold text-dark mb-3">
@@ -267,7 +356,7 @@ export default function SmartBudgeting() {
             </p>
 
             <div className="d-flex flex-wrap gap-2 mb-3">
-              {PASAR_OPTIONS.map((pasar) => (
+              {pasarList.map((pasar) => (
                 <button
                   key={pasar.id}
                   onClick={() => setSelectedPasarId(pasar.id)}

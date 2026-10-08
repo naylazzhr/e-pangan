@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { getCariHarga, getKiosList } from "./api";
 
 // Fix icon Marker Leaflet di React / Vite
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
@@ -43,29 +44,6 @@ export default function CariHarga({ onSelectKios, onNavigate }) {
     // Koordinat Pusat & Reference Marker Peta
     const [mapCenter, setMapCenter] = useState([-7.1186, 112.4158]);
     const markerRefs = useRef({});
-
-    // 1. FETCH DATA DARI BACKEND FASTAPI
-    useEffect(() => {
-        fetchStalls();
-    }, []);
-
-    const fetchStalls = async () => {
-        setLoading(true);
-        try {
-            const response = await fetch("http://127.0.0.1:8000/api/kios");
-            if (response.ok) {
-                const data = await response.json();
-                setStalls(data);
-            } else {
-                setFallbackData();
-            }
-        } catch (error) {
-            console.warn("Backend tidak terhubung, menggunakan data dummy lokal:", error);
-            setFallbackData();
-        } finally {
-            setLoading(false);
-        }
-    };
 
     // Data dummy lengkap dengan alamat detail & koordinat
     const setFallbackData = () => {
@@ -157,6 +135,76 @@ export default function CariHarga({ onSelectKios, onNavigate }) {
             }
         ]);
     };
+
+    const fetchStalls = async () => {
+        setLoading(true);
+        try {
+            const res = await getCariHarga({
+                komoditas: searchTerm || "Beras Medium",
+                pasar: selectedMarket !== "Semua Pasar" ? selectedMarket : "",
+            });
+            const rawList = res?.data || [];
+            if (rawList.length > 0) {
+                const mapped = rawList.map((item, idx) => ({
+                    id: item.id || idx + 1,
+                    name: item.nama_kios || item.name || "Kios Mitra",
+                    market: item.nama_pasar ? `${item.nama_pasar}, ${item.blok_stan || ''}` : (item.market || "Pasar Babat"),
+                    addressDetail: item.blok_stan ? `${item.nama_pasar || 'Pasar'}, ${item.blok_stan}` : (item.addressDetail || item.nama_pasar || "Kawasan Pasar Lamongan"),
+                    price: item.harga_terkini || item.price || 13000,
+                    hetDiff: item.status_het_label || item.hetDiff || "Sesuai HET",
+                    distanceVal: item.jarak_km != null ? item.jarak_km : (item.distanceVal || 0.8),
+                    distance: item.jarak_km != null ? `${item.jarak_km} km` : (item.distance || "0.8 km"),
+                    time: item.jam_buka || item.time || "Buka s/d 16:30 WIB",
+                    isCheap: item.badge_label === "HARGA TERMURAH" || (item.selisih_het && item.selisih_het < 0),
+                    variety: item.varietas || "Medium IR 64",
+                    commodities: item.nama_komoditas ? `${item.nama_komoditas} (${item.kemasan || item.varietas || 'Curah'})` : (item.commodities || "Beras Medium"),
+                    badges: item.badge_label ? [item.badge_label, ...(item.is_binaan_dkpp ? ["Binaan DKPP"] : [])] : ["Binaan DKPP"],
+                    lat: item.latitude || item.lat || -7.1132,
+                    lng: item.longitude || item.lng || 112.1645,
+                }));
+                setStalls(mapped);
+                if (mapped.length > 0 && mapped[0].lat && mapped[0].lng) {
+                    setMapCenter([mapped[0].lat, mapped[0].lng]);
+                }
+            } else {
+                const kiosRes = await getKiosList({
+                    lokasi: selectedMarket !== "Semua Pasar" ? selectedMarket : ""
+                });
+                const rawKios = kiosRes?.data || [];
+                if (rawKios.length > 0) {
+                    const mappedKios = rawKios.map((k) => ({
+                        id: k.id,
+                        name: k.nama_kios,
+                        market: `${k.lokasi_pasar}, ${k.blok_stan || 'Stan'}`,
+                        addressDetail: k.alamat_lengkap || k.lokasi_pasar,
+                        price: 13000,
+                        hetDiff: "Rp500 di bawah HET",
+                        distanceVal: 0.8,
+                        distance: "0.8 km",
+                        time: k.jam_buka || "Buka s/d 16:30 WIB",
+                        isCheap: k.id === 1,
+                        variety: "Medium IR 64",
+                        commodities: "Beras Medium IR 64",
+                        badges: k.id === 1 ? ["HARGA TERMURAH", "Binaan DKPP"] : ["Binaan DKPP"],
+                        lat: k.latitude || -7.1132,
+                        lng: k.longitude || 112.1645
+                    }));
+                    setStalls(mappedKios);
+                } else {
+                    setFallbackData();
+                }
+            }
+        } catch (error) {
+            console.warn("Backend error, menggunakan fallback lokal:", error);
+            setFallbackData();
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchStalls();
+    }, []);
 
     // Toggle Checkbox Varietas
     const handleVarietyChange = (varietyName) => {

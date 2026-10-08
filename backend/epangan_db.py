@@ -447,6 +447,225 @@ def init_db():
         db.commit()
         print("Data Alamat Lengkap Kios dan Katalog Komoditas Kios siap.")
 
+        # G. SEEDING HET NASIONAL
+        het_count = db.query(models.HETNasional).count()
+        if het_count == 0:
+            het_defaults = [
+                {"nama_komoditas": "Beras Medium", "varietas": "Medium IR 64", "harga_het": 13500.0, "satuan": "kg", "sumber": "Bapanas & Permendag 2024", "zona": "Jawa-Bali"},
+                {"nama_komoditas": "Beras Premium", "varietas": "Premium Pandan Wangi", "harga_het": 14900.0, "satuan": "kg", "sumber": "Bapanas & Permendag 2024", "zona": "Jawa-Bali"},
+                {"nama_komoditas": "Minyak Goreng Sawit", "varietas": "MinyaKita / Kemasan", "harga_het": 15700.0, "satuan": "liter", "sumber": "Permendag No 18/2024", "zona": "Nasional"},
+                {"nama_komoditas": "Gula Pasir Kristal", "varietas": "Konsumsi Curah", "harga_het": 17500.0, "satuan": "kg", "sumber": "Bapanas 2024", "zona": "Nasional"},
+                {"nama_komoditas": "Telur Ayam Ras", "varietas": "Segar / Ras", "harga_het": 28500.0, "satuan": "kg", "sumber": "Bapanas 2024", "zona": "Nasional"},
+                {"nama_komoditas": "Daging Ayam Broiler", "varietas": "Karkas Segar", "harga_het": 36750.0, "satuan": "kg", "sumber": "Bapanas 2024", "zona": "Nasional"},
+                {"nama_komoditas": "Daging Sapi Murni", "varietas": "Paha Depan/Belakang", "harga_het": 140000.0, "satuan": "kg", "sumber": "Bapanas 2024", "zona": "Nasional"},
+                {"nama_komoditas": "Bawang Merah Allium", "varietas": "Super Rogol", "harga_het": 41500.0, "satuan": "kg", "sumber": "Bapanas 2024", "zona": "Nasional"},
+                {"nama_komoditas": "Cabai Rawit Merah", "varietas": "Super Pedas", "harga_het": 57000.0, "satuan": "kg", "sumber": "Bapanas 2024", "zona": "Nasional"},
+            ]
+            for h in het_defaults:
+                db.add(models.HETNasional(
+                    nama_komoditas=h["nama_komoditas"],
+                    varietas=h["varietas"],
+                    harga_het=h["harga_het"],
+                    satuan=h["satuan"],
+                    sumber=h["sumber"],
+                    berlaku_mulai="Januari 2024",
+                    zona=h["zona"],
+                    is_aktif=True
+                ))
+            db.commit()
+            print("Seeding HET Nasional selesai.")
+
+        # H. SEEDING KIOS_HARGA (UNTUK FITUR CARI HARGA DAN PETA)
+        kios_harga_count = db.query(models.KiosHarga).count()
+        if kios_harga_count == 0:
+            kios_harga_data = [
+                {
+                    "nama_kios": "Kios Bu Siti",
+                    "nama_pasar": "Pasar Babat",
+                    "kecamatan": "Babat",
+                    "blok_stan": "Los Beras Blok A-12",
+                    "latitude": -7.1132,
+                    "longitude": 112.1645,
+                    "jarak_km": 0.8,
+                    "estimasi_tempuh_menit": 3,
+                    "metode_tempuh": "jalan",
+                    "nama_komoditas": "Beras Medium",
+                    "varietas": "Medium IR 64",
+                    "kemasan": "Kemasan Curah & 5 kg",
+                    "harga_terkini": 13000.0,
+                    "satuan": "kg",
+                    "harga_het": 13500.0,
+                    "selisih_het": -500.0,
+                    "status_het_label": "Rp500 di bawah HET",
+                    "is_binaan_dkpp": True,
+                    "badge_label": "HARGA TERMURAH",
+                    "badge_warna": "hijau",
+                    "jam_buka": "Buka s/d 16.30 WIB",
+                    "is_buka_sekarang": True,
+                    "google_maps_url": "https://maps.google.com/?q=-7.1132,112.1645",
+                    "osm_url": "https://www.openstreetmap.org/?mlat=-7.1132&mlon=112.1645",
+                },
+                {
+                    "nama_kios": "Kios Berkah Tani",
+                    "nama_pasar": "Pasar Babat",
+                    "kecamatan": "Babat",
+                    "blok_stan": "Sektor Barat Blok B-05",
+                    "latitude": -7.1145,
+                    "longitude": 112.1630,
+                    "jarak_km": 0.5,
+                    "estimasi_tempuh_menit": 2,
+                    "metode_tempuh": "jalan",
+                    "nama_komoditas": "Beras Medium",
+                    "varietas": "Medium IR 64",
+                    "kemasan": "Kemasan 10 kg & 25 kg",
+                    "harga_terkini": 13200.0,
+                    "satuan": "kg",
+                    "harga_het": 13500.0,
+                    "selisih_het": -300.0,
+                    "status_het_label": "Rp300 di bawah HET",
+                    "is_binaan_dkpp": False,
+                    "badge_label": "PALING DEKAT",
+                    "badge_warna": "biru",
+                    "jam_buka": "Buka s/d 17.00 WIB",
+                    "is_buka_sekarang": True,
+                    "google_maps_url": "https://maps.google.com/?q=-7.1145,112.1630",
+                    "osm_url": "https://www.openstreetmap.org/?mlat=-7.1145&mlon=112.1630",
+                },
+                {
+                    "nama_kios": "Toko Barokah Abadi",
+                    "nama_pasar": "Pasar Sidoharjo",
+                    "kecamatan": "Lamongan",
+                    "blok_stan": "Blok C-02",
+                    "latitude": -7.1260,
+                    "longitude": 112.4110,
+                    "jarak_km": 4.2,
+                    "estimasi_tempuh_menit": 8,
+                    "metode_tempuh": "mobil",
+                    "nama_komoditas": "Beras Medium",
+                    "varietas": "Premium Mentik Wangi",
+                    "kemasan": "Beras Medium Super & Ramos",
+                    "harga_terkini": 13500.0,
+                    "satuan": "kg",
+                    "harga_het": 13500.0,
+                    "selisih_het": 0.0,
+                    "status_het_label": "Sesuai HET",
+                    "is_binaan_dkpp": True,
+                    "badge_label": "PASAR SIDOHARJO",
+                    "badge_warna": "hijau",
+                    "jam_buka": "Buka s/d 15.00 WIB",
+                    "is_buka_sekarang": True,
+                    "google_maps_url": "https://maps.google.com/?q=-7.1260,112.4110",
+                    "osm_url": "https://www.openstreetmap.org/?mlat=-7.1260&mlon=112.4110",
+                },
+                {
+                    "nama_kios": "Kios Rejeki Makmur",
+                    "nama_pasar": "Pasar Lamongan Kota",
+                    "kecamatan": "Lamongan",
+                    "blok_stan": "Area Timur Stan 12",
+                    "latitude": -7.1180,
+                    "longitude": 112.4180,
+                    "jarak_km": 8.5,
+                    "estimasi_tempuh_menit": 16,
+                    "metode_tempuh": "mobil",
+                    "nama_komoditas": "Beras Medium",
+                    "varietas": "Rojolele Delanggu",
+                    "kemasan": "Beras C4 Delanggu",
+                    "harga_terkini": 14000.0,
+                    "satuan": "kg",
+                    "harga_het": 13500.0,
+                    "selisih_het": 500.0,
+                    "status_het_label": "Rp500 di atas HET",
+                    "is_binaan_dkpp": False,
+                    "badge_label": "PASAR LAMONGAN KOTA",
+                    "badge_warna": "merah",
+                    "jam_buka": "Buka s/d 14.00 WIB",
+                    "is_buka_sekarang": True,
+                    "google_maps_url": "https://maps.google.com/?q=-7.1180,112.4180",
+                    "osm_url": "https://www.openstreetmap.org/?mlat=-7.1180&mlon=112.4180",
+                },
+                {
+                    "nama_kios": "Kios Jaya Pangan",
+                    "nama_pasar": "Pasar Babat",
+                    "kecamatan": "Babat",
+                    "blok_stan": "Pintu Masuk Utama No. 1",
+                    "latitude": -7.1120,
+                    "longitude": 112.1670,
+                    "jarak_km": 2.1,
+                    "estimasi_tempuh_menit": 5,
+                    "metode_tempuh": "mobil",
+                    "nama_komoditas": "Beras Medium",
+                    "varietas": "Beras Bulog SPHP",
+                    "kemasan": "Beras Bulog SPHP Medium 5kg",
+                    "harga_terkini": 13100.0,
+                    "satuan": "kg",
+                    "harga_het": 13500.0,
+                    "selisih_het": -400.0,
+                    "status_het_label": "Rp400 di bawah HET",
+                    "is_binaan_dkpp": True,
+                    "badge_label": "Binaan DKPP",
+                    "badge_warna": "hijau",
+                    "jam_buka": "Buka s/d 16.00 WIB",
+                    "is_buka_sekarang": True,
+                    "google_maps_url": "https://maps.google.com/?q=-7.1120,112.1670",
+                    "osm_url": "https://www.openstreetmap.org/?mlat=-7.1120&mlon=112.1670",
+                },
+                {
+                    "nama_kios": "Kios Sembako Barokah Sukodadi",
+                    "nama_pasar": "Pasar Sukodadi",
+                    "kecamatan": "Sukodadi",
+                    "blok_stan": "Kav. B-04",
+                    "latitude": -7.1082,
+                    "longitude": 112.3354,
+                    "jarak_km": 3.4,
+                    "estimasi_tempuh_menit": 7,
+                    "metode_tempuh": "mobil",
+                    "nama_komoditas": "Beras Medium",
+                    "varietas": "Medium IR 64",
+                    "kemasan": "Kemasan Curah 5kg",
+                    "harga_terkini": 13200.0,
+                    "satuan": "kg",
+                    "harga_het": 13500.0,
+                    "selisih_het": -300.0,
+                    "status_het_label": "Rp300 di bawah HET",
+                    "is_binaan_dkpp": True,
+                    "badge_label": "Binaan DKPP",
+                    "badge_warna": "hijau",
+                    "jam_buka": "Buka s/d 16.00 WIB",
+                    "is_buka_sekarang": True,
+                    "google_maps_url": "https://maps.google.com/?q=-7.1082,112.3354",
+                    "osm_url": "https://www.openstreetmap.org/?mlat=-7.1082&mlon=112.3354",
+                },
+            ]
+            for row in kios_harga_data:
+                db.add(models.KiosHarga(**row))
+            db.commit()
+            print("Seeding KiosHarga selesai.")
+
+        # I. PASTIKAN SELURUH KIOS MEMILIKI KOORDINAT GPS LAMONGAN
+        kios_list = db.query(models.Kios).all()
+        for k in kios_list:
+            if not k.latitude or not k.longitude:
+                if "Babat" in k.lokasi_pasar:
+                    k.latitude = -7.1126 + (k.id * 0.0005)
+                    k.longitude = 112.1634 + (k.id * 0.0004)
+                elif "Sukodadi" in k.lokasi_pasar:
+                    k.latitude = -7.1082 + (k.id * 0.0004)
+                    k.longitude = 112.3354 + (k.id * 0.0005)
+                elif "Sidoharjo" in k.lokasi_pasar:
+                    k.latitude = -7.1205 + (k.id * 0.0003)
+                    k.longitude = 112.4152 + (k.id * 0.0003)
+                elif "Brondong" in k.lokasi_pasar:
+                    k.latitude = -6.8924 + (k.id * 0.0004)
+                    k.longitude = 112.2856 + (k.id * 0.0004)
+                elif "Mantup" in k.lokasi_pasar:
+                    k.latitude = -7.2625 + (k.id * 0.0004)
+                    k.longitude = 112.3512 + (k.id * 0.0004)
+                else:
+                    k.latitude = -7.1186 + (k.id * 0.0005)
+                    k.longitude = 112.4158 + (k.id * 0.0005)
+        db.commit()
+        print("Sinkronisasi koordinat GPS Kios selesai.")
+
     finally:
         db.close()
 

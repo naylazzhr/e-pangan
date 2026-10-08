@@ -47,7 +47,7 @@ def _label_selisih_het(harga: float, het: float) -> dict:
 
 @router.get("/cari-harga")
 def cari_harga_kios(
-    komoditas: str = Query(..., description="Nama komoditas, misal: 'Beras Medium'"),
+    komoditas: Optional[str] = Query(None, description="Nama komoditas, misal: 'Beras Medium'"),
     pasar: Optional[str] = Query(None, description="Filter berdasarkan nama pasar, misal: 'Pasar Babat'"),
     varietas: Optional[List[str]] = Query(None, description="Filter varietas, misal: ['Medium IR 64', 'Premium Mentik Wangi']"),
     urutkan: Optional[str] = Query("harga_termurah", description="Urutan: 'harga_termurah', 'terdekat', 'terlengkap'"),
@@ -68,11 +68,11 @@ def cari_harga_kios(
     - Kalkulasi jarak real-time jika koordinat user disertakan
     - Mengembalikan banner 'Peluang Hemat Warga' & statistik harga
     """
-    query = db.query(models.KiosHarga).filter(
-        models.KiosHarga.nama_komoditas.ilike(f"%{komoditas}%")
-    )
+    query = db.query(models.KiosHarga)
+    if komoditas:
+        query = query.filter(models.KiosHarga.nama_komoditas.ilike(f"%{komoditas}%"))
 
-    if pasar:
+    if pasar and pasar != "Semua Pasar":
         query = query.filter(models.KiosHarga.nama_pasar.ilike(f"%{pasar}%"))
     if varietas:
         or_conditions = [models.KiosHarga.varietas.ilike(f"%{v}%") for v in varietas]
@@ -85,10 +85,12 @@ def cari_harga_kios(
     semua_data = query.all()
     if not semua_data:
         # Fallback ke data survei_harga jika KiosHarga kosong
-        survei_fallback = db.query(models.SurveiHarga).filter(
-            models.SurveiHarga.nama_komoditas.ilike(f"%{komoditas}%")
-        )
-        if pasar:
+        survei_fallback = db.query(models.SurveiHarga)
+        if komoditas:
+            survei_fallback = survei_fallback.filter(
+                models.SurveiHarga.nama_komoditas.ilike(f"%{komoditas}%")
+            )
+        if pasar and pasar != "Semua Pasar":
             survei_fallback = survei_fallback.filter(
                 models.SurveiHarga.lokasi_pasar.ilike(f"%{pasar}%")
             )
@@ -97,7 +99,7 @@ def cari_harga_kios(
             "status": "success",
             "sumber_data": "survei_harga",
             "total_kios": len(survei_list),
-            "komoditas_dicari": komoditas,
+            "komoditas_dicari": komoditas or "Semua Komoditas",
             "pasar_filter": pasar,
             "data": [
                 {

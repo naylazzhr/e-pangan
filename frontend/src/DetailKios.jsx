@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
+import { getDetailKios } from "./api";
 import {
   ChevronRight, Store, User, MapPin, Navigation, Clock, Search, Wheat, Package, Droplet, Egg,
   Leaf, Flame, ShieldCheck, RefreshCw, Plus, Minus, ShoppingBasket, Copy, Send, X,
@@ -47,7 +48,57 @@ function Sparkline({ data, naik }) {
 }
 
 export default function DetailKios({ kios = KIOS_DEFAULT, onBack, onNavigate }) {
-  const k = { ...KIOS_DEFAULT, ...kios };
+  const [liveKios, setLiveKios] = useState(null);
+
+  useEffect(() => {
+    if (kios?.id) {
+      getDetailKios(kios.id)
+        .then((res) => {
+          if (res) {
+            const komoditasMapped = (res.katalog || []).map((c) => {
+              const lower = (c.nama_bahan || "").toLowerCase();
+              const ikon = lower.includes("beras") ? "beras"
+                : lower.includes("minyak") ? "minyak"
+                : lower.includes("cabai") ? "cabai"
+                : lower.includes("bawang") ? "bawang"
+                : lower.includes("telur") ? "telur"
+                : lower.includes("gula") ? "gula" : "beras";
+
+              return {
+                id: c.id_komoditas,
+                ikon,
+                kategori: c.kategori || "Beras & Padi",
+                nama: c.nama_bahan,
+                varian: c.varian_keterangan || "Standar Pasar",
+                harga: c.harga,
+                rataPasar: Math.round(c.harga * 1.03),
+                het: c.harga,
+                satuan: c.satuan || "kg",
+                stok: 50,
+                riwayat: [c.harga + 200, c.harga + 100, c.harga, c.harga]
+              };
+            });
+
+            setLiveKios({
+              nama: res.nama_kios || kios.name || kios.nama,
+              pasar: res.lokasi_pasar || kios.market || kios.pasar,
+              blok: res.blok_stan || res.blok || "Blok Pasar",
+              pemilik: res.pemilik || "Pedagang Binaan",
+              alamat: res.alamat_lengkap || "Lamongan",
+              jarak: kios.distance || "0.8 km",
+              buka: (res.jam_buka || "06:00").split(" - ")[0] || "06:00",
+              tutup: (res.jam_buka || "16:00").split(" - ")[1]?.replace(" WIB", "") || "16:00",
+              telepon: res.no_telepon || "081234567890",
+              update: res.waktu_update_terakhir || "Hari ini, 08:00 WIB",
+              komoditas: komoditasMapped.length > 0 ? komoditasMapped : KIOS_DEFAULT.komoditas
+            });
+          }
+        })
+        .catch((err) => console.warn("Detail Kios backend error:", err));
+    }
+  }, [kios?.id]);
+
+  const k = liveKios || { ...KIOS_DEFAULT, ...kios };
   const [cari, setCari] = useState("");
   const [kat, setKat] = useState(KATEGORI[0]);
   const [urut, setUrut] = useState("default");
@@ -83,7 +134,13 @@ export default function DetailKios({ kios = KIOS_DEFAULT, onBack, onNavigate }) 
 
   const ubah = (it, d) => setKeranjang((s) => {
     const q = Math.min(it.stok, Math.max(0, (s[it.id] || 0) + d));
-    const n = { ...s }; q ? (n[it.id] = q) : delete n[it.id]; return n;
+    const n = { ...s };
+    if (q) {
+      n[it.id] = q;
+    } else {
+      delete n[it.id];
+    }
+    return n;
   });
   const isi = semua.filter((i) => keranjang[i.id]);
   const total = isi.reduce((t, i) => t + i.harga * keranjang[i.id], 0);

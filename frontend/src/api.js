@@ -166,3 +166,91 @@ export async function getKomparasiPasar({ search = "", kategori = "" } = {}) {
   return handleResponse(res);
 }
 
+// ----------------------------------------------------------------
+// MASTER PASAR
+// ----------------------------------------------------------------
+
+export async function getPasar() {
+  const res = await fetch(`${BASE_URL}/pasar`);
+  return handleResponse(res);
+}
+
+// ----------------------------------------------------------------
+// CARI HARGA & PETA SEBARAN (PUBLIK)
+// ----------------------------------------------------------------
+
+export async function getCariHarga({
+  komoditas = "",
+  pasar = "",
+  varietas = [],
+  urutkan = "harga_termurah",
+  radius_km = null,
+  lat = null,
+  lon = null,
+  hanya_binaan_dkpp = false,
+  hanya_buka = false,
+  page = 1,
+  limit = 20,
+} = {}) {
+  const params = new URLSearchParams();
+  if (komoditas) params.append("komoditas", komoditas);
+  if (pasar && pasar !== "Semua Pasar") params.append("pasar", pasar);
+  if (varietas && varietas.length > 0) {
+    varietas.forEach((v) => params.append("varietas", v));
+  }
+  if (urutkan) params.append("urutkan", urutkan);
+  if (radius_km != null) params.append("radius_km", radius_km);
+  if (lat != null) params.append("lat", lat);
+  if (lon != null) params.append("lon", lon);
+  if (hanya_binaan_dkpp) params.append("hanya_binaan_dkpp", "true");
+  if (hanya_buka) params.append("hanya_buka", "true");
+  params.append("page", page);
+  params.append("limit", limit);
+
+  const res = await fetch(`${BASE_URL}/cari-harga?${params}`);
+  return handleResponse(res);
+}
+
+export async function getPetaSebaran({ komoditas = "", pasar = "", lat = null, lon = null } = {}) {
+  const params = new URLSearchParams();
+  if (komoditas) params.append("komoditas", komoditas);
+  if (pasar && pasar !== "Semua Pasar") params.append("pasar", pasar);
+  if (lat != null) params.append("lat", lat);
+  if (lon != null) params.append("lon", lon);
+
+  const res = await fetch(`${BASE_URL}/cari-harga/peta-sebaran?${params}`);
+  return handleResponse(res);
+}
+
+// ----------------------------------------------------------------
+// DIREKTORI & DETAIL KIOS
+// ----------------------------------------------------------------
+
+export async function getKiosList({ lokasi = "", search = "" } = {}) {
+  const params = new URLSearchParams();
+  if (lokasi) params.append("lokasi", lokasi);
+  if (search) params.append("search", search);
+
+  const res = await fetch(`${BASE_URL}/kios?${params}`);
+  return handleResponse(res);
+}
+
+export async function getDetailKios(kiosId) {
+  const res = await fetch(`${BASE_URL}/kios/${kiosId}`);
+  return handleResponse(res);
+}
+
+// ----------------------------------------------------------------
+// SMART BUDGETING
+// ----------------------------------------------------------------
+
+export async function kalkulasiSmartBudgeting({ budget, lokasi_pasar = "" }) {
+  const res = await fetch(`${BASE_URL}/smart-budgeting`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ budget, lokasi_pasar: lokasi_pasar || null }),
+  });
+  return handleResponse(res);
+}
+
+

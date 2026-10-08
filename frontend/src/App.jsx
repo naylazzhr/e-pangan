@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import "./App.css";
 import Navbar from "./Navbar";
 import SmartBudgetting from "./SmartBudgetting";
@@ -7,6 +7,7 @@ import AdminDashboard from "./AdminDashboard";
 import CariHarga from "./CariHarga";
 import KomparasiPasar from "./KomparasiPasar";
 import DetailKios from "./DetailKios";
+import { getKomoditas, getPasar, getKomparasiPasar } from "./api";
 import {
   TrendingUp,
   TrendingDown,
@@ -28,7 +29,6 @@ import {
 
 // ================= CONSTANTS & DATA AWAL =================
 
-const [selectedKios, setSelectedKios] = useState(null);
 const CATEGORIES = [
   { label: "Semua Komoditas", count: 8 },
   { label: "Beras & Padi", categoryKey: "KEBUTUHAN POKOK" },
@@ -248,6 +248,30 @@ const COMMODITY_TREND_DATA = {
   },
 };
 
+const COMMODITY_IMAGES = {
+  beras: "https://images.unsplash.com/photo-1586201375761-83865001e31c?q=80&w=800&auto=format&fit=crop",
+  cabai: "https://images.unsplash.com/photo-1588252303782-cb80119abd6d?q=80&w=800&auto=format&fit=crop",
+  minyak: "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?q=80&w=800&auto=format&fit=crop",
+  telur: "https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?q=80&w=800&auto=format&fit=crop",
+  ayam: "https://images.unsplash.com/photo-1604503468506-a8da13d82791?q=80&w=800&auto=format&fit=crop",
+  sapi: "https://images.unsplash.com/photo-1603048588665-791ca8aea617?q=80&w=800&auto=format&fit=crop",
+  bawang: "https://images.unsplash.com/photo-1618512496248-a07fe83aa8cb?q=80&w=800&auto=format&fit=crop",
+  gula: "https://images.unsplash.com/photo-1610725664285-7c57e6eeac3f?q=80&w=800&auto=format&fit=crop",
+  jagung: "https://images.unsplash.com/photo-1551754655-cd27e38d2076?q=80&w=800&auto=format&fit=crop",
+  ikan: "https://images.unsplash.com/photo-1534482421-64566f976cfa?q=80&w=800&auto=format&fit=crop",
+  tepung: "https://images.unsplash.com/photo-1509440159596-0249088772ff?q=80&w=800&auto=format&fit=crop",
+  kedelai: "https://images.unsplash.com/photo-1599940824399-b87987ceb72a?q=80&w=800&auto=format&fit=crop",
+  default: "https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=800&auto=format&fit=crop",
+};
+
+function getCommodityImage(name) {
+  const lower = (name || "").toLowerCase();
+  for (const [key, url] of Object.entries(COMMODITY_IMAGES)) {
+    if (key !== "default" && lower.includes(key)) return url;
+  }
+  return COMMODITY_IMAGES.default;
+}
+
 const MARKETS_LIST = [
   { name: "Pasar Babat", address: "Jl. Raya Babat No. 45, Babat, Lamongan" },
   { name: "Pasar Sidoharjo", address: "Jl. Sukomulyo No. 12, Sidoharjo, Lamongan" },
@@ -264,12 +288,14 @@ function formatRupiah(amount) {
 // ================= APP MAIN COMPONENT =================
 export default function App() {
   const [products, setProducts] = useState(INITIAL_PRODUCTS);
+  const [marketsList, setMarketsList] = useState(MARKETS_LIST);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Semua Komoditas");
   const [selectedMarketFilter, setSelectedMarketFilter] = useState("Semua Pasar");
   const [sortOption, setSortOption] = useState("default");
 
   const [activePage, setActivePage] = useState("dashboard"); // 'dashboard' | 'cari-harga' | 'login' | 'admin-dashboard' | 'smart-budgeting'
+  const [selectedKios, setSelectedKios] = useState(null);
 
   const [viewMode, setViewMode] = useState("grid");
   const [trendCommodityName, setTrendCommodityName] = useState("Beras Medium IR-64");
@@ -278,6 +304,85 @@ export default function App() {
   const [isMarketDirectoryOpen, setIsMarketDirectoryOpen] = useState(false);
   const [toast, setToast] = useState(null);
   const toastTimerRef = useRef(null);
+
+  // Ambil Data Asli dari Backend FastAPI
+  useEffect(() => {
+    let isMounted = true;
+    Promise.all([
+      getKomoditas().catch(() => null),
+      getPasar().catch(() => null),
+      getKomparasiPasar().catch(() => null),
+    ]).then(([komoditasRes, pasarRes, komparasiRes]) => {
+      if (!isMounted) return;
+
+      if (pasarRes && pasarRes.data && Array.isArray(pasarRes.data) && pasarRes.data.length > 0) {
+        const pList = pasarRes.data.map((p) => ({
+          name: p.nama_pasar,
+          address: p.alamat || `${p.nama_pasar}, Kec. ${p.kecamatan || "Lamongan"}, Lamongan`,
+        }));
+        setMarketsList(pList);
+      }
+
+      if (komoditasRes && komoditasRes.data && Array.isArray(komoditasRes.data) && komoditasRes.data.length > 0) {
+        const komparasiMap = {};
+        if (komparasiRes && komparasiRes.data && Array.isArray(komparasiRes.data)) {
+          komparasiRes.data.forEach((item) => {
+            if (item.komoditas) komparasiMap[item.komoditas.toLowerCase()] = item.prices;
+          });
+        }
+
+        const grouped = {};
+        komoditasRes.data.forEach((item) => {
+          const key = item.nama_bahan;
+          if (!grouped[key]) {
+            const hasVolatile = item.status_label && item.status_label.includes("+");
+            const hasDiscount = item.status_label && item.status_label.includes("Turun");
+
+            grouped[key] = {
+              id: item.id,
+              name: item.nama_bahan,
+              category: item.kategori || "KEBUTUHAN POKOK",
+              badge: item.status_label || (item.het && item.harga <= item.het ? "Sesuai HET" : "Harga Stabil"),
+              badgeType: hasVolatile ? "volatile" : "stable",
+              market: item.lokasi || "Pasar Babat",
+              price: item.harga,
+              unit: `/${item.satuan || "kg"}`,
+              deltaText: item.status_label || "Stabil (0.0%)",
+              deltaType: hasVolatile ? "up" : hasDiscount ? "down" : "flat",
+              image: getCommodityImage(item.nama_bahan),
+              marketPricesMap: {},
+            };
+          }
+          if (item.lokasi) {
+            grouped[key].marketPricesMap[item.lokasi] = item.harga;
+          }
+        });
+
+        const formattedProducts = Object.values(grouped).map((p) => {
+          const kPrices = komparasiMap[p.name.toLowerCase()] || p.marketPricesMap;
+          const marketPrices = Object.entries(kPrices).map(([mName, mPrice]) => ({
+            market: mName,
+            price: mPrice,
+            note: mPrice <= p.price ? "Paling Hemat" : "Normal",
+          }));
+          return {
+            ...p,
+            marketPrices: marketPrices.length > 0 ? marketPrices : [
+              { market: p.market, price: p.price, note: "Paling Hemat" },
+            ],
+          };
+        });
+
+        if (formattedProducts.length > 0) {
+          setProducts(formattedProducts);
+        }
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const showToast = useCallback((message, type = "info") => {
     setToast({ message, type });
@@ -369,7 +474,13 @@ export default function App() {
           onNavigate={(page) => setActivePage(page)}
         />
       ) : activePage === "cari-harga" ? (
-        <CariHarga />
+        <CariHarga
+          onSelectKios={(kios) => {
+            setSelectedKios(kios);
+            setActivePage("detail-kios");
+          }}
+          onNavigate={(page) => setActivePage(page)}
+        />
       ) : activePage === "komparasi-pasar" ? (
         <KomparasiPasar setActivePage={setActivePage} />
       ) : activePage === "detail-kios" ? (
@@ -420,11 +531,9 @@ export default function App() {
                       onChange={(e) => setSelectedMarketFilter(e.target.value)}
                     >
                       <option value="Semua Pasar">Semua Pasar Rakyat</option>
-                      <option value="Pasar Babat">Pasar Babat</option>
-                      <option value="Pasar Sidoharjo">Pasar Sidoharjo</option>
-                      <option value="Pasar Agrobis Babat">Pasar Agrobis Babat</option>
-                      <option value="Pasar Mantup">Pasar Mantup</option>
-                      <option value="Pasar Brondong">Pasar Brondong</option>
+                      {marketsList.map((m) => (
+                        <option key={m.name} value={m.name}>{m.name}</option>
+                      ))}
                     </select>
                   </div>
 
@@ -657,154 +766,8 @@ export default function App() {
 
       {/* Modal Direktori Pasar */}
       {isMarketDirectoryOpen && (
-        <MarketDirectoryModal markets={MARKETS_LIST} onClose={() => setIsMarketDirectoryOpen(false)} />
+        <MarketDirectoryModal markets={marketsList} onClose={() => setIsMarketDirectoryOpen(false)} />
       )}
-    </div>
-  );
-}
-
-// ================= KOMPONEN HALAMAN CARI HARGA =================
-function CariHargaView() {
-  const [selectedRadius, setSelectedRadius] = useState('< 1 km');
-
-  return (
-    <div className="main-layout" style={{ display: 'block', padding: '24px' }}>
-      {/* GPS BAR */}
-      <div className="panel-card" style={{ padding: '12px 20px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <span style={{ background: '#e6f4ea', color: '#137333', padding: '4px 12px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: 600 }}>
-            📍 GPS Terdeteksi: Babat, Lamongan
-          </span>
-          <span style={{ fontSize: '0.85rem', color: '#5f6368' }}>• Akurasi sinyal 12 meter</span>
-        </div>
-        <a href="#ubah-lokasi" style={{ color: '#137333', fontSize: '0.85rem', fontWeight: 600 }}>Ubah Titik Lokasi</a>
-      </div>
-
-      {/* BANNER HEMAT */}
-      <div className="panel-card" style={{ background: 'linear-gradient(135deg, #0f5132, #198754)', color: 'white', padding: '20px', marginBottom: '24px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div>
-            <span style={{ background: 'white', color: '#198754', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 700 }}>
-              PELUANG HEMAT WARGA — Zona Babat
-            </span>
-            <h3 style={{ margin: '8px 0 4px 0' }}>Hemat hingga <span style={{ color: '#ffc107' }}>Rp1.000 / kg</span> belanja di Pasar Babat</h3>
-            <small style={{ opacity: 0.8 }}>Harga terendah Rp13.000 (Kios Bu Siti) vs tertinggi Rp14.000 (Pasar Kota).</small>
-          </div>
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <div style={{ background: 'rgba(255,255,255,0.15)', padding: '8px 16px', borderRadius: '8px', textAlign: 'center' }}>
-              <div style={{ fontSize: '0.7rem' }}>RATA-RATA BABAT</div>
-              <div style={{ fontWeight: 700, fontSize: '1.1rem' }}>Rp13.150/kg</div>
-            </div>
-            <div style={{ background: 'rgba(255,255,255,0.15)', padding: '8px 16px', borderRadius: '8px', textAlign: 'center' }}>
-              <div style={{ fontSize: '0.7rem' }}>HET NASIONAL</div>
-              <div style={{ fontWeight: 700, fontSize: '1.1rem' }}>Rp13.500/kg</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* KONTEN 3 KOLOM */}
-      <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr 300px', gap: '20px' }}>
-        {/* KOLOM KIRI - FILTER */}
-        <div className="panel-card" style={{ padding: '16px' }}>
-          <h4 style={{ margin: '0 0 16px 0', fontSize: '1rem' }}>Filter Presisi</h4>
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ fontSize: '0.8rem', color: '#5f6368', display: 'block', marginBottom: '8px' }}>Radius Jarak</label>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-              {['< 1 km', '3 km', '5 km', '10 km'].map((r) => (
-                <button
-                  key={r}
-                  onClick={() => setSelectedRadius(r)}
-                  style={{
-                    padding: '6px',
-                    borderRadius: '6px',
-                    border: '1px solid #dadce0',
-                    background: selectedRadius === r ? '#198754' : 'white',
-                    color: selectedRadius === r ? 'white' : '#3c4043',
-                    cursor: 'pointer',
-                    fontSize: '0.8rem'
-                  }}
-                >
-                  {r}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label style={{ fontSize: '0.8rem', color: '#5f6368', display: 'block', marginBottom: '8px' }}>Varietas & Mutu Beras</label>
-            {['Medium IR 64', 'Premium Mentik Wangi', 'Rojolele Delanggu', 'Beras Bulog SPHP'].map((item, i) => (
-              <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '8px', fontSize: '0.85rem' }}>
-                <input type="checkbox" defaultChecked={i === 0} id={`c-${i}`} />
-                <label htmlFor={`c-${i}`}>{item}</label>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* KOLOM TENGAH - KIOS LIST */}
-        <div>
-          <h4 style={{ margin: '0 0 12px 0', fontSize: '1rem' }}>Daftar Kios Terdekat</h4>
-
-          <div className="panel-card" style={{ padding: '16px', borderLeft: '4px solid #198754', marginBottom: '16px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <div>
-                <span style={{ background: '#198754', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '0.7rem', marginRight: '6px' }}>HARGA TERMURAH</span>
-                <span style={{ background: '#cff4fc', color: '#055160', padding: '2px 6px', borderRadius: '4px', fontSize: '0.7rem' }}>Binaan DKPP</span>
-                <h3 style={{ margin: '8px 0 2px 0', fontSize: '1.1rem' }}>Kios Bu Siti</h3>
-                <small style={{ color: '#5f6368', display: 'block' }}>Pasar Babat, Los Beras Blok B-12</small>
-                <small style={{ color: '#5f6368' }}>📍 0.8 km • Buka s/d 16.30 WIB</small>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <small style={{ color: '#5f6368' }}>HARGA TERKINI</small>
-                <div style={{ fontSize: '1.4rem', fontWeight: 700, color: '#198754' }}>Rp13.000<span style={{ fontSize: '0.8rem' }}>/kg</span></div>
-                <span style={{ background: '#e6f4ea', color: '#137333', padding: '2px 6px', borderRadius: '4px', fontSize: '0.75rem' }}>Rp1.000 di bawah HET</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="panel-card" style={{ padding: '16px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <div>
-                <span style={{ background: '#0d6efd', color: 'white', padding: '2px 6px', borderRadius: '4px', fontSize: '0.7rem' }}>PALING DEKAT</span>
-                <h3 style={{ margin: '8px 0 2px 0', fontSize: '1.1rem' }}>Kios Berkah Tani</h3>
-                <small style={{ color: '#5f6368', display: 'block' }}>Pasar Babat, Sektor Barat Blok A-05</small>
-                <small style={{ color: '#5f6368' }}>📍 0.5 km • Buka s/d 17.00 WIB</small>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <small style={{ color: '#5f6368' }}>HARGA TERKINI</small>
-                <div style={{ fontSize: '1.4rem', fontWeight: 700 }}>Rp13.200<span style={{ fontSize: '0.8rem' }}>/kg</span></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* KOLOM KANAN - PETA */}
-        <div>
-          <div className="panel-card" style={{ padding: '16px', marginBottom: '16px' }}>
-            <h4 style={{ margin: '0 0 12px 0', fontSize: '0.9rem' }}>Peta Sebaran Kios</h4>
-            <div style={{ background: '#e9ecef', height: '180px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6c757d', fontSize: '0.85rem' }}>
-              [ Area Peta Leaflet ]
-            </div>
-          </div>
-
-          <div className="panel-card" style={{ padding: '16px' }}>
-            <h4 style={{ margin: '0 0 12px 0', fontSize: '0.9rem' }}>Sebaran Harga per Pasar</h4>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '8px' }}>
-              <span>Pasar Babat</span>
-              <strong style={{ color: '#198754' }}>Rp13.000</strong>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '8px' }}>
-              <span>Pasar Sidoharjo</span>
-              <strong>Rp13.500</strong>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem' }}>
-              <span>Pasar Lamongan Kota</span>
-              <strong style={{ color: '#dc3545' }}>Rp14.000</strong>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
