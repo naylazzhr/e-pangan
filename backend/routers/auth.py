@@ -1,7 +1,7 @@
 import os
 import re
 from datetime import datetime, timedelta, timezone
-from typing import Optional
+from typing import Optional, Any
 
 import jwt
 import bcrypt
@@ -37,11 +37,11 @@ def hash_password(password: str) -> str:
     return bcrypt.hashpw(pwd_bytes, salt).decode("utf-8")
 
 
-def verify_password(plain_password: str, hashed_password: str) -> bool:
+def verify_password(plain_password: str, hashed_password: Any) -> bool:
     """Memverifikasi kecocokan password teks biasa dengan hash di database."""
     pwd_bytes = plain_password.encode("utf-8")[:72]
     try:
-        return bcrypt.checkpw(pwd_bytes, hashed_password.encode("utf-8"))
+        return bcrypt.checkpw(pwd_bytes, str(hashed_password).encode("utf-8"))
     except Exception:
         return False
 
@@ -66,8 +66,8 @@ def get_admin_sekarang(token: str = Depends(oauth2_scheme), db: Session = Depend
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
+        username: Optional[str] = payload.get("sub")
+        if not username:
             raise credentials_exception
     except jwt.ExpiredSignatureError:
         raise HTTPException(
@@ -123,11 +123,11 @@ def login_petugas(creds: LoginPetugasRequest, db: Session = Depends(get_db)):
     if not admin:
         all_admins = db.query(models.Admin).all()
         for a in all_admins:
-            if a.nip and re.sub(r"\s+", "", a.nip) == clean_ident_nip:
+            if a.nip and re.sub(r"\s+", "", str(a.nip)) == clean_ident_nip:
                 admin = a
                 break
 
-    if not admin or not verify_password(creds.password, admin.hashed_password):
+    if not admin or not verify_password(creds.password, str(admin.hashed_password)):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Email/NIP/Username atau Password salah! Akses ditolak karena akun tidak terdaftar.",
@@ -167,7 +167,7 @@ def login_petugas_form(
         )
     ).first()
 
-    if not admin or not verify_password(form_data.password, admin.hashed_password):
+    if not admin or not verify_password(form_data.password, str(admin.hashed_password)):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Kredensial login petugas tidak valid!",

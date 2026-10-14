@@ -1,6 +1,6 @@
 import math
 from datetime import datetime, timedelta
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, cast
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
@@ -346,7 +346,7 @@ def get_tren_harga(
     else:
         num_days = 7
 
-    clean_name = komoditas.replace("Super", "").replace("Pilihan", "").strip()
+    clean_name = (komoditas or "Beras Medium IR-64").replace("Super", "").replace("Pilihan", "").strip()
 
     kom_row = db.query(models.Komoditas).filter(
         models.Komoditas.nama_bahan.ilike(f"%{clean_name}%")
@@ -367,27 +367,27 @@ def get_tren_harga(
     het = 13000.0
     markets_found = set()
 
-    if het_row and het_row.harga_het:
-        het = float(het_row.harga_het)
+    if het_row and het_row.harga_het is not None:
+        het = float(cast(Any, het_row.harga_het))
 
     if kom_row:
-        today_price = float(kom_row.harga)
-        kategori = kom_row.kategori or kategori
-        satuan = kom_row.satuan or satuan
-        if kom_row.het:
-            het = float(kom_row.het)
+        today_price = float(cast(Any, kom_row.harga))
+        kategori = str(kom_row.kategori or kategori)
+        satuan = str(kom_row.satuan or satuan)
+        if kom_row.het is not None:
+            het = float(cast(Any, kom_row.het))
         if kom_row.lokasi:
-            markets_found.add(kom_row.lokasi)
+            markets_found.add(str(kom_row.lokasi))
 
     if surveys:
-        today_price = float(surveys[0].harga)
+        today_price = float(cast(Any, surveys[0].harga))
         if surveys[0].kategori:
-            kategori = surveys[0].kategori
+            kategori = str(surveys[0].kategori)
         if surveys[0].satuan:
-            satuan = surveys[0].satuan
+            satuan = str(surveys[0].satuan)
         for s in surveys[:10]:
             if s.lokasi_pasar:
-                markets_found.add(s.lokasi_pasar)
+                markets_found.add(str(s.lokasi_pasar))
 
     sample_market_str = " & ".join(list(markets_found)[:2]) if markets_found else "Pasar Babat & Sidoharjo"
 
