@@ -1,646 +1,319 @@
-import React, { useState, useEffect, useRef } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
-import { getCariHarga, getKiosList } from "./api";
+import React, { useState, useEffect } from "react";
+import {
+    Search,
+    MapPin,
+    X,
+    ChevronDown,
+    Circle,
+    Loader2
+} from "lucide-react";
 
-// Fix icon Marker Leaflet di React / Vite
-import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
-import markerIcon from "leaflet/dist/images/marker-icon.png";
-import markerShadow from "leaflet/dist/images/marker-shadow.png";
-
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-    iconUrl: markerIcon,
-    iconRetinaUrl: markerIcon2x,
-    shadowUrl: markerShadow,
-});
-
-// Helper Komponent untuk re-center/zoom peta secara halus
-function MapRecenter({ center }) {
-    const map = useMap();
-    useEffect(() => {
-        if (center) {
-            map.flyTo(center, 14, { duration: 1.2 });
-        }
-    }, [center, map]);
-    return null;
-}
-
-export default function CariHarga({ onSelectKios, onNavigate }) {
-    // State Data Backend & Filter
-    const [stalls, setStalls] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [searchTerm, setSearchTerm] = useState("");
-    const [selectedMarket, setSelectedMarket] = useState("Semua Pasar");
-    const [sortOrder, setSortOrder] = useState("Harga Termurah");
+export default function CariHarga({ setActivePage, setSelectedKios }) {
+    // State Filter & Search
+    const [searchQuery, setSearchQuery] = useState("");
+    const [selectedPasar, setSelectedPasar] = useState("Semua Pasar Rakyat");
+    const [selectedUrutan, setSelectedUrutan] = useState("Harga Termurah");
     const [selectedRadius, setSelectedRadius] = useState("< 1 km");
-    const [selectedVarieties, setSelectedVarieties] = useState(["Medium IR 64"]);
 
-    // State Pagination
-    const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 3;
+    // State Data Backend
+    const [kiosList, setKiosList] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-    // Koordinat Pusat & Reference Marker Peta
-    const [mapCenter, setMapCenter] = useState([-7.1186, 112.4158]);
-    const markerRefs = useRef({});
-
-    // Data dummy lengkap dengan alamat detail & koordinat
-    const setFallbackData = () => {
-        setStalls([
-            {
-                id: 1,
-                name: "Kios Bu Siti",
-                market: "Pasar Babat, Los Beras Blok B-12",
-                addressDetail: "Jl. Pasar Raya Babat No. 12, Sektor Tengah",
-                price: 13000,
-                hetDiff: "Rp1.000 di bawah HET",
-                distanceVal: 0.8,
-                distance: "0.8 km",
-                time: "Buka s/d 16.30 WIB",
-                isCheap: true,
-                variety: "Medium IR 64",
-                commodities: "Beras Medium IR 64 (Kemasan Curah & 5 kg)",
-                badges: ["HARGA TERMURAH", "Binaan DKPP"],
-                lat: -7.1132,
-                lng: 112.1645
-            },
-            {
-                id: 2,
-                name: "Kios Berkah Tani",
-                market: "Pasar Babat, Sektor Barat Blok A-05",
-                addressDetail: "Jl. Raya Babat - Jombang No. 45",
-                price: 13200,
-                hetDiff: "Selisih +Rp200 dari termurah",
-                distanceVal: 0.5,
-                distance: "0.5 km (3 mnt jalan)",
-                time: "Buka s/d 17.00 WIB",
-                isCheap: false,
-                variety: "Medium IR 64",
-                commodities: "Medium Lokal Babat (Kemasan 10 kg & 25 kg)",
-                badges: ["PALING DEKAT"],
-                lat: -7.1145,
-                lng: 112.1630
-            },
-            {
-                id: 3,
-                name: "Toko Barokah Abadi",
-                market: "Pasar Sidoharjo, Blok C-02",
-                addressDetail: "Jl. Simpang Sidoarjo No. 8, Lamongan Kota",
-                price: 13500,
-                hetDiff: "Sesuai Batas HET",
-                distanceVal: 4.2,
-                distance: "4.2 km (8 mnt mobil)",
-                time: "Buka s/d 15.00 WIB",
-                isCheap: false,
-                variety: "Premium Mentik Wangi",
-                commodities: "Beras Medium Super & Beras Ramos",
-                badges: ["PASAR SIDOHARJO", "Binaan DKPP"],
-                lat: -7.1260,
-                lng: 112.4110
-            },
-            {
-                id: 4,
-                name: "Kios Rejeki Makmur",
-                market: "Pasar Lamongan Kota, Area Timur",
-                addressDetail: "Jl. Kyai H. Ahmad Dahlan No. 12",
-                price: 14000,
-                hetDiff: "Tertinggi di wilayah pantau",
-                distanceVal: 8.5,
-                distance: "8.5 km (16 mnt)",
-                time: "Tutup pkl 14.00 WIB",
-                isCheap: false,
-                variety: "Rojolele Delanggu",
-                commodities: "Beras Medium C4",
-                badges: ["PASAR LAMONGAN KOTA"],
-                lat: -7.1180,
-                lng: 112.4180
-            },
-            {
-                id: 5,
-                name: "Kios Jaya Pangan",
-                market: "Pasar Babat, Blok D-01",
-                addressDetail: "Pintu Masuk Utama Pasar Babat, Kios No. 1",
-                price: 13100,
-                hetDiff: "Rp900 di bawah HET",
-                distanceVal: 2.1,
-                distance: "2.1 km",
-                time: "Buka s/d 16.00 WIB",
-                isCheap: false,
-                variety: "Beras Bulog SPHP",
-                commodities: "Beras Bulog SPHP Medium 5kg",
-                badges: ["Binaan DKPP"],
-                lat: -7.1120,
-                lng: 112.1670
-            }
-        ]);
-    };
-
-    const fetchStalls = async () => {
+    // Fungsi Fetch Data dari FastAPI Backend
+    const fetchKiosData = async () => {
         setLoading(true);
+        setError(null);
         try {
-            const res = await getCariHarga({
-                komoditas: searchTerm || "Beras Medium",
-                pasar: selectedMarket !== "Semua Pasar" ? selectedMarket : "",
-            });
-            const rawList = res?.data || [];
-            if (rawList.length > 0) {
-                const mapped = rawList.map((item, idx) => ({
-                    id: item.id || idx + 1,
-                    name: item.nama_kios || item.name || "Kios Mitra",
-                    market: item.nama_pasar ? `${item.nama_pasar}, ${item.blok_stan || ''}` : (item.market || "Pasar Babat"),
-                    addressDetail: item.blok_stan ? `${item.nama_pasar || 'Pasar'}, ${item.blok_stan}` : (item.addressDetail || item.nama_pasar || "Kawasan Pasar Lamongan"),
-                    price: item.harga_terkini || item.price || 13000,
-                    hetDiff: item.status_het_label || item.hetDiff || "Sesuai HET",
-                    distanceVal: item.jarak_km != null ? item.jarak_km : (item.distanceVal || 0.8),
-                    distance: item.jarak_km != null ? `${item.jarak_km} km` : (item.distance || "0.8 km"),
-                    time: item.jam_buka || item.time || "Buka s/d 16:30 WIB",
-                    isCheap: item.badge_label === "HARGA TERMURAH" || (item.selisih_het && item.selisih_het < 0),
-                    variety: item.varietas || "Medium IR 64",
-                    commodities: item.nama_komoditas ? `${item.nama_komoditas} (${item.kemasan || item.varietas || 'Curah'})` : (item.commodities || "Beras Medium"),
-                    badges: item.badge_label ? [item.badge_label, ...(item.is_binaan_dkpp ? ["Binaan DKPP"] : [])] : ["Binaan DKPP"],
-                    lat: item.latitude || item.lat || -7.1132,
-                    lng: item.longitude || item.lng || 112.1645,
-                }));
-                setStalls(mapped);
-                if (mapped.length > 0 && mapped[0].lat && mapped[0].lng) {
-                    setMapCenter([mapped[0].lat, mapped[0].lng]);
-                }
-            } else {
-                const kiosRes = await getKiosList({
-                    lokasi: selectedMarket !== "Semua Pasar" ? selectedMarket : ""
-                });
-                const rawKios = kiosRes?.data || [];
-                if (rawKios.length > 0) {
-                    const mappedKios = rawKios.map((k) => ({
-                        id: k.id,
-                        name: k.nama_kios,
-                        market: `${k.lokasi_pasar}, ${k.blok_stan || 'Stan'}`,
-                        addressDetail: k.alamat_lengkap || k.lokasi_pasar,
-                        price: 13000,
-                        hetDiff: "Rp500 di bawah HET",
-                        distanceVal: 0.8,
-                        distance: "0.8 km",
-                        time: k.jam_buka || "Buka s/d 16:30 WIB",
-                        isCheap: k.id === 1,
-                        variety: "Medium IR 64",
-                        commodities: "Beras Medium IR 64",
-                        badges: k.id === 1 ? ["HARGA TERMURAH", "Binaan DKPP"] : ["Binaan DKPP"],
-                        lat: k.latitude || -7.1132,
-                        lng: k.longitude || 112.1645
-                    }));
-                    setStalls(mappedKios);
-                } else {
-                    setFallbackData();
-                }
+            // Susun query parameter sesuai endpoint FastAPI /kios
+            const params = new URLSearchParams();
+            if (searchQuery.trim() !== "") {
+                params.append("search", searchQuery.trim());
             }
-        } catch (error) {
-            console.warn("Backend error, menggunakan fallback lokal:", error);
-            setFallbackData();
+            if (selectedPasar !== "Semua Pasar Rakyat") {
+                params.append("lokasi", selectedPasar);
+            }
+
+            const response = await fetch(`http://localhost:8000/kios?${params.toString()}`);
+            if (!response.ok) {
+                throw new Error("Gagal mengambil data dari server");
+            }
+
+            const result = await response.json();
+            setKiosList(result.data || []);
+        } catch (err) {
+            setError(err.message);
         } finally {
             setLoading(false);
         }
     };
 
+    // Auto-fetch pas pertama kali render atau saat tombol filter ditekan
     useEffect(() => {
-        fetchStalls();
+        fetchKiosData();
     }, []);
 
-    // Toggle Checkbox Varietas
-    const handleVarietyChange = (varietyName) => {
-        if (selectedVarieties.includes(varietyName)) {
-            setSelectedVarieties(selectedVarieties.filter(v => v !== varietyName));
-        } else {
-            setSelectedVarieties([...selectedVarieties, varietyName]);
-        }
-        setCurrentPage(1);
+    const handleTerapkanFilter = () => {
+        fetchKiosData();
     };
 
-    // LOGIKA FILTER PRESISI SUNGGUHAN
-    const filteredStalls = stalls.filter((stall) => {
-        const matchesSearch = stall.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            stall.commodities.toLowerCase().includes(searchTerm.toLowerCase());
-
-        const matchesMarket = selectedMarket === "Semua Pasar" || stall.market.includes(selectedMarket);
-
-        let matchesRadius = true;
-        if (selectedRadius === "< 1 km") matchesRadius = stall.distanceVal <= 1.0;
-        else if (selectedRadius === "3 km") matchesRadius = stall.distanceVal <= 3.0;
-        else if (selectedRadius === "5 km") matchesRadius = stall.distanceVal <= 5.0;
-        else if (selectedRadius === "> 10 km") matchesRadius = stall.distanceVal > 5.0;
-
-        const matchesVariety = selectedVarieties.length === 0 || selectedVarieties.includes(stall.variety);
-
-        return matchesSearch && matchesMarket && matchesRadius && matchesVariety;
-    }).sort((a, b) => {
-        if (sortOrder === "Harga Termurah") return a.price - b.price;
-        if (sortOrder === "Jarak Terdekat") return a.distanceVal - b.distanceVal;
-        return 0;
-    });
-
-    // LOGIKA PAGINATION
-    const totalPages = Math.ceil(filteredStalls.length / itemsPerPage) || 1;
-    const indexOfLastItem = currentPage * itemsPerPage;
-    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-    const currentStalls = filteredStalls.slice(indexOfFirstItem, indexOfLastItem);
-
-    const handlePageChange = (newPage) => {
-        if (newPage >= 1 && newPage <= totalPages) {
-            setCurrentPage(newPage);
-        }
-    };
-
-    // Pindah fokus peta saat pilihan pasar berubah
-    const handleMarketChange = (market) => {
-        setSelectedMarket(market);
-        setCurrentPage(1);
-        if (market === "Pasar Babat") setMapCenter([-7.1132, 112.1645]);
-        else if (market === "Pasar Sidoharjo") setMapCenter([-7.1260, 112.4110]);
-        else if (market === "Pasar Lamongan Kota") setMapCenter([-7.1180, 112.4180]);
-        else setMapCenter([-7.1186, 112.4158]);
-    };
-
-    // Pindah ke detail kios
-    const handleGoToDetail = (stall) => {
-        if (onSelectKios) {
-            onSelectKios(stall);
-        }
-        if (onNavigate) {
-            onNavigate("detail-kios");
-        }
+    const handleDetailKios = (kiosData) => {
+        if (setSelectedKios) setSelectedKios(kiosData);
+        if (setActivePage) setActivePage("detail-kios");
     };
 
     return (
-        <div style={{ backgroundColor: "#eef7f2", minHeight: "100vh", padding: "2rem 1.5rem", fontFamily: "'Inter', sans-serif" }}>
-            <div style={{ maxWidth: "1240px", margin: "0 auto" }}>
+        <div style={{ backgroundColor: "#f8fafc", minHeight: "100vh", paddingBottom: "3rem" }}>
+            <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "0 1.5rem" }}>
 
-                {/* HEADER SECTION */}
-                <div style={{ marginBottom: "1.5rem" }}>
-                    <div style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", backgroundColor: "#ffffff", padding: "4px 12px", borderRadius: "20px", fontSize: "0.75rem", fontWeight: "bold", color: "#166534", border: "1px solid #dcfce7", marginBottom: "0.75rem" }}>
-                        <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#16a34a" }}></span>
-                        SISTEM INFORMASI STABILITAS HARGA PANGAN DAERAH
+                {/* HERO SECTION */}
+                <div style={{ paddingTop: "2rem", paddingBottom: "1.5rem" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "1rem" }}>
+                        <Circle size={8} fill="#15803d" color="#15803d" />
+                        <span style={{ fontSize: "0.75rem", fontWeight: "bold", color: "#15803d", letterSpacing: "0.05em" }}>
+                            SISTEM INFORMASI STABILITAS HARGA PANGAN DAERAH
+                        </span>
                     </div>
-                    <h1 style={{ fontSize: "2rem", fontWeight: "800", color: "#064e3b", margin: "0 0 0.5rem 0" }}>
-                        Pantau & Bandingkan <span style={{ color: "#16a34a" }}>Harga Pangan Pokok</span> Terkini di Lamongan
+                    <h1 style={{ fontSize: "2rem", fontWeight: "800", color: "#1e293b", margin: "0 0 0.5rem 0", lineHeight: "1.2" }}>
+                        Pantau & Bandingkan <span style={{ color: "#15803d" }}>Harga Pangan Pokok</span> Terkini di Lamongan
                     </h1>
-                    <p style={{ color: "#475569", fontSize: "0.9rem", margin: 0 }}>
+                    <p style={{ color: "#64748b", margin: 0, fontSize: "0.95rem" }}>
                         Akses data fluktuasi komoditas harian dari enumerator resmi Dinas Ketahanan Pangan dan Pertanian (DKPP) Lamongan.
                     </p>
                 </div>
 
-                {/* TOP FILTER BAR */}
-                <div style={{ backgroundColor: "#ffffff", borderRadius: "16px", padding: "1rem", boxShadow: "0 4px 20px rgba(0,0,0,0.03)", marginBottom: "1.25rem", border: "1px solid #f0fdf4" }}>
-                    <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr 1fr auto", gap: "0.75rem" }}>
+                {/* SEARCH BAR & FILTER DROPDOWN */}
+                <div style={{
+                    backgroundColor: "#ffffff",
+                    padding: "0.75rem",
+                    borderRadius: "12px",
+                    boxShadow: "0 2px 4px rgba(0,0,0,0.02), 0 1px 2px rgba(0,0,0,0.05)",
+                    display: "grid",
+                    gridTemplateColumns: "1fr 250px 220px auto",
+                    gap: "1rem",
+                    marginBottom: "1.5rem",
+                    border: "1px solid #f1f5f9"
+                }}>
+                    <div style={{ display: "flex", alignItems: "center", padding: "0 0.75rem", backgroundColor: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
+                        <Search size={18} color="#94a3b8" />
                         <input
                             type="text"
-                            value={searchTerm}
-                            onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
-                            placeholder="🔍 Cari komoditas atau kios..."
-                            style={{ padding: "0.7rem 1rem", borderRadius: "10px", border: "1px solid #f1f5f9", backgroundColor: "#f8fafc", outline: "none", fontSize: "0.9rem" }}
+                            placeholder="Cari nama kios atau pemilik..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onKeyDown={(e) => e.key === "Enter" && handleTerapkanFilter()}
+                            style={{ border: "none", outline: "none", background: "transparent", width: "100%", padding: "0.75rem", fontSize: "0.9rem", color: "#334155" }}
                         />
-
-                        <select
-                            value={selectedMarket}
-                            onChange={(e) => handleMarketChange(e.target.value)}
-                            style={{ padding: "0.7rem", borderRadius: "10px", border: "1px solid #f1f5f9", backgroundColor: "#f8fafc", fontSize: "0.875rem", color: "#334155" }}
-                        >
-                            <option value="Semua Pasar">Semua Pasar Rakyat</option>
-                            <option value="Pasar Babat">Pasar Babat (Terdekat)</option>
-                            <option value="Pasar Sidoharjo">Pasar Sidoharjo</option>
-                            <option value="Pasar Lamongan Kota">Pasar Lamongan Kota</option>
-                        </select>
-
-                        <select
-                            value={sortOrder}
-                            onChange={(e) => setSortOrder(e.target.value)}
-                            style={{ padding: "0.7rem", borderRadius: "10px", border: "1px solid #f1f5f9", backgroundColor: "#f8fafc", fontSize: "0.875rem", color: "#334155" }}
-                        >
-                            <option value="Harga Termurah">Harga Termurah</option>
-                            <option value="Jarak Terdekat">Jarak Terdekat</option>
-                        </select>
-
-                        <button
-                            onClick={() => setCurrentPage(1)}
-                            style={{ backgroundColor: "#064e3b", color: "#fff", border: "none", padding: "0.7rem 1.2rem", borderRadius: "10px", cursor: "pointer", fontWeight: "600" }}
-                        >
-                            Terapkan
-                        </button>
+                        {searchQuery && (
+                            <button onClick={() => setSearchQuery("")} style={{ background: "none", border: "none", cursor: "pointer", color: "#94a3b8", display: "flex" }}>
+                                <X size={16} />
+                            </button>
+                        )}
                     </div>
+
+                    <div style={{ position: "relative" }}>
+                        <select
+                            value={selectedPasar}
+                            onChange={(e) => setSelectedPasar(e.target.value)}
+                            style={{ width: "100%", padding: "0.75rem 1rem", borderRadius: "8px", border: "1px solid #e2e8f0", backgroundColor: "#f8fafc", appearance: "none", fontSize: "0.9rem", color: "#475569", outline: "none" }}
+                        >
+                            <option value="Semua Pasar Rakyat">Semua Pasar Rakyat</option>
+                            <option value="Pasar Babat">Pasar Babat</option>
+                            <option value="Pasar Sidoharjo">Pasar Sidoharjo</option>
+                            <option value="Pasar Sukodadi">Pasar Sukodadi</option>
+                        </select>
+                        <ChevronDown size={16} color="#94a3b8" style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+                    </div>
+
+                    <div style={{ position: "relative" }}>
+                        <select
+                            value={selectedUrutan}
+                            onChange={(e) => setSelectedUrutan(e.target.value)}
+                            style={{ width: "100%", padding: "0.75rem 1rem", borderRadius: "8px", border: "1px solid #e2e8f0", backgroundColor: "#f8fafc", appearance: "none", fontSize: "0.9rem", color: "#475569", outline: "none" }}
+                        >
+                            <option>Harga Termurah</option>
+                            <option>Harga Tertinggi</option>
+                            <option>Jarak Terdekat</option>
+                        </select>
+                        <ChevronDown size={16} color="#94a3b8" style={{ position: "absolute", right: "12px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+                    </div>
+
+                    <button
+                        onClick={handleTerapkanFilter}
+                        style={{ backgroundColor: "#064e3b", color: "white", border: "none", padding: "0 1.5rem", borderRadius: "8px", fontWeight: "600", cursor: "pointer", fontSize: "0.9rem", whiteSpace: "nowrap" }}
+                    >
+                        Terapkan
+                    </button>
                 </div>
 
-                {/* BANNER PELUANG HEMAT */}
-                <div style={{ backgroundColor: "#064e3b", color: "#fff", borderRadius: "20px", padding: "1.25rem 1.5rem", marginBottom: "1.5rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                {/* BANNER INFORMASI HEMAT */}
+                <div style={{ backgroundColor: "#276854", color: "#ffffff", padding: "1.5rem", borderRadius: "16px", marginBottom: "2rem", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
                     <div>
-                        <span style={{ backgroundColor: "#16a34a", color: "#ffffff", padding: "3px 10px", borderRadius: "20px", fontSize: "0.7rem", fontWeight: "800" }}>
+                        <span style={{ backgroundColor: "#10b981", color: "white", padding: "0.25rem 0.75rem", borderRadius: "9999px", fontSize: "0.75rem", fontWeight: "700", textTransform: "uppercase", display: "inline-block", marginBottom: "0.75rem" }}>
                             PELUANG HEMAT WARGA
                         </span>
-                        <h3 style={{ margin: "6px 0 2px", fontSize: "1.15rem", fontWeight: "700" }}>
-                            Hemat hingga <span style={{ color: "#4ade80" }}>Rp1.000 / kg</span> belanja di Pasar Babat
-                        </h3>
-                        <p style={{ margin: 0, fontSize: "0.8rem", color: "#a7f3d0" }}>
-                            Harga terendah Rp13.000 (Kios Bu Siti) vs tertinggi Rp14.000 (Pasar Kota).
+                        <h2 style={{ fontSize: "1.25rem", margin: "0 0 0.25rem 0", fontWeight: "700" }}>
+                            Pantau Stabilitas Harga Komoditas di Pasar Lamongan
+                        </h2>
+                        <p style={{ margin: 0, fontSize: "0.85rem", opacity: 0.9 }}>
+                            Data langsung tersambung dengan katalog pedagang dan pengawasan DKPP.
                         </p>
                     </div>
-                    <div style={{ display: "flex", gap: "0.75rem" }}>
-                        <div style={{ backgroundColor: "rgba(255,255,255,0.08)", padding: "0.6rem 1rem", borderRadius: "12px", textAlign: "right", border: "1px solid rgba(255,255,255,0.1)" }}>
-                            <div style={{ fontSize: "0.65rem", color: "#a7f3d0" }}>RATA-RATA BABAT</div>
-                            <strong style={{ fontSize: "1.05rem" }}>Rp13.150/kg</strong>
+                    <div style={{ display: "flex", gap: "1rem" }}>
+                        <div style={{ backgroundColor: "rgba(255, 255, 255, 0.15)", padding: "0.75rem 1.25rem", borderRadius: "12px", textAlign: "center", border: "1px solid rgba(255,255,255,0.1)" }}>
+                            <div style={{ fontSize: "0.7rem", opacity: 0.9, marginBottom: "0.25rem" }}>RATA-RATA BABAT</div>
+                            <div style={{ fontSize: "1.1rem", fontWeight: "700" }}>Rp13.150/kg</div>
                         </div>
-                        <div style={{ backgroundColor: "rgba(255,255,255,0.08)", padding: "0.6rem 1rem", borderRadius: "12px", textAlign: "right", border: "1px solid rgba(255,255,255,0.1)" }}>
-                            <div style={{ fontSize: "0.65rem", color: "#a7f3d0" }}>HET NASIONAL</div>
-                            <strong style={{ fontSize: "1.05rem" }}>Rp13.500/kg</strong>
+                        <div style={{ backgroundColor: "rgba(255, 255, 255, 0.15)", padding: "0.75rem 1.25rem", borderRadius: "12px", textAlign: "center", border: "1px solid rgba(255,255,255,0.1)" }}>
+                            <div style={{ fontSize: "0.7rem", opacity: 0.9, marginBottom: "0.25rem" }}>HET NASIONAL</div>
+                            <div style={{ fontSize: "1.1rem", fontWeight: "700" }}>Rp13.500/kg</div>
                         </div>
                     </div>
                 </div>
 
-                {/* LAYOUT 3 KOLOM UTAMA */}
-                <div style={{ display: "grid", gridTemplateColumns: "240px 1fr 310px", gap: "1.25rem" }}>
+                {/* GRID CONTENT */}
+                <div style={{ display: "grid", gridTemplateColumns: "260px 1fr 320px", gap: "2rem" }}>
 
-                    {/* KOLOM KIRI: FILTER PRESISI */}
-                    <div style={{ backgroundColor: "#ffffff", padding: "1.25rem", borderRadius: "20px", border: "1px solid #f0fdf4", boxShadow: "0 4px 20px rgba(0,0,0,0.02)", height: "fit-content" }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem" }}>
-                            <h4 style={{ margin: 0, fontSize: "0.9rem", fontWeight: "800", color: "#064e3b" }}>
-                                FILTER PRESISI
-                            </h4>
-                            <button
-                                onClick={() => { setSelectedRadius("< 1 km"); setSelectedVarieties(["Medium IR 64"]); setCurrentPage(1); }}
-                                style={{ border: "none", background: "none", color: "#94a3b8", fontSize: "0.75rem", cursor: "pointer" }}
-                            >
+                    {/* SIDEBAR FILTER PRESISI */}
+                    <aside style={{ backgroundColor: "#ffffff", padding: "1.5rem", borderRadius: "16px", boxShadow: "0 1px 3px rgba(0,0,0,0.05)", height: "fit-content", border: "1px solid #f1f5f9" }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
+                            <h3 style={{ margin: 0, fontWeight: "700", fontSize: "0.95rem", color: "#0f172a" }}>FILTER PRESISI</h3>
+                            <button onClick={() => { setSearchQuery(""); setSelectedPasar("Semua Pasar Rakyat"); fetchKiosData(); }} style={{ border: "none", background: "none", color: "#94a3b8", fontSize: "0.85rem", cursor: "pointer" }}>
                                 Reset
                             </button>
                         </div>
 
-                        {/* Radius Jarak */}
-                        <div style={{ marginBottom: "1.25rem" }}>
-                            <label style={{ fontSize: "0.75rem", fontWeight: "700", color: "#475569", display: "block", marginBottom: "0.6rem" }}>RADIUS JARAK</label>
-                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.4rem" }}>
-                                {["< 1 km", "3 km", "5 km", "> 10 km"].map((r) => (
+                        <div style={{ marginBottom: "2rem" }}>
+                            <label style={{ display: "block", fontSize: "0.75rem", fontWeight: "700", color: "#64748b", marginBottom: "0.75rem" }}>RADIUS JARAK</label>
+                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
+                                {["< 1 km", "3 km", "5 km", "> 10 km"].map((radius) => (
                                     <button
-                                        key={r}
-                                        onClick={() => { setSelectedRadius(r); setCurrentPage(1); }}
+                                        key={radius}
+                                        onClick={() => setSelectedRadius(radius)}
                                         style={{
-                                            padding: "0.45rem",
+                                            padding: "0.5rem",
                                             borderRadius: "8px",
-                                            border: "none",
-                                            fontSize: "0.75rem",
-                                            fontWeight: "700",
+                                            border: selectedRadius === radius ? "none" : "1px solid #e2e8f0",
+                                            backgroundColor: selectedRadius === radius ? "#16a34a" : "#ffffff",
+                                            color: selectedRadius === radius ? "#ffffff" : "#475569",
                                             cursor: "pointer",
-                                            backgroundColor: selectedRadius === r ? "#16a34a" : "#f8fafc",
-                                            color: selectedRadius === r ? "#fff" : "#475569",
-                                            transition: "all 0.2s"
+                                            fontSize: "0.85rem",
+                                            fontWeight: selectedRadius === radius ? "600" : "400"
                                         }}
                                     >
-                                        {r}
+                                        {radius}
                                     </button>
                                 ))}
                             </div>
                         </div>
 
-                        {/* Varietas & Mutu Beras */}
-                        <div style={{ marginBottom: "1.25rem" }}>
-                            <label style={{ fontSize: "0.75rem", fontWeight: "700", color: "#475569", display: "block", marginBottom: "0.6rem" }}>
-                                VARIETAS & MUTU
-                            </label>
-                            {[
-                                { name: "Medium IR 64", count: "24" },
-                                { name: "Premium Mentik Wangi", count: "16" },
-                                { name: "Rojolele Delanggu", count: "8" },
-                                { name: "Beras Bulog SPHP", count: "12" }
-                            ].map((v, i) => (
-                                <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem", fontSize: "0.8rem" }}>
-                                    <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", color: "#334155", fontWeight: "500" }}>
-                                        <input
-                                            type="checkbox"
-                                            checked={selectedVarieties.includes(v.name)}
-                                            onChange={() => handleVarietyChange(v.name)}
-                                            style={{ accentColor: "#16a34a" }}
-                                        />
-                                        {v.name}
-                                    </label>
-                                    <span style={{ fontSize: "0.7rem", color: "#94a3b8", backgroundColor: "#f1f5f9", padding: "1px 6px", borderRadius: "10px" }}>{v.count}</span>
-                                </div>
-                            ))}
+                        <div style={{ backgroundColor: "#f0fdf4", padding: "1rem", borderRadius: "8px", fontSize: "0.75rem", color: "#166534", lineHeight: "1.4" }}>
+                            <strong style={{ display: "block", marginBottom: "0.25rem" }}>Kios Binaan Resmi</strong>
+                            Bersertifikasi uji timbang & pengawasan DKPP Lamongan.
                         </div>
+                    </aside>
 
-                        {/* Banner Kios Binaan */}
-                        <div style={{ backgroundColor: "#f0fdf4", padding: "0.85rem", borderRadius: "12px", border: "1px solid #dcfce7" }}>
-                            <strong style={{ fontSize: "0.75rem", color: "#166534", display: "block", marginBottom: "2px" }}>Kios Binaan Resmi</strong>
-                            <p style={{ fontSize: "0.7rem", color: "#15803d", margin: 0, lineHeight: "1.3" }}>Bersertifikasi uji timbang & pengawasan DKPP Lamongan.</p>
-                        </div>
-                    </div>
-
-                    {/* KOLOM TENGAH: DAFTAR KIOS & PAGINATION */}
-                    <div>
+                    {/* DAFTAR KIOS DARI BACKEND */}
+                    <section>
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-                            <h3 style={{ margin: 0, fontSize: "1.05rem", fontWeight: "800", color: "#064e3b" }}>Daftar Kios Terdekat</h3>
-                            <span style={{ fontSize: "0.75rem", color: "#64748b" }}>{filteredStalls.length} kios ditemukan</span>
+                            <h2 style={{ margin: 0, fontSize: "1.1rem", fontWeight: "700", color: "#0f172a" }}>Daftar Kios Terdekat</h2>
+                            <span style={{ color: "#64748b", fontSize: "0.85rem" }}>{kiosList.length} kios ditemukan</span>
                         </div>
 
                         {loading ? (
-                            <p style={{ textAlign: "center", color: "#64748b", padding: "2rem" }}>Memuat data dari backend...</p>
-                        ) : currentStalls.length === 0 ? (
-                            <div style={{ backgroundColor: "#fff", padding: "2rem", borderRadius: "16px", textAlign: "center", color: "#64748b" }}>
-                                Tidak ada kios yang cocok dengan kombinasi filter ini. Coba ubah atau reset filter.
+                            <div style={{ textAlign: "center", padding: "3rem", backgroundColor: "#ffffff", borderRadius: "16px" }}>
+                                <Loader2 className="animate-spin" size={32} color="#16a34a" style={{ margin: "0 auto 1rem auto" }} />
+                                <p style={{ color: "#64748b", margin: 0 }}>Mengambil data dari server...</p>
                             </div>
-                        ) : (
-                            <div style={{ display: "flex", flexDirection: "column", gap: "0.85rem" }}>
-                                {currentStalls.map((stall) => (
-                                    <div
-                                        key={stall.id}
-                                        onClick={() => handleGoToDetail(stall)}
-                                        style={{ backgroundColor: "#ffffff", borderRadius: "16px", border: stall.isCheap ? "2px solid #22c55e" : "1px solid #f0fdf4", padding: "1.1rem", boxShadow: "0 4px 15px rgba(0,0,0,0.02)", cursor: "pointer" }}
-                                    >
-                                        <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", marginBottom: "0.75rem" }}>
-                                            <div style={{ flex: 1 }}>
-                                                <div style={{ display: "flex", gap: "0.4rem", marginBottom: "0.4rem" }}>
-                                                    {stall.badges && stall.badges.map((b, idx) => (
-                                                        <span key={idx} style={{ backgroundColor: b.includes("TERMURAH") ? "#22c55e" : "#f1f5f9", color: b.includes("TERMURAH") ? "#fff" : "#475569", padding: "2px 8px", borderRadius: "12px", fontSize: "0.65rem", fontWeight: "800" }}>
-                                                            {b}
+                        ) : error ? (
+                            <div style={{ textAlign: "center", padding: "2rem", backgroundColor: "#fef2f2", borderRadius: "16px", color: "#991b1b" }}>
+                                <p style={{ fontWeight: "bold", margin: "0 0 0.5rem 0" }}>Gagal memuat data</p>
+                                <p style={{ fontSize: "0.85rem", margin: 0 }}>{error}</p>
+                            </div>
+                        ) : kiosList.length > 0 ? (
+                            <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+                                {kiosList.map((kios) => (
+                                    <div key={kios.id} style={{ backgroundColor: "#ffffff", borderRadius: "16px", border: "1px solid #e2e8f0", padding: "1.25rem", boxShadow: "0 2px 4px rgba(0,0,0,0.02)" }}>
+                                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem" }}>
+
+                                            <div>
+                                                <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
+                                                    <span style={{ backgroundColor: "#dcfce7", color: "#15803d", padding: "0.2rem 0.6rem", borderRadius: "9999px", fontSize: "0.7rem", fontWeight: "700" }}>
+                                                        {kios.status_izin || "BERIZIN"}
+                                                    </span>
+                                                    {kios.is_active && (
+                                                        <span style={{ color: "#1d4ed8", fontSize: "0.7rem", fontWeight: "700", display: "flex", alignItems: "center" }}>
+                                                            Binaan DKPP
                                                         </span>
-                                                    ))}
+                                                    )}
                                                 </div>
-                                                <h4 style={{ margin: "2px 0 4px", fontSize: "1.05rem", fontWeight: "700", color: "#0f172a" }}>{stall.name}</h4>
-                                                <p style={{ margin: "0 0 2px 0", fontSize: "0.8rem", color: "#1e293b", fontWeight: "600" }}>📍 {stall.market}</p>
-                                                {stall.addressDetail && (
-                                                    <p style={{ margin: 0, fontSize: "0.75rem", color: "#64748b" }}>{stall.addressDetail}</p>
-                                                )}
-                                                <div style={{ display: "flex", gap: "0.8rem", marginTop: "6px", fontSize: "0.75rem", color: "#64748b" }}>
-                                                    <span>🚴 {stall.distance}</span>
-                                                    <span>🕒 {stall.time}</span>
+                                                <h3 style={{ margin: "0 0 0.25rem 0", fontSize: "1.15rem", fontWeight: "700", color: "#0f172a" }}>{kios.nama_kios}</h3>
+                                                <div style={{ fontSize: "0.85rem", color: "#475569", display: "flex", alignItems: "center", gap: "0.25rem", marginBottom: "0.25rem" }}>
+                                                    <MapPin size={14} color="#ef4444" />
+                                                    <span>{kios.alamat_lengkap}</span>
+                                                </div>
+                                                <div style={{ fontSize: "0.8rem", color: "#64748b", display: "flex", gap: "0.75rem", marginTop: "0.4rem" }}>
+                                                    <span>👤 {kios.pemilik}</span>
+                                                    <span>🕒 {kios.jam_buka}</span>
                                                 </div>
                                             </div>
 
-                                            <div style={{ textAlign: "right", minWidth: "120px" }}>
-                                                <span style={{ fontSize: "0.65rem", color: "#94a3b8", fontWeight: "700", textTransform: "uppercase" }}>Harga Terkini</span>
-                                                <div style={{ fontSize: "1.25rem", fontWeight: "800", color: "#16a34a" }}>
-                                                    Rp{stall.price?.toLocaleString("id-ID")}<span style={{ fontSize: "0.75rem", fontWeight: "normal", color: "#64748b" }}>/kg</span>
+                                            <div style={{ textAlign: "right" }}>
+                                                <div style={{ fontSize: "0.7rem", color: "#94a3b8", fontWeight: "700", textTransform: "uppercase", marginBottom: "0.2rem" }}>TOTAL KATALOG</div>
+                                                <div style={{ fontSize: "1.3rem", fontWeight: "800", color: "#16a34a" }}>
+                                                    {kios.total_katalog} <span style={{ fontSize: "0.85rem", color: "#64748b", fontWeight: "400" }}>Item</span>
                                                 </div>
-                                                <span style={{ fontSize: "0.7rem", color: stall.isCheap ? "#15803d" : "#64748b", fontWeight: "600" }}>{stall.hetDiff}</span>
+                                                <div style={{ fontSize: "0.75rem", color: kios.status_buka_sekarang ? "#15803d" : "#ef4444", fontWeight: "500", marginTop: "0.2rem" }}>
+                                                    {kios.status_buka_sekarang ? "● Buka Sekarang" : "○ Tutup"}
+                                                </div>
                                             </div>
                                         </div>
 
-                                        <div style={{ borderTop: "1px solid #f8fafc", paddingTop: "0.65rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                            <span style={{ fontSize: "0.75rem", color: "#475569" }}>Komoditas: <strong>{stall.commodities}</strong></span>
-                                            <div style={{ display: "flex", gap: "0.4rem" }}>
+                                        <div style={{ borderTop: "1px solid #f1f5f9", paddingTop: "1rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                            <div style={{ fontSize: "0.85rem", color: "#475569" }}>
+                                                No. Telp: <strong>{kios.no_telepon}</strong>
+                                            </div>
+                                            <div style={{ display: "flex", gap: "0.5rem" }}>
                                                 <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleGoToDetail(stall);
-                                                    }}
-                                                    style={{ backgroundColor: "#16a34a", border: "none", padding: "0.4rem 0.75rem", borderRadius: "8px", fontSize: "0.75rem", fontWeight: "600", color: "#fff", cursor: "pointer" }}
+                                                    onClick={() => handleDetailKios(kios)}
+                                                    style={{ backgroundColor: "#16a34a", color: "#ffffff", border: "none", padding: "0.5rem 1.25rem", borderRadius: "6px", fontWeight: "600", fontSize: "0.85rem", cursor: "pointer" }}
                                                 >
                                                     Detail Kios
-                                                </button>
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        window.open(`https://www.google.com/maps/search/?api=1&query=${stall.lat},${stall.lng}`, '_blank');
-                                                    }}
-                                                    style={{ backgroundColor: "#f8fafc", color: "#334155", border: "1px solid #e2e8f0", padding: "0.4rem 0.75rem", borderRadius: "8px", fontSize: "0.75rem", fontWeight: "600", cursor: "pointer" }}
-                                                >
-                                                    Rute
                                                 </button>
                                             </div>
                                         </div>
                                     </div>
                                 ))}
                             </div>
+                        ) : (
+                            <div style={{ textAlign: "center", padding: "3rem 1rem", backgroundColor: "#ffffff", borderRadius: "16px", border: "1px solid #e2e8f0" }}>
+                                <Search size={32} color="#cbd5e1" style={{ margin: "0 auto 1rem auto" }} />
+                                <h4 style={{ margin: "0 0 0.5rem 0", color: "#334155" }}>Kios tidak ditemukan</h4>
+                                <p style={{ fontSize: "0.85rem", color: "#64748b", margin: 0 }}>Coba ganti kata kunci atau pilih pasar lain.</p>
+                            </div>
                         )}
+                    </section>
 
-                        {/* PAGINATION INTERAKTIF */}
-                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "1.25rem 0.25rem 0", width: "100%" }}>
-                            <span style={{ fontSize: "0.85rem", color: "#64748b" }}>
-                                Halaman {currentPage} dari {totalPages} ({filteredStalls.length} Kios Terdata)
-                            </span>
-
-                            <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                                <button
-                                    onClick={() => handlePageChange(currentPage - 1)}
-                                    disabled={currentPage === 1}
-                                    style={{ border: "none", backgroundColor: "#e8effc", color: currentPage === 1 ? "#94a3b8" : "#475569", padding: "0.5rem 0.9rem", borderRadius: "10px", fontSize: "0.8rem", fontWeight: "500", cursor: currentPage === 1 ? "not-allowed" : "pointer" }}
-                                >
-                                    Sebelumnya
-                                </button>
-
-                                {Array.from({ length: totalPages }, (_, i) => i + 1).map((num) => (
-                                    <button
-                                        key={num}
-                                        onClick={() => handlePageChange(num)}
-                                        style={{ border: "none", backgroundColor: currentPage === num ? "#064e3b" : "#e8effc", color: currentPage === num ? "#ffffff" : "#475569", padding: "0.5rem 0.8rem", borderRadius: "10px", fontSize: "0.8rem", fontWeight: "600", cursor: "pointer" }}
-                                    >
-                                        {num}
-                                    </button>
-                                ))}
-
-                                <button
-                                    onClick={() => handlePageChange(currentPage + 1)}
-                                    disabled={currentPage === totalPages}
-                                    style={{ border: "none", backgroundColor: currentPage === totalPages ? "#94a3b8" : "#475569", padding: "0.5rem 0.9rem", borderRadius: "10px", fontSize: "0.8rem", fontWeight: "500", cursor: currentPage === totalPages ? "not-allowed" : "pointer" }}
-                                >
-                                    Selanjutnya
-                                </button>
-                            </div>
-                        </div>
-
-                    </div>
-
-                    {/* KOLOM KANAN: PETA INTERAKTIF SUNGGUHAN & SEBARAN HARGA */}
-                    <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                        <div style={{ backgroundColor: "#ffffff", borderRadius: "20px", padding: "1.25rem", border: "1px solid #f0fdf4", boxShadow: "0 4px 20px rgba(0,0,0,0.02)" }}>
-
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.85rem" }}>
+                    {/* SIDEBAR PETA & SEBARAN */}
+                    <aside style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+                        <div style={{ backgroundColor: "#ffffff", padding: "1.5rem", borderRadius: "16px", boxShadow: "0 1px 3px rgba(0,0,0,0.05)", border: "1px solid #f1f5f9" }}>
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem" }}>
                                 <div>
-                                    <h3 style={{ margin: 0, fontSize: "1.05rem", fontWeight: "800", color: "#0f172a" }}>Peta Sebaran Kios</h3>
-                                    <span style={{ fontSize: "0.75rem", color: "#64748b" }}>{filteredStalls.length} Kios Aktif Ditampilkan</span>
+                                    <h3 style={{ margin: "0 0 0.25rem 0", fontSize: "1rem", fontWeight: "700" }}>Peta Sebaran Kios</h3>
+                                    <p style={{ margin: 0, fontSize: "0.75rem", color: "#64748b" }}>{kiosList.length} Kios Ditampilkan</p>
                                 </div>
-                                <div style={{ display: "flex", alignItems: "center", gap: "4px", backgroundColor: "#f0fdf4", color: "#166534", padding: "3px 8px", borderRadius: "12px", fontSize: "0.65rem", fontWeight: "700", border: "1px solid #dcfce7" }}>
-                                    <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#22c55e" }}></span>
-                                    Live GPS
+                                <div style={{ display: "flex", alignItems: "center", gap: "4px", backgroundColor: "#f0fdf4", padding: "0.2rem 0.5rem", borderRadius: "9999px" }}>
+                                    <Circle size={8} fill="#16a34a" color="#16a34a" />
+                                    <span style={{ fontSize: "0.7rem", color: "#16a34a", fontWeight: "600" }}>Live GPS</span>
                                 </div>
                             </div>
-
-                            {/* PETA INTERAKTIF LEAFLET DENGAN POPUP ALAMAT KIOS */}
-                            <div style={{ position: "relative", borderRadius: "16px", overflow: "hidden", height: "260px", marginBottom: "1.25rem", border: "1px solid #e2e8f0" }}>
-                                <MapContainer center={mapCenter} zoom={11} style={{ height: "100%", width: "100%" }}>
-                                    <MapRecenter center={mapCenter} />
-                                    <TileLayer
-                                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                                    />
-                                    {filteredStalls.map((stall) => (
-                                        stall.lat && stall.lng && (
-                                            <Marker
-                                                key={stall.id}
-                                                position={[stall.lat, stall.lng]}
-                                                ref={(el) => (markerRefs.current[stall.id] = el)}
-                                            >
-                                                <Popup minWidth={200}>
-                                                    <div style={{ fontFamily: "sans-serif", fontSize: "0.8rem", padding: "2px" }}>
-                                                        <div style={{ backgroundColor: stall.isCheap ? "#22c55e" : "#064e3b", color: "#fff", padding: "3px 8px", borderRadius: "4px", fontSize: "0.65rem", fontWeight: "bold", display: "inline-block", marginBottom: "4px" }}>
-                                                            {stall.isCheap ? "HARGA TERMURAH" : "KIOS MONITORING"}
-                                                        </div>
-                                                        <h5 style={{ margin: "2px 0 4px 0", fontSize: "0.95rem", color: "#0f172a" }}>{stall.name}</h5>
-                                                        <p style={{ margin: "0 0 2px 0", fontWeight: "600", color: "#334155" }}>📍 {stall.market}</p>
-                                                        {stall.addressDetail && (
-                                                            <p style={{ margin: "0 0 6px 0", fontSize: "0.72rem", color: "#64748b" }}>{stall.addressDetail}</p>
-                                                        )}
-                                                        <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: "4px", marginTop: "4px" }}>
-                                                            <span style={{ fontSize: "0.7rem", color: "#64748b" }}>Harga Beras:</span><br />
-                                                            <strong style={{ color: "#16a34a", fontSize: "1rem" }}>Rp{stall.price?.toLocaleString("id-ID")}/kg</strong>
-                                                        </div>
-                                                        <button
-                                                            onClick={() => handleGoToDetail(stall)}
-                                                            style={{ marginTop: "6px", width: "100%", backgroundColor: "#16a34a", color: "#fff", border: "none", padding: "4px", borderRadius: "6px", fontSize: "0.7rem", fontWeight: "bold", cursor: "pointer" }}
-                                                        >
-                                                            Lihat Detail Kios &rarr;
-                                                        </button>
-                                                    </div>
-                                                </Popup>
-                                            </Marker>
-                                        )
-                                    ))}
-                                </MapContainer>
+                            <div style={{ width: "100%", height: "180px", backgroundColor: "#e2e8f0", borderRadius: "12px", position: "relative", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                <MapPin size={28} color="#16a34a" />
                             </div>
-
-                            {/* Sebaran Harga per Pasar */}
-                            <div>
-                                <h4 style={{ margin: "0 0 0.75rem 0", fontSize: "0.85rem", fontWeight: "700", color: "#334155" }}>
-                                    Sebaran Harga per Pasar
-                                </h4>
-
-                                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginBottom: "1rem" }}>
-                                    {[
-                                        { name: "Pasar Babat", price: "Rp13.000", count: "18 Kios Pantau", color: "#16a34a", bg: "#f0fdf4" },
-                                        { name: "Pasar Sidoharjo", price: "Rp13.500", count: "14 Kios Pantau", color: "#0284c7", bg: "#f0f9ff" },
-                                        { name: "Pasar Sukodadi", price: "Rp13.400", count: "9 Kios Pantau", color: "#64748b", bg: "#f8fafc" },
-                                        { name: "Pasar Lamongan Kota", price: "Rp14.000", count: "7 Kios Pantau", color: "#dc2626", bg: "#fef2f2" }
-                                    ].map((item, idx) => (
-                                        <div key={idx} style={{ backgroundColor: item.bg, padding: "0.55rem 0.75rem", borderRadius: "10px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                                                <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: item.color }}></span>
-                                                <strong style={{ fontSize: "0.78rem", color: "#1e293b" }}>{item.name}</strong>
-                                            </div>
-                                            <div style={{ textAlign: "right" }}>
-                                                <strong style={{ display: "block", fontSize: "0.78rem", color: item.color }}>{item.price}</strong>
-                                                <span style={{ fontSize: "0.62rem", color: "#94a3b8" }}>{item.count}</span>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                <button
-                                    onClick={() => alert("Membuka komparasi 16 pasar...")}
-                                    style={{ width: "100%", backgroundColor: "#e8effc", color: "#2563eb", border: "none", padding: "0.65rem", borderRadius: "10px", fontSize: "0.78rem", fontWeight: "700", cursor: "pointer" }}
-                                >
-                                    Buka Komparasi 16 Pasar &rarr;
-                                </button>
-                            </div>
-
                         </div>
-                    </div>
+                    </aside>
 
                 </div>
-
             </div>
         </div>
     );
