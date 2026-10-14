@@ -167,11 +167,19 @@ export async function getKomparasiPasar({ search = "", kategori = "" } = {}) {
 }
 
 // ----------------------------------------------------------------
-// MASTER PASAR
+// MASTER PASAR & TREN HARGA
 // ----------------------------------------------------------------
 
 export async function getPasar() {
   const res = await fetch(`${BASE_URL}/pasar`);
+  return handleResponse(res);
+}
+
+export async function getTrenHarga(komoditas, timeframe = "7 Hari") {
+  const params = new URLSearchParams();
+  if (komoditas) params.append("komoditas", komoditas);
+  if (timeframe) params.append("timeframe", timeframe);
+  const res = await fetch(`${BASE_URL}/tren-harga?${params}`);
   return handleResponse(res);
 }
 
