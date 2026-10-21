@@ -17,7 +17,7 @@ DAFTAR_ADMIN = [
     {
         "nama_lengkap": "Intan Permatasari",
         "username": "intan_permatasari",
-        "email": "petugas.babat@lamongankab.go.id",
+        "email": "intan@lamongankab",
         "nip": "19850412 201001 1014",
         "jabatan": "Petugas Enumerator",
         "wilayah_pantau": "Pasar Babat & Pasar Sukodadi",
@@ -25,9 +25,9 @@ DAFTAR_ADMIN = [
         "password": "admin123"
     },
     {
-        "nama_lengkap": "Hendra Setiawan",
+        "nama_lengkap": "Nayla Santika",
         "username": "nayla_santika",
-        "email": "nayla.santika@lamongankab.go.id",
+        "email": "nayla@lamongankab",
         "nip": "19820516 200801 1 009",
         "jabatan": "Surveyor Supervisor / Admin DKPP",
         "wilayah_pantau": "Pasar Sidoharjo & Pasar Lamongan",
