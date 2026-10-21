@@ -1,331 +1,309 @@
-# 🌾 E-Pangan Lamongan — Task Guide: Perbaikan NLP & Frontend
+# 📋 TASK GUIDE: REVITALISASI MODUL NLP SUARA & PERBAIKAN BUG E-PANGAN
 
-> **Proyek:** E-Pangan Kabupaten Lamongan (DKPP)
-> **Stack:** FastAPI (Python) + React/Vite (JSX)
-> **Terakhir diperbarui:** Oktober 2026
-
----
-
-## 📁 Struktur Proyek
-
-```
-e-pangan/
-├── backend/
-│   ├── main.py                  # Entry point FastAPI
-│   ├── models.py                # SQLAlchemy ORM Models
-│   ├── schemas.py               # Pydantic Schemas
-│   ├── database.py              # Koneksi DB (SQLite)
-│   ├── nlp_parser.py            # ⭐ Engine NLP Utama (rule-based)
-│   └── routers/
-│       ├── nlp.py               # ⭐ Endpoint NLP & Whisper STT
-│       ├── search.py            # Cari Harga (publik)
-│       ├── pasar.py             # Komparasi Pasar
-│       ├── kios.py              # Detail Kios
-│       ├── budgeting.py         # Smart Budgeting
-│       ├── admin.py             # Dashboard Admin
-│       ├── auth.py              # Login/JWT
-│       └── satgas.py            # Validasi Satgas
-└── frontend/src/
-    ├── App.jsx                  # ⭐ Halaman utama & state global
-    ├── AdminDashboard.jsx       # ⭐ Dashboard Admin (ada panel NLP)
-    ├── CariHarga.jsx            # Cari Harga publik
-    ├── KomparasiPasar.jsx       # Perbandingan antar pasar
-    ├── SmartBudgetting.jsx      # Smart Budgeting
-    ├── DetailKios.jsx           # Detail kios
-    ├── api.js                   # Axios/fetch wrapper
-    └── App.css                  # Global styles
-```
+> **Panduan Teknis & Rencana Aksi Komprehensif**  
+> Dibuat untuk panduan perbaikan desain antarmuka, penanganan bug kritis, dan penyempurnaan alur kerja Modul Input Cepat Suara (*Natural Language Processing*) pada aplikasi **E-Pangan Kabupaten Lamongan**.
 
 ---
 
-## 🧠 Arsitektur NLP Saat Ini
-
-### `nlp_parser.py` — Rule-Based Parser
-
-| Komponen | Mekanisme | Keterbatasan |
-|---|---|---|
-| **Deteksi Pasar** | `if pasar.lower() in lower_text` | Default ke "Pasar Babat" jika tidak ditemukan |
-| **Deteksi Kios** | Regex `kios\s+[a-zA-Z0-9\s]+` | Hanya ambil 2-3 kata, mudah gagal jika format beda |
-| **Komoditas** | Keyword matching dari `KOMODITAS_KEYWORDS` | Hanya 8 komoditas, belum cover semua bahan pokok |
-| **Harga** | Kamus frasa Jawa (`ANGKA_JAWA_MAP`) + regex digit | Kamus terbatas, tidak support typo/variasi ejaan |
-| **Satuan** | Keyword `liter`, `kg`, `kilo`, dll | Tidak fleksibel untuk satuan non-standar |
-| **Akurasi NLP** | Hard-coded: `98.4` jika ada item, `82.0` jika tidak | **Tidak mencerminkan akurasi sesungguhnya!** |
-
-### `routers/nlp.py` — Endpoint
-
-| Endpoint | Fungsi |
-|---|---|
-| `POST /nlp/parse-suara` | Parse teks transkrip → ekstrak data |
-| `POST /nlp/submit-suara` | Parse + simpan ke DB (butuh auth admin) |
-| `POST /nlp/upload-suara` | Upload audio → Whisper STT → parse NLP |
-| `POST /nlp/upload-submit-suara` | Upload + parse + simpan DB (auth required) |
+## 📌 DAFTAR ISI
+1. [Ringkasan Eksekutif & Sasaran Utama](#1-ringkasan-eksekutif--sasaran-utama)
+2. [Audit Masalah & Bug Saat Ini (Root Cause Analysis)](#2-audit-masalah--bug-saat-ini-root-cause-analysis)
+3. [Rancangan Desain & Tata Letak Baru (UI/UX Blueprint)](#3-rancangan-desain--tata-letak-baru-uiux-blueprint)
+4. [Arsitektur Integrasi NLP (Frontend & Backend)](#4-arsitektur-integrasi-nlp-frontend--backend)
+5. [Panduan Langkah Implementasi (Step-by-Step Implementation)](#5-panduan-langkah-implementasi-step-by-step-implementation)
+6. [Daftar Kosa Kata NLP & Kasus Uji (Test Cases)](#6-daftar-kosa-kata-nlp--kasus-uji-test-cases)
+7. [Checklist Verifikasi & Quality Assurance](#7-checklist-verifikasi--quality-assurance)
 
 ---
 
-## 🎯 TASK LIST: Perbaikan NLP (Backend)
+## 1. RINGKASAN EKSEKUTIF & SASARAN UTAMA
 
-### FASE 1 — Perbaikan Kamus & Komoditas
+Modul Input Suara NLP dirancang sebagai **fitur inovasi utama** bagi petugas lapangan (enumerator) DKPP Kabupaten Lamongan untuk mencatat harga bahan pokok di pasar secara cepat hanya dengan berbicara menggunakan dialek percakapan tawar-menawar pasar (campuran Bahasa Indonesia dan Bahasa Daerah Jawa Timur).
 
-- [ ] **T1.1** — Tambah komoditas yang hilang ke `KOMODITAS_KEYWORDS` di `nlp_parser.py`
-  - Komoditas yang perlu ditambah: Tepung Terigu, Kedelai, Jagung, Bawang Putih, Cabe Merah Keriting, Garam, Ikan Laut (bandeng, lele, nila), Santan
-  - File: `backend/nlp_parser.py` baris 74–145
-  - Referensi: 18 bahan pokok NFA/Bapanas sesuai model `Komoditas` di `models.py`
+### Sasaran Utama Pembaruan:
+- **Zero Bug:** Menghilangkan error JavaScript runtime saat tombol rekam ditekan.
+- **Tampilan Interaktif & Modern:** Menghadirkan antarmuka rekaman suara berstandar modern (indikator denyut visual/gelombang suara, tombol cepat uji kalimat, kartu hasil parsing yang terstruktur rapi).
+- **Sinkronisasi Data Sempurna:** Menghubungkan hasil parsing transkrip langsung ke database survei lapangan dengan verifikasi satu-klik.
+- **Dukungan Dual-Input:** Menyediakan input via Mikrofon Langsung (*Web Speech API*) dan mode Input Teks Cepat (*Manual Fallback*) agar modul tetap dapat diuji tanpa perangkat mikrofon.
 
-- [ ] **T1.2** — Perluas `ANGKA_JAWA_MAP` & `ANGKA_INDO_MAP` untuk angka lebih besar (di atas 50 ribu)
-  - Tambah: `enam puluh ribu`, `tujuh puluh ribu`, `delapan puluh ribu`, `seratus ribu`, dst
-  - Perluas untuk satuan **per ons**, **per ½ kg**, **per ikat**
+---
 
-- [ ] **T1.3** — Tambah `ANGKA_SINGKAT_MAP` untuk ekspresi singkat seperti `15rb`, `20k`, `Rp13rb`
-  ```python
-  # Contoh pattern yang perlu di-handle
-  "15rb" -> 15000
-  "20k"  -> 20000
-  "Rp13rb" -> 13000
+## 2. AUDIT MASALAH & BUG SAAT INI (ROOT CAUSE ANALYSIS)
+
+Berdasarkan audit menyeluruh terhadap kode sumber di `frontend/src/AdminDashboard.jsx`, `frontend/src/api.js`, dan `backend/routers/nlp.py`, ditemukan beberapa kendala yang menyebabkan modul belum berjalan maksimal:
+
+### 🔴 Bug Kritis 1: `handleToggleRecord is not defined`
+* **Lokasi:** `frontend/src/AdminDashboard.jsx` (Baris 837)
+* **Kondisi:** Tombol `<button onClick={handleToggleRecord}>` dipanggil di antarmuka tab "Input Suara (NLP)", namun fungsi `handleToggleRecord` **belum dideklarasikan** sama sekali di dalam komponen.
+* **Akibat:** Aplikasi langsung mengalami *crash* / *blank page* dengan pesan error `ReferenceError: handleToggleRecord is not defined` saat tombol diklik.
+
+### 🔴 Bug Kritis 2: Mismatch Struktur Data `parsedResult`
+* **Lokasi:** `frontend/src/AdminDashboard.jsx` (Baris 869–880)
+* **Kondisi:** Komponen UI mencoba membaca nilai tunggal:
+  ```jsx
+  parsedResult.komoditas; // Undefined!
+  parsedResult.harga; // Undefined!
   ```
-
----
-
-### FASE 2 — Peningkatan Logika Parsing
-
-- [ ] **T2.1** — Perbaiki deteksi kios agar lebih robust
-  - Masalah: `detected_kios` default ke `"Kios Makmur"` yang tidak realistis
-  - Solusi: Jika tidak ada pola `kios/stan`, set `detected_kios = None` dan biarkan frontend minta input manual
-  - File: `backend/nlp_parser.py` baris 200–211
-
-- [ ] **T2.2** — Perbaiki logika segmentasi kalimat
-  - Masalah saat ini: hanya split by koma/titik koma
-  - Perlu tambah: split by `"dan"`, `"sama"`, `"terus"`, `"juga"` (kata hubung Jawa/Indonesia)
-  ```python
-  # Contoh input yang harus bisa di-parse:
-  "beras 13000 sama minyak 15000"
-  "telur terus bawang merah"
+  Padahal backend `backend/nlp_parser.py` mengembalikan struktur multi-item:
+  ```json
+  {
+    "status": "success",
+    "akurasi": 98.4,
+    "pasar": "Pasar Babat",
+    "kios": "Kios Makmur",
+    "items": [
+      {
+        "nama_komoditas": "Minyak Goreng Sawit",
+        "harga": 15000,
+        "satuan": "liter",
+        "status_het": "Sesuai HET"
+      },
+      {
+        "nama_komoditas": "Beras Medium (IR 64)",
+        "harga": 13000,
+        "satuan": "kg",
+        "status_het": "Sesuai HET"
+      }
+    ]
+  }
   ```
-  - File: `backend/nlp_parser.py` baris 213–214
+* **Akibat:** Meskipun backend berhasil mem-parsing kalimat panjang dengan banyak komoditas, kartu hasil di layar tetap kosong atau bertuliskan *undefined*.
 
-- [ ] **T2.3** — Hitung akurasi NLP secara dinamis (bukan hard-coded)
-  - Formula akurasi bisa berdasarkan: jumlah field yang berhasil terisi / total field yang diharapkan
-  - Minimal: pasar ✓, kios ✓, ≥1 komoditas ✓, harga ≥1 terdeteksi ✓
-  - File: `backend/nlp_parser.py` baris 280
+### 🟡 Kendala 3: Belum Terpasang Web Speech API di Browser
+* **Kondisi:** Modul belum menghubungkan API browser bawaan (`window.SpeechRecognition` atau `window.webkitSpeechRecognition`) untuk mendengarkan mikrofon secara langsung tanpa instalasi library luar yang berat.
 
-- [ ] **T2.4** — Tambah confidence score per item
-  - Tiap item di `items[]` perlu tambah field `confidence: float` (0.0–1.0)
-  - High confidence: keyword exact match + harga terdeteksi
-  - Low confidence: keyword partial match / harga fallback ke HET
-
-- [ ] **T2.5** — Handle multi-komoditas dalam satu segmen
-  - Contoh: `"minyak sama gula 15000"` → 2 komoditas berbeda namun satu harga
-  - Strategi: deteksi komoditas terakhir sebelum harga, atau beri flag `harga_ambigu: true`
+### 🟡 Kendala 4: Belum Ada Tombol "Simpan ke Database"
+* **Kondisi:** Setelah transkrip dianalisis, petugas belum memiliki tombol aksi untuk menyimpan hasil rekomendasi ke tabel `survei_harga` dan memperbarui counter dashboard secara otomatis.
 
 ---
 
-### FASE 3 — Perbaikan Endpoint NLP
+## 3. RANCANGAN DESAIN & TATA LETAK BARU (UI/UX BLUEPRINT)
 
-- [ ] **T3.1** — Tambah field `blok_stan` yang dinamis
-  - Saat ini hard-coded `"Stan Sayur"` di endpoint `submit-suara` dan `upload-submit-suara`
-  - File: `backend/routers/nlp.py` baris 81, 283
-  - Solusi: tambah field opsional di `NLPSubmitRequest` schema di `schemas.py`
-
-- [ ] **T3.2** — Endpoint preview sebelum simpan
-  - Tambah endpoint `POST /nlp/preview-suara` yang hanya parse tanpa menyimpan ke DB
-  - Berguna untuk frontend: user bisa koreksi hasil parse sebelum submit
-
-- [ ] **T3.3** — Tambah support Bahasa Jawa Ngoko lebih luas
-  - Identifikasi variasi ejaan yang umum muncul dari Whisper: `"miyak"`, `"mberas"`, `"endog"`, `"brambang"`
-  - Tambahkan ke `keywords` masing-masing komoditas
-
-- [ ] **T3.4** — Validasi response schema yang konsisten
-  - Endpoint `/upload-suara` dan `/parse-suara` harus return format yang sama
-  - Perlu homogenisasi struktur response → gunakan `WhisperTranscriptResponse` schema di `schemas.py`
-
----
-
-### FASE 4 — Opsional / Future Enhancement
-
-- [ ] **T4.1** *(Advanced)* — Integrasi model ML ringan (IndoBERT/IndoNLP)
-  - Pertimbangkan `indobert-lite` untuk NER (Named Entity Recognition) komoditas
-  - Bisa jadi fallback jika rule-based gagal deteksi komoditas
-  - Dependency: `transformers`, `torch` (cek kompatibilitas server)
-
-- [ ] **T4.2** — Logging transkrip yang gagal diparse
-  - Simpan transkrip dengan `items = []` ke tabel tersendiri / AuditLog
-  - Berguna untuk melatih kamus baru
-  - Gunakan model `AuditLog` di `models.py`
-
-- [ ] **T4.3** — Rate limiting pada endpoint upload suara
-  - Endpoint `/nlp/upload-suara` berat (Whisper model)
-  - Tambah `slowapi` atau simple counter per IP
-
----
-
-## 🖥️ TASK LIST: Penyesuaian Frontend
-
-### FASE 1 — Panel NLP di Admin Dashboard
-
-- [ ] **F1.1** — Tampilkan hasil parse NLP dengan state editable
-  - Setelah NLP parse, user harus bisa **mengedit** nama kios, pasar, dan harga sebelum submit
-  - File: `frontend/src/AdminDashboard.jsx`
-  - Komponen: form inline edit per item komoditas
-
-- [ ] **F1.2** — Tampilkan confidence indicator per item
-  - Jika backend sudah return `confidence` (T2.4), tampilkan badge warna:
-    - 🟢 Tinggi (>0.85): hijau
-    - 🟡 Sedang (0.6–0.85): kuning
-    - 🔴 Rendah (<0.6): merah dengan peringatan
-
-- [ ] **F1.3** — Perbaiki UI saat kios tidak terdeteksi
-  - Jika `kios === null` atau default, tampilkan input teks "Nama Kios" yang wajib diisi
-  - Jangan auto-fill dengan `"Kios Makmur"` yang menyesatkan
-
-- [ ] **F1.4** — Loading state saat proses Whisper berjalan
-  - Whisper bisa memakan waktu 5–30 detik
-  - Tambah skeleton loader / progress bar animasi
-  - Tambah pesan: `"Memproses rekaman suara... (estimasi 10-15 detik)"`
-
----
-
-### FASE 2 — Penyesuaian Halaman Publik
-
-- [ ] **F2.1** — Sinkronisasi `INITIAL_PRODUCTS` di `App.jsx` dengan data DB
-  - Data di `frontend/src/App.jsx` baris 43–80 masih **hard-coded**
-  - Perlu fetch dari API `/komoditas` atau `/cari-harga` saat load
-
-- [ ] **F2.2** — Tambah indikator "Data dari Survei NLP" pada kartu komoditas
-  - Jika `metode_input === "Modul NLP"` atau `"Voice Upload NLP"`, tampilkan badge khusus 🎙️
-
-- [ ] **F2.3** — Tambah feedback visual untuk status HET
-  - Gunakan warna yang konsisten dengan `status_het`:
-    - `"Sesuai HET"` → hijau
-    - `"+X% di atas HET"` → merah/oranye
-    - `"Turun RpX"` → biru
-
----
-
-### FASE 3 — API Layer (`api.js`)
-
-- [ ] **F3.1** — Tambah fungsi API untuk endpoint NLP baru
-  - `parseTranscript(transcript)` → `POST /nlp/parse-suara`
-  - `submitTranscript(transcript, token)` → `POST /nlp/submit-suara`
-  - `uploadAudio(file)` → `POST /nlp/upload-suara`
-  - `uploadAndSubmitAudio(file, token)` → `POST /nlp/upload-submit-suara`
-  - File: `frontend/src/api.js`
-
-- [ ] **F3.2** — Error handling untuk kegagalan Whisper
-  - Handle HTTP 503 (Whisper belum terinstal)
-  - Handle HTTP 422 (audio tidak bisa diekstrak)
-  - Tampilkan pesan error yang user-friendly dalam Bahasa Indonesia
-
----
-
-## 🗂️ Urutan Pengerjaan yang Disarankan
+Tata letak tab **"Input Suara (NLP)"** di `AdminDashboard.jsx` akan dirombak dengan tata letak 3 segmen modern:
 
 ```
-PRIORITAS TINGGI (core functionality)
-─────────────────────────────────────
-T1.1 → Tambah komoditas missing
-T2.1 → Fix deteksi kios (hapus default misleading)
-T2.2 → Perluas segmentasi kalimat
-T3.1 → Fix blok_stan hard-coded
-F1.3 → UI fix kios tidak terdeteksi
-F3.1 → Tambah fungsi API di api.js
-
-PRIORITAS SEDANG (quality improvement)
-───────────────────────────────────────
-T1.2 → Perluas kamus angka
-T1.3 → Support format "15rb", "20k"
-T2.3 → Akurasi dinamis
-T2.4 → Confidence score per item
-T3.2 → Endpoint preview sebelum simpan
-F1.1 → Form editable hasil NLP
-F1.2 → Confidence indicator UI
-F1.4 → Loading state Whisper
-
-PRIORITAS RENDAH (enhancement)
-────────────────────────────────
-T3.3 → Perluas kosakata Jawa Ngoko
-T3.4 → Homogenisasi response schema
-T2.5 → Multi-komoditas satu segmen
-F2.1 → Sinkronisasi data publik ke DB
-F2.2 → Badge sumber data NLP
-F2.3 → Warna indikator HET konsisten
-
-FUTURE / OPSIONAL
-──────────────────
-T4.1 → IndoBERT NER integration
-T4.2 → Logging transkrip gagal
-T4.3 → Rate limiting upload
++-----------------------------------------------------------------------------------+
+|  [MODUL INPUT CEPAT NLP] [Model Dialek Lamongan / Jatim]                          |
+|  Judul: Asisten Suara Enumerator Lapangan DKPP                                    |
++-----------------------------------------------------------------------------------+
+|  BAGIAN 1: KONTROL PEREKAM & DUAL-INPUT SELECTOR                                  |
+|  +---------------------------------------+  +----------------------------------+  |
+|  | [Opsi A] Mikrofon Live (Web Speech)   |  | [Opsi B] Uji Teks Cepat (Manual) |  |
+|  | [ Tombol Mic Bulat Besar (Animasi) ]  |  | [ Input Teks Transkrip Kalimat ] |  |
+|  | Status: "Mendengarkan..." / "Siap"    |  | [ Tombol: Analisis Kalimat NLP ] |  |
+|  +---------------------------------------+  +----------------------------------+  |
+|  Contoh Kalimat Cepat (Chips Satu-Klik):                                          |
+|  [Contoh 1: Minyak & Beras] [Contoh 2: Cabai & Bawang] [Contoh 3: Daging Ayam]   |
++-----------------------------------------------------------------------------------+
+|  BAGIAN 2: STATUS TRANSKRIPSI & TINGKAT KEYAKINAN                                 |
+|  "Pasar Babat Kios Makmur, Minyak Goreng limolas ewu sak liter, Beras ..."        |
+|  Indikator: Pasar [Pasar Babat] | Kios [Kios Makmur] | Akurasi [98.4%]            |
++-----------------------------------------------------------------------------------+
+|  BAGIAN 3: KARTU HASIL DETEKSI KOMODITAS & TINDAKAN                               |
+|  +-----------------------------------------------------------------------------+  |
+|  | Komoditas: Minyakita  | Harga: Rp 15.000/liter | [Sesuai HET] | Blok A Sayur |  |
+|  +-----------------------------------------------------------------------------+  |
+|  | Komoditas: Beras IR64 | Harga: Rp 13.000/kg    | [Sesuai HET] | Blok B Beras |  |
+|  +-----------------------------------------------------------------------------+  |
+|  Aksi: [✓ Simpan Semua ke Database Survei]  [↺ Ulangi Perekaman]                   |
++-----------------------------------------------------------------------------------+
 ```
 
 ---
 
-## ⚠️ Catatan Penting
+## 4. ARSITEKTUR INTEGRASI NLP (FRONTEND & BACKEND)
 
-### Hard-coded values yang harus segera diperbaiki:
-- `detected_kios = "Kios Makmur"` (nlp_parser.py:201) → set ke `None`, minta input manual
-- `blok_stan = "Stan Sayur"` (routers/nlp.py:81, 283) → jadikan field opsional di request body
-- `accuracy = 98.4` (nlp_parser.py:280) → hitung secara dinamis
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Petugas as Petugas Lapangan
+    participant UI as AdminDashboard (React)
+    participant Speech as Web Speech API (Browser)
+    participant API as api.js
+    participant Backend as backend/routers/nlp.py
+    participant DB as SQLite (epangan.db)
 
-### Peringatan Whisper:
-- Whisper model hanya load saat pertama kali digunakan (lazy load)
-- Endpoint `/nlp/upload-suara` bisa timeout pada request pertama
-- Pertimbangkan pre-warm model saat startup untuk production
+    alt Metode 1: Suara Langsung
+        Petugas->>UI: Klik "Mulai Rekam Suara"
+        UI->>Speech: Aktifkan mikrofon (id-ID)
+        Petugas->>Speech: Berbicara ("Pasar Babat Kios Makmur, Minyak limolas ewu...")
+        Speech-->>UI: Mengembalikan Teks Transkrip
+    else Metode 2: Input Manual / Preset Chips
+        Petugas->>UI: Pilih contoh kalimat cepat / ketik kalimat
+    end
 
-### Database:
-- SQLite (`epangan.db`) — cocok untuk dev/demo
-- Jika traffic naik, pertimbangkan migrasi ke PostgreSQL
-- Model yang paling sering diakses NLP: `SurveiHarga`, `AuditLog`
+    UI->>API: parseNLPSuara(transcript)
+    API->>Backend: POST /api/nlp/parse-suara
+    Backend->>Backend: nlp_parser.py (Regex Angka Jawa & Ekstraksi Komoditas)
+    Backend-->>API: Response JSON (pasar, kios, items[])
+    API-->>UI: Tampilkan Kartu Komoditas Terdeteksi
+
+    Petugas->>UI: Periksa data & Klik "Simpan Semua ke Database"
+    UI->>API: submitNLPSuara(transcript, simpan_langsung=true)
+    API->>Backend: POST /api/nlp/submit-suara
+    Backend->>DB: INSERT INTO survei_harga (metode_input='Modul NLP')
+    Backend-->>UI: Sukses! Refresh Log & Update Dashboard Counter
+```
 
 ---
 
-## 📋 Format Data NLP (Referensi)
+## 5. PANDUAN LANGKAH IMPLEMENTASI (STEP-BY-STEP)
 
-### Input ke `parse_suara_lapangan()`
-```
-"Pasar Babat Kios Makmur, Miyak Goreng limolas ewu sak liter, Beras IR 13000 sak kilo"
+### Langkah 1: Tambahkan Speech Recognition Helper di `AdminDashboard.jsx`
+Deklarasikan handler Web Speech API dengan dukungan lintas-browser:
+
+```javascript
+// Inisialisasi Speech Recognition
+const initSpeechRecognition = () => {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) return null;
+  const recognition = new SpeechRecognition();
+  recognition.lang = "id-ID";
+  recognition.continuous = false;
+  recognition.interimResults = false;
+  return recognition;
+};
 ```
 
-### Output saat ini
-```json
-{
-  "status": "success",
-  "akurasi": 98.4,
-  "transkrip_asli": "...",
-  "pasar": "Pasar Babat",
-  "kios": "Kios Makmur",
-  "items": [
-    {
-      "nama_komoditas": "Minyak Goreng Sawit",
-      "kategori": "MINYAK GORENG",
-      "kualitas_mutu": "Minyakita Kemasan 1L",
-      "harga": 15000.0,
-      "satuan": "liter",
-      "status_het": "Sesuai HET",
-      "raw_text": "Miyak Goreng limolas ewu sak liter"
+### Langkah 2: Buat Fungsi `handleToggleRecord`
+Tambahkan logika aktivasi mikrofon dan pemanggilan API otomatis:
+
+```javascript
+const handleToggleRecord = () => {
+  if (isRecording) {
+    if (window._recognitionInstance) {
+      window._recognitionInstance.stop();
     }
-  ],
-  "harga_terdeteksi": ["Rp 15.000"]
-}
+    setIsRecording(false);
+    return;
+  }
+
+  const recognition = initSpeechRecognition();
+  if (!recognition) {
+    if (showToast) showToast("Browser tidak mendukung Speech Recognition bawaan. Gunakan input teks.", "warning");
+    return;
+  }
+
+  window._recognitionInstance = recognition;
+  setIsRecording(true);
+
+  recognition.onstart = () => {
+    if (showToast) showToast("Mendengarkan... Silakan sebutkan harga komoditas", "info");
+  };
+
+  recognition.onresult = async (event) => {
+    const speechResult = event.results[0][0].transcript;
+    setTranscript(speechResult);
+    setIsRecording(false);
+    await handleAnalyzeTranscript(speechResult);
+  };
+
+  recognition.onerror = (err) => {
+    console.error("Speech Recognition Error:", err);
+    setIsRecording(false);
+    if (showToast) showToast("Gagal merekam suara: " + (err.error || "Izin mikrofon ditolak"), "error");
+  };
+
+  recognition.onend = () => {
+    setIsRecording(false);
+  };
+
+  recognition.start();
+};
 ```
 
-### Output target setelah perbaikan
-```json
-{
-  "status": "success",
-  "akurasi": 87.5,
-  "transkrip_asli": "...",
-  "pasar": "Pasar Babat",
-  "kios": null,
-  "items": [
-    {
-      "nama_komoditas": "Minyak Goreng Sawit",
-      "kategori": "MINYAK GORENG",
-      "kualitas_mutu": "Minyakita Kemasan 1L",
-      "harga": 15000.0,
-      "satuan": "liter",
-      "status_het": "Sesuai HET",
-      "confidence": 0.92,
-      "raw_text": "Miyak Goreng limolas ewu sak liter"
-    }
-  ],
-  "harga_terdeteksi": ["Rp 15.000"]
-}
+### Langkah 3: Buat Fungsi `handleAnalyzeTranscript` & Preset Contoh
+```javascript
+const handleAnalyzeTranscript = async (textToParse) => {
+  const text = textToParse || transcript;
+  if (!text.trim()) return;
+
+  setIsProcessingNLP(true);
+  try {
+    const res = await prosesSuaraNLP(text);
+    setParsedResult(res);
+    if (showToast) showToast(`Berhasil mendeteksi ${res.items?.length || 0} komoditas!`, "success");
+  } catch (err) {
+    if (showToast) showToast("Gagal memproses NLP: " + err.message, "error");
+  } finally {
+    setIsProcessingNLP(false);
+  }
+};
 ```
+
+### Langkah 4: Buat Fungsi `handleSaveNLPToDatabase`
+```javascript
+const handleSaveNLPToDatabase = async () => {
+  if (!transcript || !parsedResult?.items?.length) return;
+
+  setIsLoading(true);
+  try {
+    await submitNLPSuara(transcript, true);
+    if (showToast) showToast("Seluruh data berhasil dicatat ke survei harian!", "success");
+    setParsedResult(null);
+    setTranscript("");
+    // Refresh tabel & counter dashboard
+    await fetchSurvei();
+    await fetchDashboard();
+  } catch (err) {
+    if (showToast) showToast("Gagal menyimpan ke database: " + err.message, "error");
+  } finally {
+    setIsLoading(false);
+  }
+};
+```
+
+### Langkah 5: Sinkronisasi Tampilan JSX pada Kartu Hasil
+Ubah rendering hasil parsing dari nilai tunggal menjadi pemetaan array `items`:
+```jsx
+{parsedResult && parsedResult.items && (
+  <div style={{ marginTop: "16px", display: "flex", flexDirection: "column", gap: "10px" }}>
+    <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+      <span className="badge-pasar">Pasar: <strong>{parsedResult.pasar}</strong></span>
+      <span className="badge-kios">Kios: <strong>{parsedResult.kios}</strong></span>
+      <span className="badge-akurasi">Akurasi: <strong>{parsedResult.akurasi}%</strong></span>
+    </div>
+
+    {parsedResult.items.map((item, idx) => (
+      <div key={idx} style={{ padding: "12px", border: "1px solid #e2e8f0", borderRadius: "10px" }}>
+        <div style={{ fontWeight: "700" }}>{item.nama_komoditas} ({item.kualitas_mutu})</div>
+        <div style={{ color: "#059669", fontWeight: "800" }}>Rp {item.harga.toLocaleString("id-ID")} / {item.satuan}</div>
+        <div style={{ fontSize: "11px", color: "#64748b" }}>Status: {item.status_het}</div>
+      </div>
+    ))}
+
+    <button onClick={handleSaveNLPToDatabase} className="btn-simpan-nlp">
+      ✓ Simpan Semua ke Database Survei
+    </button>
+  </div>
+)}
+```
+
+---
+
+## 6. DAFTAR KOSA KATA NLP & KASUS UJI (TEST CASES)
+
+Tabel acuan pengujian transkrip lokal Jawa Timur yang sudah didukung oleh `backend/nlp_parser.py`:
+
+| Kalimat Uji (Input Pengguna) | Harapan Deteksi Komoditas | Harapan Deteksi Harga | Pasar & Kios |
+| :--- | :--- | :--- | :--- |
+| `"Pasar Babat Kios Makmur, Minyak Goreng limolas ewu sak liter"` | Minyak Goreng Sawit | Rp 15.000 / liter | Pasar Babat - Kios Makmur |
+| `"Beras IR Enam puluh empat Telulas ewu sak kilo"` | Beras Medium (IR 64) | Rp 13.000 / kg | Standar Default |
+| `"Cabai Rawit abang seket ewu sak kilo ning Stan Mbak Sri"` | Cabai Rawit Merah | Rp 50.000 / kg | Stan Mbak Sri |
+| `"Gula pasir selawe ewu, bawang abang telung puluh lima ewu"` | Gula Pasir Curah & Bawang Merah | Rp 25.000 & Rp 35.000 | Multi-Item Detection |
+| `"Daging pitik telung puluh papat ewu ning Pasar Sukodadi"` | Daging Ayam Ras | Rp 34.000 / kg | Pasar Sukodadi |
+
+---
+
+## 7. CHECKLIST VERIFIKASI & QUALITY ASSURANCE
+
+Gunakan checklist ini sebelum merilis pembaruan modul NLP ke tahap produksi:
+
+- [ ] **Bebas Crash:** Tombol `Mulai Rekam Suara` tidak lagi melempar error `handleToggleRecord is not defined`.
+- [ ] **Izin Mikrofon:** Browser menampilkan dialog izin mikrofon saat pertama kali diklik.
+- [ ] **Mode Alternatif:** Input teks manual berfungsi normal saat mikrofon tidak tersedia.
+- [ ] **Chips Contoh:** Menekan chip contoh otomatis mengisi teks dan menjalankan parser NLP.
+- [ ] **Multi-Item Terdeteksi:** Kalimat dengan lebih dari 1 komoditas memunculkan seluruh kartu komoditas dengan benar.
+- [ ] **Penyimpanan Database:** Menekan "Simpan Semua ke Database" berhasil menambahkan baris baru di tabel `survei_harga` dengan label `metode_input = 'Modul NLP'`.
+- [ ] **Pembaruan UI Realtime:** Counter "Input Hari Ini" pada dashboard otomatis bertambah tanpa reload halaman.
+- [ ] **Responsif:** Tampilan rapi dan proporsional baik pada layar desktop maupun tablet/smartphone enumerator.

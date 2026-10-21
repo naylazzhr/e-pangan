@@ -1,409 +1,220 @@
-# 🛡️ Panduan Git Kolaborasi — E-Pangan (Backend + Frontend)
+# 🚀 PANDUAN KOLABORASI GIT & LOG PEKERJAAN FRONTEND (E-PANGAN)
 
-> **Untuk:** Nayla (Backend) & Teman (Frontend)
-> **Masalah yang pernah terjadi:** Crash/conflict saat pull karena keduanya push ke `main`
-> **Solusi:** Pakai **branch terpisah** dan alur kerja yang jelas
-
----
-
-## 🔍 Kenapa Terjadi Crash? (Penjelasan Sederhana)
-
-Bayangkan kalian berdua mengedit **dokumen Word yang sama secara bersamaan** tanpa koordinasi:
-
-```
-Nayla push → main:  [...backend kode baru...]
-Teman pull → OK ✅
-
-Teman push → main:  [...frontend kode baru...]
-Nayla pull  → OK ✅
-
-Nayla push lagi → main: [...backend kode baru lagi, TERMASUK file frontend yang LAMA...]
-Teman pull      → ❌ CRASH! File frontend teman ditimpa versi lama milik Nayla!
-```
-
-**Akar masalahnya:** Nayla push file-file frontend (`App.jsx`, `App.css`, dll) ikut terbawa di commit backend, padahal teman sudah update file itu. Git tidak tahu mana yang "benar", jadi terjadi **merge conflict** — dan karena tidak dihandle dengan benar, hasilnya kode teman **tertimpa/hilang**.
+> **Repositori:** `naylazzhr/e-pangan`  
+> **Peran:** Frontend Developer  
+> **Tujuan Dokumen:**  
+> 1. Standar operasional prosedur (SOP) Git untuk kolaborasi mulus antara **Frontend** dan **Backend**.  
+> 2. Papan rekam jejak (*live changelog & progress tracker*) agar tim Backend selalu mengetahui fitur apa yang sudah dibuat, komponen yang diperbarui, serta kebutuhan integrasi API.
 
 ---
 
-## 🌿 Solusi: Pakai Branch Terpisah (WAJIB!)
-
-Mulai sekarang, kalian **TIDAK BOLEH** langsung push ke `main`. Setiap orang punya branch sendiri.
-
-### Struktur Branch yang Benar (Standar Git Flow)
-
-```
-main          ← Versi FINAL / STABIL / DEMO. Hanya di-merge dari development.
-  │
-  └── development   ← Tempat INTEGRASI & UJI COBA bersama (apakah API & UI sudah nyambung)
-        │
-        ├── backend    ← KHUSUS Nayla (ngoding harian backend)
-        └── frontend   ← KHUSUS Teman (ngoding harian frontend)
-```
-
-### Aturan Emas 🔑
-| Branch | Siapa yang boleh push? | Isi yang boleh diubah |
-|--------|----------------------|-----------------------|
-| `backend` | **Nayla saja** | Hanya folder `backend/` |
-| `frontend` | **Teman saja** | Hanya folder `frontend/` |
-| `development` | **Hasil merge gabungan** | Tempat uji coba integrasi backend + frontend |
-| `main` | **Tidak ada yang langsung push** | Hasil rilis dari `development` yang sudah 100% aman |
+## 📌 DAFTAR ISI
+1. [Struktur Branch & Peran](#1-struktur-branch--peran)
+2. [Format Standar Pesan Commit (Conventional Commits)](#2-format-standar-pesan-commit-conventional-commits)
+3. [Alur Kerja Harian (Daily Git Workflow)](#3-alur-kerja-harian-daily-git-workflow)
+4. [Penanganan Masalah Git (Stash, Conflict & Revert)](#4-penanganan-masalah-git-stash-conflict--revert)
+5. [📋 LOG PEKERJAAN FRONTEND (Work Log & API Sync)](#5--log-pekerjaan-frontend-work-log--api-sync)
+6. [🔌 KONTRAK & PERMINTAAN API KE BACKEND (API Request List)](#6--kontrak--permintaan-api-ke-backend-api-request-list)
+7. [Cheatsheet Perintah Git Praktis](#7-cheatsheet-perintah-git-praktis)
 
 ---
 
-## 🚀 Setup Awal (Lakukan Sekali Saja)
+## 1. STRUKTUR BRANCH & PERAN
 
-### Di Laptop Nayla (Backend)
+Untuk menghindari tabrakan kode (*merge conflicts*) antara Frontend dan Backend:
 
-```bash
-# 1. Pastikan di main dulu dan update
-git checkout main
-git pull origin main
+| Branch | Fungsi & Kepemilikan | Aturan Akses |
+|---|---|---|
+| `main` | Production-ready code (kode stabil yang siap rilis). | Hanya di-merge setelah dites bersama. Jangan push langsung tanpa konfirmasi! |
+| `development` | Integrasi gabungan Frontend & Backend untuk pengujian lokal. | Branch tempat berkumpulnya perubahan kedua sisi. |
+| `frontend` / `frontend/<fitur>` | **Area Kerja Frontend** (Tempat Anda mengembangkan UI/UX & komponen React). | Push bebas oleh Frontend. |
+| `backend` / `backend/<fitur>` | Area Kerja Backend (API FastAPI, database, model data). | Dikelola oleh Backend Developer. |
 
-# 2. Buat branch backend (jika belum ada secara lokal)
-git checkout backend
-git push -u origin backend
+---
 
-# 3. Sekarang Nayla selalu kerja di branch backend
-git branch   # Pastikan ada tanda * di depan "backend"
+## 2. FORMAT STANDAR PESAN COMMIT (CONVENTIONAL COMMITS)
+
+Gantikan pesan commit generik seperti `update frontend 3` atau `save pekerjaan` dengan format standar berikut agar Backend langsung paham file dan fitur yang disentuh:
+
+```text
+<tipe>(<cakupan>): <deskripsi singkat dalam bahasa indonesia/inggris>
 ```
 
-### Di Laptop Teman (Frontend)
+### Daftar Tipe Commit:
+- **`feat(fe)`** : Fitur antarmuka baru (contoh: `feat(fe): tambah komponen filter harga di CariHarga.jsx`).
+- **`fix(fe)`** : Perbaikan bug UI / integrasi API (contoh: `fix(fe): perbaiki parsing response data kios pada DetailKios.jsx`).
+- **`style(fe)`** : Perubahan styling, CSS, ikon, atau layout tanpa mengubah logika (contoh: `style(fe): perbaiki responsive grid kartu pasar di App.css`).
+- **`refactor(fe)`** : Perapihan kode tanpa menambah fitur baru (contoh: `refactor(fe): pecah fungsi api call di api.js`).
+- **`docs(fe)`** : Pembaruan dokumentasi atau log (contoh: `docs(fe): update log pekerjaan di git_guide.md`).
 
-```bash
-# 1. Clone atau pull dulu
-git pull origin main
+---
 
-# 2. Checkout ke branch frontend
+## 3. ALUR KERJA HARIAN (DAILY GIT WORKFLOW)
+
+### Langkah 1: Sebelum Memulai Koding (Tarik Pembaruan Backend)
+Selalu ambil pembaruan terbaru agar tidak tertinggal perubahan endpoint backend:
+```powershell
+# Pastikan berada di branch frontend
 git checkout frontend
-git push -u origin frontend
 
-# 3. Sekarang teman selalu kerja di branch frontend
-git branch   # Pastikan ada tanda * di depan "frontend"
+# Ambil pembaruan dari remote
+git fetch origin
+
+# Tarik perubahan terbaru dari development atau main ke branch frontend Anda
+git merge origin/development
+# (atau: git pull origin development)
 ```
 
----
+### Langkah 2: Koding & Uji Coba Lokal
+- Jalankan frontend: `npm run dev` di folder `frontend/`.
+- Jalankan backend: `uvicorn main:app --reload` di folder `backend/` (dengan virtual environment aktif).
 
-## 📋 SOP Kerja Harian (IKUTI SELALU!)
-
-### 🔵 Nayla — Backend (setiap sesi kerja)
-
-```bash
-# ===== SEBELUM MULAI KERJA =====
-git checkout backend          # Pastikan di branch backend
-git pull origin backend       # Ambil update terbaru dari branch backend
-
-# ===== SAAT KERJA =====
-# Edit hanya file di folder backend/
-# JANGAN ubah file di frontend/ dari laptop Nayla!
-
-# ===== SELESAI KERJA / MAU SIMPAN =====
-git status                    # Cek file apa yang berubah
-git add backend/              # Add HANYA folder backend (jangan git add -A!)
-git commit -m "backend: [deskripsi singkat]"
-git push origin backend
-
-# ===== CONTOH COMMIT MESSAGE =====
-# "backend: tambah komoditas tepung & bawang putih ke nlp_parser"
-# "backend: fix deteksi kios default dari Kios Makmur ke null"
-# "backend: tambah endpoint GET /nlp/preview-suara"
-```
-
-### 🟠 Teman — Frontend (setiap sesi kerja)
-
-```bash
-# ===== SEBELUM MULAI KERJA =====
-git checkout frontend         # Pastikan di branch frontend
-git pull origin frontend      # Ambil update terbaru dari branch frontend
-
-# ===== SAAT KERJA =====
-# Edit hanya file di folder frontend/
-# JANGAN ubah file di backend/ dari laptop teman!
-
-# ===== SELESAI KERJA / MAU SIMPAN =====
+### Langkah 3: Catat Pekerjaan & Commit
+1. Perbarui tabel [LOG PEKERJAAN FRONTEND](#5--log-pekerjaan-frontend-work-log--api-sync) di file ini (`git_guide.md`).
+2. Jalankan perintah commit:
+```powershell
+# Cek file mana saja yang berubah
 git status
-git add frontend/             # Add HANYA folder frontend
-git commit -m "frontend: [deskripsi singkat]"
+
+# Tambahkan file yang sudah selesai
+git add frontend/ git_guide.md
+
+# Berikan commit message yang jelas
+git commit -m "feat(fe): integrasikan modul pencarian harga dengan endpoint /api/search"
+```
+
+### Langkah 4: Push ke Remote Repository
+```powershell
+# Push ke branch kerja frontend
 git push origin frontend
-
-# ===== CONTOH COMMIT MESSAGE =====
-# "frontend: tambah loading state di panel NLP AdminDashboard"
-# "frontend: perbaiki warna badge HET di CariHarga"
-# "frontend: update tampilan kartu komoditas di App.jsx"
 ```
 
----
-
-## 🔄 Alur Integrasi: Dari Branch Kerja ke Development, lalu ke Main
-
-Dengan adanya branch `development`, kalian tidak langsung me-merge ke `main`. Alurnya menjadi 3 tahap:
-
-```text
-[backend] & [frontend]  ──(Tahap 1)──>  [development]  ──(Tahap 2: Tes Bersama)──>  [main]
-```
+### Langkah 5: Koordinasi & Merge ke Development
+Beri tahu Backend:
+> *"Halo Backend, fitur X di frontend sudah saya push ke branch `frontend`. Silakan cek atau merge ke branch `development` jika ingin uji coba terintegrasi."*
 
 ---
 
-### 🔹 TAHAP 1: Gabungkan ke `development` (Untuk Uji Coba Integrasi)
+## 4. PENANGANAN MASALAH GIT (STASH, CONFLICT & REVERT)
 
-Lakukan ini saat backend dan frontend ingin mencoba menghubungkan fitur baru bersama-sama:
+### A. Simpan Sementara Perubahan Tanpa Commit (`git stash`)
+Gunakan jika Anda sedang mengedit kode tetapi harus segera pindah branch atau menarik kode baru:
+```powershell
+# Simpan pekerjaan yang belum selesai
+git stash push -m "sementara: perbaikan UI CariHarga"
 
-```bash
-# ===== Dilakukan oleh Nayla atau Teman (cukup 1 orang yang handle) =====
-
-# 1. Pastikan kedua branch kerja sudah di-push ke remote masing-masing
-#    (Nayla sudah push 'backend', Teman sudah push 'frontend')
-
-# 2. Pindah ke branch development dan ambil versi terbaru
-git checkout development
-git pull origin development
-
-# 3. Gabungkan kode backend terbaru
-git merge backend --no-ff -m "merge: integrasikan backend ke development"
-# (Jika ada conflict, selesaikan dulu)
-
-# 4. Ambil dan gabungkan kode frontend terbaru
-git fetch origin frontend
-git merge origin/frontend --no-ff -m "merge: integrasikan frontend ke development"
-# (Jika ada conflict, selesaikan dulu)
-
-# 5. Push hasil gabungan ke development
-git push origin development
-```
-
----
-
-### 🔹 TAHAP 2: Tes Bersama & Sinkronkan Branch Kerja
-
-Setelah ada di `development`:
-
-1. **Jalankan & Tes Aplikasi:**
-   - Jalankan backend (`uvicorn main:app --reload`)
-   - Jalankan frontend (`npm run dev`)
-   - Cek apakah fitur baru berjalan lancar dan API terhubung tanpa error.
-   - *Jika ada bug:* perbaiki di branch masing-masing (`backend` / `frontend`), push, lalu merge ulang ke `development`.
-
-2. **Sinkronkan Update ke Laptop Masing-Masing:**
-   Agar kode teman masuk ke laptop kalian tanpa merusak branch kerja:
-   - **Nayla (di branch backend):**
-     ```bash
-     git checkout backend
-     git pull origin development
-     ```
-   - **Teman (di branch frontend):**
-     ```bash
-     git checkout frontend
-     git pull origin development
-     ```
-
----
-
-### 🔹 TAHAP 3: Merge `development` ke `main` (Saat Siap Demo / Final)
-
-Lakukan ini **HANYA JIKA** semua fitur di branch `development` sudah dites dan terbukti 100% stabil:
-
-```bash
-# 1. Pindah ke main dan pastikan up-to-date
+# Pindah branch atau lakukan pull
 git checkout main
 git pull origin main
 
-# 2. Merge development yang sudah teruji ke main
-git merge development --no-ff -m "release: update versi stabil dari development"
-
-# 3. Push ke main
-git push origin main
-
-# 4. Beritahu teman bahwa main sudah ter-update
+# Kembali ke branch frontend dan pulihkan kerjaan
+git checkout frontend
+git stash pop
 ```
+
+### B. Menyelesaikan Konflik (*Merge Conflict*)
+Jika muncul pesan `CONFLICT (content): Merge conflict in ...`:
+1. Buka file yang berkonflik di VS Code / Antigravity IDE.
+2. Cari penanda konflik:
+   ```text
+   <<<<<<< HEAD (Kode Anda saat ini)
+   fetch('/api/v1/harga')
+   =======
+   fetch('/api/v2/harga-pasar')
+   >>>>>>> origin/development (Kode baru dari Backend)
+   ```
+3. Pilih opsi di atas kode: **Accept Current Change**, **Accept Incoming Change**, atau **Accept Both**.
+4. Simpan file, lalu:
+   ```powershell
+   git add <nama_file_yang_dibersihkan>
+   git commit -m "fix(merge): selesaikan konflik merge frontend dengan branch development"
+   git push origin frontend
+   ```
 
 ---
 
-## ⚠️ Cara Atasi Conflict (Kalau Terjadi)
+## 5. 📋 LOG PEKERJAAN FRONTEND (WORK LOG & API SYNC)
 
-Conflict biasanya muncul jika ada **satu file yang diubah keduanya** (misal: `api.js`).
+> **Catatan untuk Frontend:** Setiap kali Anda menyelesaikan/mengubah file frontend, tambahkan satu baris di tabel ini lalu commit bersamaan dengan kode Anda. Ini menjadi papan informasi resmi bagi tim Backend.
 
-```bash
-# Saat merge dan muncul pesan conflict:
-# CONFLICT (content): Merge conflict in frontend/src/api.js
-
-# 1. Buka file yang conflict
-# Di dalam file akan ada tanda seperti ini:
-
-<<<<<<< HEAD
-// kode dari branch saat ini (misal: main/backend)
-export function lama() { ... }
-=======
-// kode dari branch yang di-merge (misal: frontend)
-export function baru() { ... }
->>>>>>> frontend
-
-# 2. Edit file itu MANUAL:
-#    - Hapus baris <<<, ===, >>>
-#    - Pilih kode yang BENAR, atau gabungkan keduanya
-
-# 3. Setelah selesai edit:
-git add frontend/src/api.js     # Mark sebagai resolved
-git commit -m "resolve conflict: api.js - gabungkan fungsi backend dan frontend"
-```
+### 🟢 Status Integrasi:
+- `[DONE]` : UI selesai & API backend sudah terhubung normal.
+- `[IN PROGRESS]` : Masih dalam pengerjaan di sisi frontend.
+- `[NEED BACKEND]` : UI sudah siap, menunggu penyediaan/perbaikan endpoint dari Backend.
+- `[BLOCKED]` : Terkendala bug atau perubahan skema data tak terduga.
 
 ---
 
-## 🛑 Hal yang JANGAN DILAKUKAN (Blacklist)
+### TABEL REKAM JEJAK PEKERJAAN
 
-| ❌ Jangan | ✅ Gantinya |
-|-----------|------------|
-| `git add -A` atau `git add .` di branch backend | `git add backend/` |
-| `git add -A` atau `git add .` di branch frontend | `git add frontend/` |
-| Push langsung ke `main` | Push ke branch masing-masing, lalu merge |
-| Edit file frontend dari laptop backend | Koordinasi via WhatsApp/chat dulu |
-| Edit file backend dari laptop frontend | Koordinasi via WhatsApp/chat dulu |
-| `git push --force` (kecuali tahu betul apa yang dilakukan) | Jangan pernah force push ke main |
+| No | Tanggal & Waktu | File / Modul | Deskripsi Pekerjaan yang Dilakukan | Status | Endpoint Backend Terkait | Catatan untuk Backend |
+|---|---|---|---|---|---|---|
+| 1 | 2026-10-14 21:30 | [CariHarga.jsx](file:///d:/epangan/frontend/src/CariHarga.jsx) | Merestore & merapikan halaman pencarian harga komoditas pangan dari stash | `[DONE]` | `GET /api/search` | Butuh filter multi-pasar dan sort termurah |
+| 2 | 2026-10-14 21:30 | [DetailKios.jsx](file:///d:/epangan/frontend/src/DetailKios.jsx) | Merestore & memperbaiki detail kios, daftar harga barang di kios | `[DONE]` | `GET /api/kios/{id}` | Pastikan response mengembalikan array `barang` lengkap dengan status stok |
+| 3 | 2026-10-15 08:00 | [AdminDashboard.jsx](file:///d:/epangan/frontend/src/AdminDashboard.jsx) | Audit bug runtime `handleToggleRecord is not defined` & mismatch data NLP suara | `[IN PROGRESS]` | `POST /api/nlp/parse`<br>`POST /api/survei` | Backend mengembalikan multi-item `items: [...]`. Frontend sedang menyesuaikan rendering kartu hasil parsing |
+| 4 | 2026-10-15 08:15 | [api.js](file:///d:/epangan/frontend/src/api.js) | Standarisasi token Authorization header di localStorage (`epangan_token`) | `[DONE]` | `POST /api/auth/login`<br>`GET /api/admin/dashboard-ringkasan` | Token JWT diteruskan via header `Authorization: Bearer <token>` |
+| 5 | 2026-10-15 08:30 | [git_guide.md](file:///d:/epangan/git_guide.md) | Pembuatan SOP Git Kolaborasi & Live Work Log Tracker | `[DONE]` | - | Dibuat agar koordinasi FE & BE transparan dan tercatat rapi |
 
----
-
-## 📁 Pembagian File yang Jelas
-
-### 🔵 Nayla (Backend) — File yang Boleh Diubah
-```
-backend/
-├── main.py
-├── models.py
-├── schemas.py
-├── database.py
-├── nlp_parser.py          ← fokus perbaikan NLP
-├── epangan_db.py
-├── create_admin.py
-├── requirements.txt
-└── routers/
-    ├── nlp.py             ← fokus perbaikan NLP
-    ├── pasar.py
-    ├── search.py
-    ├── kios.py
-    ├── admin.py
-    ├── auth.py
-    ├── budgeting.py
-    └── satgas.py
-```
-
-### 🟠 Teman (Frontend) — File yang Boleh Diubah
-```
-frontend/
-├── index.html
-├── vite.config.js
-├── package.json
-└── src/
-    ├── App.jsx            ← halaman utama
-    ├── App.css
-    ├── AdminDashboard.jsx ← panel NLP UI
-    ├── AdminLogin.jsx
-    ├── CariHarga.jsx
-    ├── KomparasiPasar.jsx
-    ├── SmartBudgetting.jsx
-    ├── DetailKios.jsx
-    ├── Navbar.jsx
-    ├── api.js             ← ⚠️ FILE BERSAMA (lihat aturan khusus)
-    ├── index.css
-    └── main.jsx
-```
-
-### ⚠️ File Bersama (Koordinasi Dulu Sebelum Edit!)
-```
-frontend/src/api.js        ← Nayla bisa tambah fungsi NLP, teman bisa tambah fungsi UI
-                              TAPI harus koordinasi dulu agar tidak bentrok
-```
-
-**Aturan untuk `api.js`:**
-- Nayla: tambah fungsi di bagian `// NLP SUARA` dan jangan hapus/ubah fungsi lain
-- Teman: tambah fungsi di bagian lain dan jangan hapus/ubah fungsi NLP
-- Kalau mau ubah fungsi yang sudah ada: **WhatsApp dulu, sepakati bersama**
+*(Tambahkan baris baru di bawah baris terakhir setiap kali Anda mengerjakan tugas baru)*
 
 ---
 
-## 💬 Protokol Komunikasi (Anti Crash)
+## 6. 🔌 KONTRAK & PERMINTAAN API KE BACKEND (API REQUEST LIST)
 
-Sebelum mulai kerja, kirim pesan ke teman (atau sebaliknya):
+Daftar endpoint baru atau modifikasi yang dibutuhkan oleh Frontend dari tim Backend:
 
-> **"Hei, aku mau kerja sekarang di [backend/frontend]. File yang aku sentuh: [list file]. Kamu lagi kerja nggak?"**
-
-Tanda kalian aman untuk push:
-- ✅ Teman sudah push pekerjaannya dan tidak sedang kerja
-- ✅ Kalian tidak mengubah file yang sama
+| ID Req | Fitur Frontend | Method & Endpoint yang Diminta | Request Payload (FE kirim) | Response yang Diharapkan (FE terima) | Status Backend |
+|---|---|---|---|---|---|
+| **REQ-01** | Parsing Suara NLP Multi-Item | `POST /api/nlp/parse` | `{ "text": "Pasar Babat Kios Makmur telur 28 ewu cabe 30 ewu" }` | `{ "status": "success", "pasar": "Pasar Babat", "kios": "Kios Makmur", "items": [{"komoditas": "...", "harga": 28000}, ...] }` | ✅ Ready di backend |
+| **REQ-02** | Simpan Batch Hasil NLP ke Survei | `POST /api/survei/batch` | `{ "id_pasar": 1, "id_kios": 2, "tanggal": "2026-10-15", "items": [...] }` | `{ "status": "success", "total_inserted": 2 }` | 🟡 Perlu sinkronisasi endpoint |
+| **REQ-03** | Auto-suggest Nama Komoditas di Pencarian | `GET /api/komoditas/suggest?q=ber` | Parameter query: `q` | `[{"id": 1, "nama": "Beras Premium"}, {"id": 2, "nama": "Beras Medium"}]` | ⏳ Pending Backend |
 
 ---
 
-## 🔧 Cara Recover Situasi Saat Ini (Laptop Teman)
+## 7. CHEATSHEET PERINTAH GIT PRAKTIS
 
-Jika pekerjaan teman sudah **tertimpa/hilang** karena konflik tadi, coba ini dari **laptop teman**:
+### Cek Status & Riwayat
+```powershell
+# Cek file yang berubah/belum di-stage
+git status
 
-```bash
-# Lihat semua commit, termasuk yang sudah "hilang"
-git reflog
+# Lihat 5 commit terakhir dalam format 1 baris ringkas
+git log --oneline -n 5
 
-# Output contoh:
-# abc1234 HEAD@{0}: pull: Fast-forward   ← ini yang overwrite
-# def5678 HEAD@{1}: commit: perbaikan tampilan frontend  ← ini commit teman yang hilang!
-
-# Kembalikan ke commit teman yang hilang:
-git checkout def5678 -- frontend/src/   # Ambil state folder frontend dari commit lama
-
-# Atau buat branch recovery:
-git checkout -b recovery-frontend def5678
-# Lalu cherry-pick atau copy manual file yang hilang
+# Lihat perbedaan isi kode yang Anda ubah
+git diff
 ```
 
-> Jika tidak tahu hash commit yang hilang, hubungi Nayla dan lihat `git reflog` bersama-sama.
+### Menyimpan Kode & Kirim ke GitHub
+```powershell
+# Tambahkan semua perubahan di folder frontend
+git add frontend/
+git add git_guide.md
 
----
+# Commit dengan pesan yang informatif
+git commit -m "feat(fe): deskripsi perubahan yang Anda lakukan"
 
-## 📊 Diagram Alur Lengkap
-
-```text
-NAYLA (Backend)                           TEMAN (Frontend)
-───────────────────────────────────────────────────────────────────
-
-[Mulai sesi]                              [Mulai sesi]
-    │                                         │
-git checkout backend                      git checkout frontend
-git pull origin backend                   git pull origin frontend
-    │                                         │
-[Edit backend/ saja]                      [Edit frontend/ saja]
-    │                                         │
-git add backend/                          git add frontend/
-git commit -m "backend: ..."              git commit -m "frontend: ..."
-git push origin backend                   git push origin frontend
-    │                                         │
-    └────────────────── KOORDINASI ───────────┘
-                         │
-             [Tahap 1: Merge ke development]
-                         │
-               git checkout development
-               git pull origin development
-               git merge backend
-               git merge origin/frontend
-               git push origin development
-                         │
-             [Tahap 2: Tes Bareng & Sync]
-               - Uvicorn & Vite running
-               - Tes API & integrasi
-               - Masing-masing sync:
-                 git pull origin development
-                         │
-          (Jika sudah 100% aman & siap demo)
-                         │
-             [Tahap 3: Rilis ke main]
-                         │
-               git checkout main
-               git pull origin main
-               git merge development
-               git push origin main
+# Kirim perubahan ke branch frontend di remote
+git push origin frontend
 ```
 
----
+### Berpindah & Sinkronisasi Branch
+```powershell
+# Berpindah ke branch frontend
+git checkout frontend
 
-## 🎓 Tips Tambahan untuk Pemula
+# Menyamakan branch frontend dengan remote terbaru
+git pull origin frontend
 
-1. **`git status` adalah temanmu** — jalankan ini sebelum `git add` untuk tahu file apa yang berubah
-2. **Commit sering, push teratur** — lebih baik commit kecil-kecil daripada satu commit raksasa yang susah di-debug
-3. **Tulis pesan commit yang jelas** — `"backend: fix nlp kios null"` jauh lebih berguna dari `"fix bug"`
-4. **Jangan kerja di main** — anggap `main` seperti "produksi", tidak boleh sembarangan diubah
-5. **Pull sebelum push** — selalu `git pull` dulu sebelum mulai kerja untuk dapat update terbaru
-6. **Kalau ragu, tanya dulu** — lebih baik 5 menit chat daripada 2 jam resolve conflict
+# Mengambil perubahan terbaru dari branch development milik tim
+git pull origin development
+```
+
+### Mengabaikan / Membatalkan Perubahan Lokal
+```powershell
+# Batalkan perubahan pada satu file yang belum di-commit
+git checkout -- frontend/src/NamaFile.jsx
+
+# Bersihkan file baru yang belum ditrack (untracked)
+git clean -fd
+```
