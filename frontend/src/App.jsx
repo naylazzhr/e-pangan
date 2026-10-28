@@ -105,10 +105,12 @@ export default function App() {
           setMarketsList(pList);
         } else {
           setMarketsList([
-            { name: "Pasar Babat", address: "Jl. Raya Babat No. 45, Babat, Lamongan" },
-            { name: "Pasar Sidoharjo", address: "Jl. Sukomulyo No. 12, Lamongan" },
-            { name: "Pasar Agrobis Babat", address: "Kawasan Agrobisnis Babat, Lamongan" },
-            { name: "Pasar Brondong", address: "Kawasan Pelabuhan Brondong, Lamongan" },
+            { name: "Pasar Babat", address: "Jl. Raya Babat No. 12, Babat, Lamongan" },
+            { name: "Pasar Sidoharjo", address: "Jl. Pahlawan, Sidoharjo, Kec. Lamongan" },
+            { name: "Pasar Mantup", address: "Jl. Raya Mantup, Mantup, Lamongan" },
+            { name: "Pasar Blimbing Brondong", address: "Jl. Raya Daendels, Blimbing, Paciran / Brondong" },
+            { name: "Pasar Sukodadi", address: "Jl. Raya Sukodadi No. 8, Sukodadi, Lamongan" },
+            { name: "Pasar Ngimbang", address: "Desa Sendangrejo, Kec. Ngimbang, Lamongan" },
           ]);
         }
 

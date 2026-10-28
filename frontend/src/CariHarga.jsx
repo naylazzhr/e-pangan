@@ -212,7 +212,10 @@ export default function CariHarga({ setActivePage, setSelectedKios }) {
                             <option value="Semua Pasar Rakyat">Semua Pasar Rakyat</option>
                             <option value="Pasar Babat">Pasar Babat</option>
                             <option value="Pasar Sidoharjo">Pasar Sidoharjo</option>
+                            <option value="Pasar Mantup">Pasar Mantup</option>
+                            <option value="Pasar Blimbing Brondong">Pasar Blimbing Brondong</option>
                             <option value="Pasar Sukodadi">Pasar Sukodadi</option>
+                            <option value="Pasar Ngimbang">Pasar Ngimbang</option>
                         </select>
                         <ChevronDown size={16} color="#4a6550" style={{ position: "absolute", right: "8px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
                     </div>

@@ -58,16 +58,14 @@ ANGKA_INDO_MAP = {
     "lima puluh ribu": 50000,
 }
 
-# Daftar Pasar Resmi Lamongan
+# Daftar 6 Titik Pantau Pasar Resmi Lamongan
 PASAR_LIST = [
     "Pasar Babat",
-    "Pasar Sukodadi",
     "Pasar Sidoharjo",
-    "Pasar Brondong",
-    "Pasar Blimbing",
     "Pasar Mantup",
-    "Pasar Blawi",
-    "Pasar Agrobis Babat",
+    "Pasar Blimbing Brondong",
+    "Pasar Sukodadi",
+    "Pasar Ngimbang",
 ]
 
 # Kamus Komoditas Pangan Populer

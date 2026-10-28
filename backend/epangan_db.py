@@ -81,7 +81,7 @@ def init_db():
         admin_data_list = [
             {
                 "username": "intan_permatasari",
-                "email": "petugas.babat@lamongankab.go.id",
+                "email": "intan@lamongankab.go.id",
                 "nip": "19850412 201001 1014",
                 "nama_lengkap": "Intan Permatasari",
                 "jabatan": "Petugas Enumerator",
@@ -90,12 +90,12 @@ def init_db():
                 "password": "admin123"
             },
             {
-                "username": "admin_epangan",
-                "email": "hendra.setiawan@lamongankab.go.id",
+                "username": "nayla_santika",
+                "email": "nayla@lamongankab",
                 "nip": "19820516 200801 1 009",
-                "nama_lengkap": "Hendra Setiawan",
+                "nama_lengkap": "Nayla Santika",
                 "jabatan": "Surveyor Supervisor / Admin DKPP",
-                "wilayah_pantau": "Pasar Sidoharjo & Pasar Babat",
+                "wilayah_pantau": "Pasar Sidoharjo & Pasar Lamongan",
                 "status_verifikasi": "Online & Terverifikasi DKPP",
                 "password": "admin123"
             }
@@ -132,74 +132,104 @@ def init_db():
                 admin_obj.hashed_password = hashed_pw
 
         db.commit()
-        print("2 Akun Admin Resmi (Intan Permatasari & Hendra Setiawan) berhasil disinkronisasi.")
+        print("2 Akun Admin Resmi (Intan Permatasari & Nayla Santika) berhasil disinkronisasi.")
 
-        # B. SEEDING MASTER DATA PASAR (5 Titik Pantau Resmi: Babat, Sukodadi, Sidoharjo, Brondong, Blimbing)
-        pasar_count = db.query(models.Pasar).count()
-        if pasar_count < 5:
-            pasar_list = [
-                models.Pasar(
-                    nama_pasar="Pasar Babat",
-                    alamat="Jl. Raya Babat No. 12, Babat",
-                    kecamatan="Babat",
-                    latitude=-7.1126,
-                    longitude=112.1634,
-                    kontak="0812-3456-7801",
-                    jam_operasional="04:00 - 15:00 WIB",
-                    deskripsi="Pasar sentral perdagangan wilayah barat Lamongan",
-                    radius_gps_aktif=True
-                ),
-                models.Pasar(
-                    nama_pasar="Pasar Sukodadi",
-                    alamat="Jl. Raya Sukodadi No. 8, Sukodadi",
-                    kecamatan="Sukodadi",
-                    latitude=-7.1082,
-                    longitude=112.3354,
-                    kontak="0812-3456-7807",
-                    jam_operasional="05:00 - 13:00 WIB",
-                    deskripsi="Pasar tradisional terpadu Lamongan tengah",
-                    radius_gps_aktif=True
-                ),
-                models.Pasar(
-                    nama_pasar="Pasar Sidoharjo",
-                    alamat="Jl. Pahlawan, Sidoharjo",
-                    kecamatan="Lamongan",
-                    latitude=-7.1205,
-                    longitude=112.4152,
-                    kontak="0812-3456-7802",
-                    jam_operasional="05:00 - 17:00 WIB",
-                    deskripsi="Pasar induk pusat kota Kabupaten Lamongan",
-                    radius_gps_aktif=True
-                ),
-                models.Pasar(
-                    nama_pasar="Pasar Brondong",
-                    alamat="Jl. Raya Brondong - Tuban, Brondong",
-                    kecamatan="Brondong",
-                    latitude=-6.8924,
-                    longitude=112.2856,
-                    kontak="0812-3456-7806",
-                    jam_operasional="04:00 - 14:00 WIB",
-                    deskripsi="Pasar komoditas kelautan, ikan segar, dan bahan pokok pantura",
-                    radius_gps_aktif=True
-                ),
-                models.Pasar(
-                    nama_pasar="Pasar Blimbing",
-                    alamat="Jl. Raya Daendels, Paciran",
-                    kecamatan="Paciran",
-                    latitude=-6.8781,
-                    longitude=112.3524,
-                    kontak="0812-3456-7808",
-                    jam_operasional="05:00 - 14:00 WIB",
-                    deskripsi="Pasar pesisir utara sentra logistik perikanan dan sembako",
-                    radius_gps_aktif=True
-                ),
-            ]
-            for p in pasar_list:
-                exist = db.query(models.Pasar).filter(models.Pasar.nama_pasar == p.nama_pasar).first()
-                if not exist:
-                    db.add(p)
-            db.commit()
-            print("Master data 5 Titik Pantau Pasar Lamongan siap.")
+        # B. SEEDING MASTER DATA PASAR (6 Titik Pantau Resmi Resmi Pemkab Lamongan)
+        # 1. Pasar Babat, 2. Pasar Sidoharjo, 3. Pasar Mantup, 4. Pasar Blimbing Brondong, 5. Pasar Sukodadi, 6. Pasar Ngimbang
+        pasar_list_master = [
+            {
+                "nama_pasar": "Pasar Babat",
+                "alamat": "Jl. Raya Babat No. 12, Babat, Lamongan",
+                "kecamatan": "Babat",
+                "latitude": -7.1043741,
+                "longitude": 112.1661619,
+                "kontak": "0812-3456-7801",
+                "jam_operasional": "04:00 - 15:00 WIB",
+                "deskripsi": "Pasar sentral perdagangan wilayah barat Lamongan",
+                "radius_gps_aktif": True
+            },
+            {
+                "nama_pasar": "Pasar Sidoharjo",
+                "alamat": "Jl. Pahlawan, Sidoharjo, Kec. Lamongan",
+                "kecamatan": "Lamongan",
+                "latitude": -7.1272345,
+                "longitude": 112.4108064,
+                "kontak": "0812-3456-7802",
+                "jam_operasional": "05:00 - 17:00 WIB",
+                "deskripsi": "Pasar induk pusat kota Kabupaten Lamongan",
+                "radius_gps_aktif": True
+            },
+            {
+                "nama_pasar": "Pasar Mantup",
+                "alamat": "Jl. Raya Mantup, Mantup, Lamongan",
+                "kecamatan": "Mantup",
+                "latitude": -7.2757875,
+                "longitude": 112.3556519,
+                "kontak": "0812-3456-7803",
+                "jam_operasional": "05:00 - 14:00 WIB",
+                "deskripsi": "Pasar perdagangan utama wilayah selatan Lamongan",
+                "radius_gps_aktif": True
+            },
+            {
+                "nama_pasar": "Pasar Blimbing Brondong",
+                "alamat": "Jl. Raya Daendels, Blimbing, Kec. Paciran / Brondong, Lamongan",
+                "kecamatan": "Paciran",
+                "latitude": -6.8765792,
+                "longitude": 112.2957889,
+                "kontak": "0812-3456-7804",
+                "jam_operasional": "04:00 - 15:00 WIB",
+                "deskripsi": "Pasar sentra logistik perikanan dan sembako pesisir pantura Lamongan",
+                "radius_gps_aktif": True
+            },
+            {
+                "nama_pasar": "Pasar Sukodadi",
+                "alamat": "Jl. Raya Sukodadi No. 8, Sukodadi, Lamongan",
+                "kecamatan": "Sukodadi",
+                "latitude": -7.0933190,
+                "longitude": 112.3224767,
+                "kontak": "0812-3456-7805",
+                "jam_operasional": "05:00 - 13:00 WIB",
+                "deskripsi": "Pasar tradisional terpadu Lamongan tengah",
+                "radius_gps_aktif": True
+            },
+            {
+                "nama_pasar": "Pasar Ngimbang",
+                "alamat": "Desa Sendangrejo, Kec. Ngimbang, Lamongan",
+                "kecamatan": "Ngimbang",
+                "latitude": -7.2808001,
+                "longitude": 112.2152627,
+                "kontak": "0812-3456-7806",
+                "jam_operasional": "05:00 - 14:00 WIB",
+                "deskripsi": "Pasar sentra komoditas wilayah dataran tinggi selatan Lamongan",
+                "radius_gps_aktif": True
+            }
+        ]
+
+        # Bersihkan pasar yang tidak masuk ke dalam 6 pasar resmi
+        nama_valid = [p["nama_pasar"] for p in pasar_list_master]
+        pasar_lama = db.query(models.Pasar).all()
+        for pl in pasar_lama:
+            if pl.nama_pasar not in nama_valid:
+                db.delete(pl)
+        db.commit()
+
+        # Update atau tambahkan 6 pasar resmi
+        for p_data in pasar_list_master:
+            p_obj = db.query(models.Pasar).filter(models.Pasar.nama_pasar == p_data["nama_pasar"]).first()
+            if not p_obj:
+                p_obj = models.Pasar(**p_data)
+                db.add(p_obj)
+            else:
+                p_obj.alamat = p_data["alamat"]
+                p_obj.kecamatan = p_data["kecamatan"]
+                p_obj.latitude = p_data["latitude"]
+                p_obj.longitude = p_data["longitude"]
+                p_obj.kontak = p_data["kontak"]
+                p_obj.jam_operasional = p_data["jam_operasional"]
+                p_obj.deskripsi = p_data["deskripsi"]
+                p_obj.radius_gps_aktif = p_data["radius_gps_aktif"]
+        db.commit()
+        print("Master data 6 Titik Pantau Resmi Pasar Lamongan berhasil disinkronkan.")
 
         # C. SEEDING 18 BAHAN POKOK (18 Bahan Pokok NFA & Bapanas)
         komoditas_count = db.query(models.Komoditas).count()

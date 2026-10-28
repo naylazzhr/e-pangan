@@ -328,11 +328,17 @@ export default function AdminDashboard({ setActivePage, showToast }) {
                             </div>
                             <div>
                                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                                    <h2 style={{ fontSize: "22px", fontWeight: "800", color: "#0f1d14", margin: 0 }}>{currentUser?.nama || "Hendra Setiawan"}</h2>
+                                    <h2 style={{ fontSize: "22px", fontWeight: "800", color: "#0f1d14", margin: 0 }}>
+                                        {currentUser?.nama_lengkap || currentUser?.nama || "Admin Petugas"}
+                                    </h2>
                                     <ShieldCheck size={18} color="#2d6a4f" />
                                 </div>
-                                <div style={{ fontSize: "13px", color: "#4e6754", margin: "4px 0", fontWeight: "600" }}>NIP: 19850412 201001 1 014 • Petugas Enumerator Resmi</div>
-                                <div style={{ fontSize: "12px", color: "#2d6a4f", fontWeight: "700", marginTop: "4px" }}>📍 Wilayah Pantau: Pasar Babat, Sukodadi &amp; Sidoharjo</div>
+                                <div style={{ fontSize: "13px", color: "#4e6754", margin: "4px 0", fontWeight: "600" }}>
+                                    NIP: {currentUser?.nip || "19820516 200801 1 009"} • {currentUser?.jabatan || "Petugas Resmi DKPP"}
+                                </div>
+                                <div style={{ fontSize: "12px", color: "#2d6a4f", fontWeight: "700", marginTop: "4px" }}>
+                                    📍 Wilayah Pantau: {currentUser?.wilayah_pantau || "Pasar Sidoharjo & Pasar Lamongan"}
+                                </div>
                             </div>
                         </div>
 

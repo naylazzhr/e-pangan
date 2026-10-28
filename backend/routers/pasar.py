@@ -157,7 +157,7 @@ def get_komparasi_pasar(
     pasar_rows = db.query(models.Pasar).all()
     raw_pasar_names = [p.nama_pasar for p in pasar_rows if p.nama_pasar]
     if not raw_pasar_names:
-        raw_pasar_names = ["Pasar Babat", "Pasar Sidoharjo", "Pasar Sukodadi", "Pasar Mantup", "Pasar Brondong"]
+        raw_pasar_names = ["Pasar Babat", "Pasar Sidoharjo", "Pasar Mantup", "Pasar Blimbing Brondong", "Pasar Sukodadi", "Pasar Ngimbang"]
     else:
         seen = set()
         dedup = []
@@ -167,8 +167,8 @@ def get_komparasi_pasar(
                 dedup.append(p)
         raw_pasar_names = dedup
 
-    # Batasi ke 5 pasar utama agar tabel rapi dan proporsional
-    daftar_pasar = raw_pasar_names[:5]
+    # Gunakan seluruh 6 pasar resmi Pemkab Lamongan
+    daftar_pasar = raw_pasar_names[:6]
 
     # 2. Ambil data komoditas
     komoditas_query = db.query(models.Komoditas)

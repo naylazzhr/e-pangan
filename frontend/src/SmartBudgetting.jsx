@@ -21,6 +21,8 @@ export default function SmartBudgeting({ onBack, onNavigate }) {
 
   const periodMultiplier = { harian: 1, mingguan: 7, bulanan: 30 };
 
+  const [allKomoditasData, setAllKomoditasData] = useState([]);
+
   useEffect(() => {
     let isMounted = true;
     setLoadingData(true);
@@ -32,6 +34,7 @@ export default function SmartBudgeting({ onBack, onNavigate }) {
       if (!isMounted) return;
 
       const rawPasar = pasarRes?.data || pasarRes?.pasar || [];
+      let defaultPasarId = '1';
       if (Array.isArray(rawPasar) && rawPasar.length > 0) {
         const mappedPasar = rawPasar.map((p, idx) => ({
           id: String(p.id || idx + 1),
@@ -39,40 +42,19 @@ export default function SmartBudgeting({ onBack, onNavigate }) {
           sub: `${p.nama_pasar || p.name} (${p.kecamatan || 'Kabupaten Lamongan'})`,
           alamat: p.alamat || `${p.nama_pasar || p.name}, Lamongan`,
           info: `Titik Pantau Resmi • ${p.jam_operasional || '05:00 - 15:00 WIB'}`,
-          lat: p.latitude || -7.1126,
-          lon: p.longitude || 112.1634,
-          maps: `https://www.google.com/maps/search/?api=1&query=${p.latitude || -7.1126},${p.longitude || 112.1634}`,
-          rute: `https://www.google.com/maps/dir/?api=1&destination=${p.latitude || -7.1126},${p.longitude || 112.1634}`
+          lat: p.latitude || -7.1043741,
+          lon: p.longitude || 112.1661619,
+          maps: `https://www.google.com/maps/search/?api=1&query=${p.latitude || -7.1043741},${p.longitude || 112.1661619}`,
+          rute: `https://www.google.com/maps/dir/?api=1&destination=${p.latitude || -7.1043741},${p.longitude || 112.1661619}`
         }));
         setPasarList(mappedPasar);
-        setSelectedPasarId(mappedPasar[0].id);
+        defaultPasarId = mappedPasar[0].id;
+        setSelectedPasarId(defaultPasarId);
       }
 
       const rawKomoditas = komoditasRes?.data || komoditasRes?.komoditas || [];
       if (Array.isArray(rawKomoditas) && rawKomoditas.length > 0) {
-        const unique = [];
-        const seen = new Set();
-        rawKomoditas.forEach((item, idx) => {
-          const namaBahan = item.nama_bahan || item.komoditas;
-          if (namaBahan && !seen.has(namaBahan)) {
-            seen.add(namaBahan);
-            unique.push({
-              id: String(item.id || idx + 1),
-              name: namaBahan,
-              price: item.harga || item.minPrice || 0,
-              unit: item.satuan || 'kg',
-              category: (item.kategori || 'BAHAN POKOK').toUpperCase()
-            });
-          }
-        });
-        setKatalogList(unique);
-
-        const days = periodMultiplier['bulanan'];
-        const defaultItems = unique.slice(0, 6).map((k, idx) => ({
-          ...k,
-          qty: Math.max(1, Math.round(0.2 * familyMembers * days * (idx + 1 === 1 ? 0.5 : 0.1)))
-        }));
-        setItems(defaultItems);
+        setAllKomoditasData(rawKomoditas);
       }
     }).finally(() => {
       if (isMounted) setLoadingData(false);
@@ -80,6 +62,54 @@ export default function SmartBudgeting({ onBack, onNavigate }) {
 
     return () => { isMounted = false; };
   }, []);
+
+  // Update katalog komoditas & harga ketika pasar dipilih berganti
+  useEffect(() => {
+    if (!allKomoditasData || allKomoditasData.length === 0) return;
+    const currentPasarObj = pasarList.find(p => p.id === selectedPasarId) || pasarList[0];
+    const targetPasarName = currentPasarObj?.name || "";
+
+    // Filter komoditas sesuai pasar yang dipilih
+    let pasarItems = allKomoditasData.filter(item => 
+      !targetPasarName || (item.lokasi && item.lokasi.toLowerCase().includes(targetPasarName.toLowerCase()))
+    );
+    if (pasarItems.length === 0) {
+      pasarItems = allKomoditasData;
+    }
+
+    const unique = [];
+    const seen = new Set();
+    pasarItems.forEach((item, idx) => {
+      const namaBahan = item.nama_bahan || item.komoditas;
+      if (namaBahan && !seen.has(namaBahan)) {
+        seen.add(namaBahan);
+        unique.push({
+          id: String(item.id || idx + 1),
+          name: namaBahan,
+          price: item.harga || item.minPrice || 0,
+          unit: item.satuan || 'kg',
+          category: (item.kategori || 'BAHAN POKOK').toUpperCase()
+        });
+      }
+    });
+
+    setKatalogList(unique);
+
+    // Perbarui harga item di rencana belanja sesuai pasar yang baru dipilih
+    setItems(prevItems => {
+      if (prevItems.length === 0) {
+        const days = periodMultiplier['bulanan'];
+        return unique.slice(0, 6).map((k, idx) => ({
+          ...k,
+          qty: Math.max(1, Math.round(0.2 * familyMembers * days * (idx + 1 === 1 ? 0.5 : 0.1)))
+        }));
+      }
+      return prevItems.map(it => {
+        const match = unique.find(u => u.name.toLowerCase() === it.name.toLowerCase());
+        return match ? { ...it, price: match.price } : it;
+      });
+    });
+  }, [selectedPasarId, allKomoditasData, pasarList, familyMembers]);
 
   const updateQty = (id, delta) => {
     setItems(prev =>
