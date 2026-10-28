@@ -92,7 +92,8 @@ def submit_suara_lapangan(
     for item in parsed.get("items", []):
         het_status = item.get("status_het", "Sesuai HET")
         is_anomali = "atas" in het_status.lower() or "+" in het_status or "anomali" in het_status.lower()
-        verif_status = "Menunggu Cek" if is_anomali else "Terverifikasi"
+        # Seluruh entri dari modul Suara NLP masuk ke antrean Validasi Lapangan (Menunggu Cek)
+        verif_status = "Menunggu Cek"
 
         admin_name = (current_admin.nama_lengkap if current_admin else None) or "Hendra Setiawan"
 
@@ -110,7 +111,7 @@ def submit_suara_lapangan(
             metode_input="Suara NLP",
             status_verifikasi=verif_status,
             petugas_nama=admin_name,
-            catatan=f"Input Suara NLP ({req.transcript[:60]}...)" if req.transcript else "Hasil Unggah Suara"
+            catatan=f"Input Suara NLP ({req.transcript[:60]}...)" if req.transcript else "Hasil Unggah Suara NLP"
         )
         db.add(entry)
         saved_records.append(entry)
@@ -343,8 +344,8 @@ async def upload_dan_submit_suara(
             satuan=item["satuan"],
             status_het=item.get("status_het", "Sesuai HET"),
             waktu_survei=now_str,
-            metode_input="Voice Upload NLP",
-            status_verifikasi="Terverifikasi",
+            metode_input="Suara NLP",
+            status_verifikasi="Menunggu Cek",
             petugas_nama=getattr(current_admin, "nama_lengkap", None) or getattr(current_admin, "username", "Petugas Enumerator"),
             catatan=f"Transkripsi Whisper ({bahasa_terdeteksi}): {transkrip[:200]}"
         )

@@ -112,6 +112,17 @@ def validasi_survei_harga(
     admin_name = getattr(current_admin, "nama_lengkap", None) or getattr(current_admin, "username", "Petugas Enumerator")
     data.status_verifikasi = "Terverifikasi"
     data.catatan = f"Divalidasi oleh {admin_name} pada {datetime.now().strftime('%H:%M WIB')}"
+
+    # Sinkronkan ke master data Komoditas Publik saat divalidasi
+    komoditas_row = db.query(models.Komoditas).filter(
+        models.Komoditas.nama_bahan.ilike(f"%{data.nama_komoditas}%")
+    ).first()
+    if komoditas_row:
+        komoditas_row.harga = data.harga
+        if data.lokasi_pasar:
+            komoditas_row.lokasi = data.lokasi_pasar
+        komoditas_row.updated_at = datetime.now()
+
     db.commit()
     db.refresh(data)
     return {

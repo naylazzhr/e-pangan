@@ -73,6 +73,7 @@ class KiosCreate(BaseModel):
     alamat_lengkap: Optional[str] = None
     jam_buka: Optional[str] = "06:00 - 16:30 WIB"
     no_telepon: Optional[str] = None
+    status_izin: Optional[str] = "Terdaftar Resmi DKPP"
 
 
 class KiosUpdate(BaseModel):

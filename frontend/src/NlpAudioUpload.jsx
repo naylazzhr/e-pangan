@@ -102,9 +102,11 @@ export default function NlpAudioUpload({ onSuccessSave, showToast, onNavigateTab
             if (response.ok) {
                 setIsSaved(true);
                 if (showToast) {
-                    showToast("Data hasil ekstraksi NLP berhasil disimpan ke seluruh sistem!", "success");
+                    showToast("Data suara NLP berhasil disimpan! Masuk antrean Validasi Lapangan (Menunggu Cek).", "success");
                 }
-                if (onSuccessSave) onSuccessSave(result);
+                if (onSuccessSave) {
+                    await onSuccessSave(result);
+                }
             } else {
                 const failMsg = "Gagal menyimpan data: " + (result.detail || result.message || "Terjadi kesalahan.");
                 if (showToast) showToast(failMsg, "error");
@@ -319,10 +321,10 @@ export default function NlpAudioUpload({ onSuccessSave, showToast, onNavigateTab
                         </div>
                         <div>
                             <div style={{ fontSize: "15px", fontWeight: "800", color: "#0f1d14" }}>
-                                Data Suara Berhasil Disimpan &amp; Tersambung ke Seluruh Sistem!
+                                Data Suara NLP Berhasil Disimpan ke Sistem!
                             </div>
                             <div style={{ fontSize: "13px", color: "#4e6754", fontWeight: "600", marginTop: "2px" }}>
-                                Rekaman telah diproses: harga dicatat ke Survei Lapangan, memperbarui Katalog Master Komoditas, serta disinkronkan ke Dasbor Publik.
+                                Hasil transkripsi telah dicatat ke Survei Lapangan dengan status <strong>"Menunggu Cek"</strong> dan siap diverifikasi oleh Satgas di tab Validasi Lapangan.
                             </div>
                         </div>
                     </div>

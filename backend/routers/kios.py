@@ -67,6 +67,82 @@ def get_semua_kios(
     return {"status": "success", "total_data": len(result), "data": result}
 
 
+@router.post("/kios", status_code=201)
+def tambah_kios_baru(
+    data: KiosCreate,
+    db: Session = Depends(get_db)
+):
+    """
+    Mendaftarkan Kios Mitra Baru ke Direktori Resmi DKPP Lamongan.
+    """
+    nama = data.nama_kios.strip()
+    if not nama:
+        raise HTTPException(status_code=400, detail="Nama kios tidak boleh kosong.")
+
+    alamat = data.alamat_lengkap
+    if not alamat:
+        alamat = f"{data.lokasi_pasar}, {data.blok_stan or 'Stan Pasar'}, Lamongan"
+
+    kios_baru = models.Kios(
+        nama_kios=nama,
+        pemilik=(data.pemilik.strip() if data.pemilik else "Pedagang Binaan"),
+        lokasi_pasar=data.lokasi_pasar.strip(),
+        blok_stan=(data.blok_stan.strip() if data.blok_stan else "Stan Pasar"),
+        alamat_lengkap=alamat,
+        jam_buka=(data.jam_buka.strip() if data.jam_buka else "06:00 - 16:30 WIB"),
+        no_telepon=(data.no_telepon.strip() if data.no_telepon else "-"),
+        status_izin=(data.status_izin.strip() if data.status_izin else "Terdaftar Resmi DKPP"),
+        is_active=True,
+        created_at=datetime.now(),
+        updated_at=datetime.now()
+    )
+    db.add(kios_baru)
+    db.commit()
+    db.refresh(kios_baru)
+
+    return {
+        "status": "success",
+        "message": f"Kios '{kios_baru.nama_kios}' berhasil didaftarkan ke sistem!",
+        "data": {
+            "id": kios_baru.id,
+            "nama_kios": kios_baru.nama_kios,
+            "pemilik": kios_baru.pemilik,
+            "lokasi_pasar": kios_baru.lokasi_pasar,
+            "blok_stan": kios_baru.blok_stan,
+            "blok": kios_baru.blok_stan,
+            "alamat_lengkap": kios_baru.alamat_lengkap,
+            "jam_buka": kios_baru.jam_buka,
+            "no_telepon": kios_baru.no_telepon,
+            "status_izin": kios_baru.status_izin,
+            "is_active": kios_baru.is_active,
+            "total_katalog": 0
+        }
+    }
+
+
+@router.delete("/kios/{kios_id}")
+def hapus_kios(
+    kios_id: int = Path(..., title="ID Kios yang ingin dihapus"),
+    db: Session = Depends(get_db)
+):
+    """
+    Menghapus kios dari direktori DKPP Lamongan.
+    """
+    kios = db.query(models.Kios).filter(models.Kios.id == kios_id).first()
+    if not kios:
+        raise HTTPException(status_code=404, detail="Data Kios tidak ditemukan")
+
+    nama = kios.nama_kios
+    db.query(models.Komoditas).filter(models.Komoditas.kios_id == kios_id).delete()
+    db.delete(kios)
+    db.commit()
+
+    return {
+        "status": "success",
+        "message": f"Kios '{nama}' berhasil dihapus dari sistem!"
+    }
+
+
 @router.get("/kios/{kios_id}")
 def get_detail_kios(
     kios_id: int = Path(..., title="ID Kios yang ingin dicari"),

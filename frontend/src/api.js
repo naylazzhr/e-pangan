@@ -107,6 +107,14 @@ export async function updateSurveiHarga(id, data) {
   return handleResponse(res);
 }
 
+export async function validasiSurveiHarga(id) {
+  const res = await fetch(`${BASE_URL}/survei-harga/${id}/validasi`, {
+    method: "PUT",
+    headers: authHeaders(),
+  });
+  return handleResponse(res);
+}
+
 export async function hapusSurveiHarga(id) {
   const res = await fetch(`${BASE_URL}/survei-harga/${id}`, {
     method: "DELETE",
@@ -245,6 +253,26 @@ export async function getKiosList({ lokasi = "", search = "" } = {}) {
 
 export async function getDetailKios(kiosId) {
   const res = await fetch(`${BASE_URL}/kios/${kiosId}`);
+  return handleResponse(res);
+}
+
+export async function tambahKios(data) {
+  const res = await fetch(`${BASE_URL}/kios`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+    body: JSON.stringify(data),
+  });
+  return handleResponse(res);
+}
+
+export async function hapusKios(kiosId) {
+  const res = await fetch(`${BASE_URL}/kios/${kiosId}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
   return handleResponse(res);
 }
 
