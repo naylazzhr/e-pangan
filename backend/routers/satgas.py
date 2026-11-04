@@ -29,6 +29,58 @@ def get_admin_sekarang_optional(token: Optional[str] = Depends(oauth2_optional),
 router = APIRouter(tags=["Survei Harga Harian & Satgas"])
 
 
+def sync_survei_to_master(data: models.SurveiHarga, db: Session):
+    """Sinkronkan entri survei yang terverifikasi ke master data Komoditas dan KiosHarga."""
+    komoditas_row = db.query(models.Komoditas).filter(
+        models.Komoditas.nama_bahan.ilike(f"%{data.nama_komoditas}%")
+    ).first()
+    if komoditas_row:
+        komoditas_row.harga = data.harga
+        if data.lokasi_pasar:
+            komoditas_row.lokasi = data.lokasi_pasar
+        komoditas_row.status_label = "Stabil"
+        komoditas_row.updated_at = datetime.now()
+    else:
+        # Daftarkan komoditas baru ke tabel Komoditas master data
+        kios_obj = db.query(models.Kios).filter(models.Kios.nama_kios.ilike(f"%{data.nama_kios}%")).first()
+        new_komoditas = models.Komoditas(
+            nama_bahan=data.nama_komoditas,
+            kategori=data.kategori or "BAHAN PANGAN SEGAR",
+            harga=data.harga,
+            satuan=data.satuan or "kg",
+            lokasi=data.lokasi_pasar or "Pasar Babat",
+            kualitas_mutu=data.kualitas_mutu or "Segar / Standar Pasar",
+            het=data.harga,
+            kios_id=kios_obj.id if kios_obj else None,
+            varian_keterangan=f"Terverifikasi ({data.nama_kios})",
+            stok_fisik="Tersedia",
+            status_label="Stabil",
+            is_active=True
+        )
+        db.add(new_komoditas)
+
+    # Sinkronkan ke KiosHarga
+    kios_harga_row = db.query(models.KiosHarga).filter(
+        models.KiosHarga.nama_komoditas.ilike(f"%{data.nama_komoditas}%"),
+        models.KiosHarga.nama_pasar.ilike(f"%{data.lokasi_pasar}%")
+    ).first()
+    if kios_harga_row:
+        kios_harga_row.harga_terkini = data.harga
+        kios_harga_row.nama_kios = data.nama_kios
+    else:
+        new_kh = models.KiosHarga(
+            nama_kios=data.nama_kios,
+            nama_pasar=data.lokasi_pasar or "Pasar Babat",
+            nama_komoditas=data.nama_komoditas,
+            harga_terkini=data.harga,
+            satuan=data.satuan or "kg",
+            harga_het=data.harga,
+            status_het_label="Sesuai HET",
+            petugas_nama=data.petugas_nama
+        )
+        db.add(new_kh)
+
+
 # ==============================================================================
 # ENDPOINT SURVEI HARGA HARIAN & VALIDASI SATGAS
 # ==============================================================================
@@ -113,21 +165,14 @@ def validasi_survei_harga(
     data.status_verifikasi = "Terverifikasi"
     data.catatan = f"Divalidasi oleh {admin_name} pada {datetime.now().strftime('%H:%M WIB')}"
 
-    # Sinkronkan ke master data Komoditas Publik saat divalidasi
-    komoditas_row = db.query(models.Komoditas).filter(
-        models.Komoditas.nama_bahan.ilike(f"%{data.nama_komoditas}%")
-    ).first()
-    if komoditas_row:
-        komoditas_row.harga = data.harga
-        if data.lokasi_pasar:
-            komoditas_row.lokasi = data.lokasi_pasar
-        komoditas_row.updated_at = datetime.now()
+    # Sinkronkan ke master data Komoditas Publik & Kios saat divalidasi
+    sync_survei_to_master(data, db)
 
     db.commit()
     db.refresh(data)
     return {
         "status": "success",
-        "message": f"Data '{data.nama_komoditas}' di {data.nama_kios} berhasil divalidasi!",
+        "message": f"Data '{data.nama_komoditas}' di {data.nama_kios} berhasil divalidasi dan tersimpan ke Ringkasan Dasar!",
         "data": data
     }
 
@@ -146,6 +191,9 @@ def update_survei_harga(
 
     for k, v in item.model_dump(exclude_unset=True).items():
         setattr(data, k, v)
+
+    if data.status_verifikasi == "Terverifikasi":
+        sync_survei_to_master(data, db)
 
     db.commit()
     db.refresh(data)

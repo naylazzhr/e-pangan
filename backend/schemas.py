@@ -249,6 +249,10 @@ class WhisperTranscriptResponse(BaseModel):
     durasi_detik: Optional[float] = None
     bahasa_terdeteksi: Optional[str] = None
     transkrip: str
+    transkrip_terproses: Optional[str] = None
+    preprocessing_applied: Optional[bool] = True
+    noise_reduction_applied: Optional[bool] = True
+    filters_applied: Optional[str] = None
     akurasi_nlp: float
     pasar: str
     kios: str

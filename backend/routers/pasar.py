@@ -170,16 +170,19 @@ def get_komparasi_pasar(
     # Gunakan seluruh 6 pasar resmi Pemkab Lamongan
     daftar_pasar = raw_pasar_names[:6]
 
-    # 2. Ambil data komoditas
-    komoditas_query = db.query(models.Komoditas)
+    # 2. Ambil data komoditas (Hanya yang aktif & terverifikasi)
+    komoditas_query = db.query(models.Komoditas).filter(
+        models.Komoditas.is_active == True,
+        models.Komoditas.status_label != "Menunggu Validasi"
+    )
     if search:
         komoditas_query = komoditas_query.filter(models.Komoditas.nama_bahan.ilike(f"%{search}%"))
     if kategori and kategori != "Semua":
         komoditas_query = komoditas_query.filter(models.Komoditas.kategori.ilike(f"%{kategori}%"))
     all_komoditas = komoditas_query.all()
 
-    # Survei harga untuk memperkaya data
-    survei_query = db.query(models.SurveiHarga)
+    # Survei harga untuk memperkaya data (Hanya yang sudah terverifikasi)
+    survei_query = db.query(models.SurveiHarga).filter(models.SurveiHarga.status_verifikasi == "Terverifikasi")
     if search:
         survei_query = survei_query.filter(models.SurveiHarga.nama_komoditas.ilike(f"%{search}%"))
     if kategori and kategori != "Semua":

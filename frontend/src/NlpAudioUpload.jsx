@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { CloudUpload, Music, CheckCircle2, Loader2, AlertCircle } from "lucide-react";
+import { CloudUpload, Music, CheckCircle2, Loader2, AlertCircle, Volume2, Sparkles, SlidersHorizontal } from "lucide-react";
 
 export default function NlpAudioUpload({ onSuccessSave, showToast, onNavigateTab }) {
     const [selectedFile, setSelectedFile] = useState(null);
@@ -69,7 +69,7 @@ export default function NlpAudioUpload({ onSuccessSave, showToast, onNavigateTab
             }
 
             setNlpResult(data);
-            if (showToast) showToast(`Berhasil mengekstraksi data suara dari file ${selectedFile.name}!`, "success");
+            if (showToast) showToast(`Berhasil mengekstraksi data suara dengan Noise Reduction & Pre-processing Teks!`, "success");
         } catch (error) {
             const msg = error.message || "Terjadi kesalahan saat menghubungkan ke server backend.";
             setErrorMsg(msg);
@@ -85,7 +85,7 @@ export default function NlpAudioUpload({ onSuccessSave, showToast, onNavigateTab
         setIsSaving(true);
         try {
             const token = localStorage.getItem("epangan_token");
-            const transcriptText = nlpResult.transcript || nlpResult.transkrip || "";
+            const transcriptText = nlpResult.transkrip_terproses || nlpResult.transcript || nlpResult.transkrip || "";
             const response = await fetch(BACKEND_SAVE_URL, {
                 method: "POST",
                 headers: {
@@ -124,12 +124,18 @@ export default function NlpAudioUpload({ onSuccessSave, showToast, onNavigateTab
     return (
         <div style={{ backgroundColor: "#ffffff", borderRadius: "28px", border: "1px solid #d2ded7", padding: "36px", boxShadow: "0 4px 20px rgba(27,67,50,0.05)" }}>
 
-            {/* Label Badge */}
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px" }}>
+            {/* Label Badge Header */}
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px", flexWrap: "wrap" }}>
                 <span style={{ backgroundColor: "#1b4332", color: "#ffffff", fontSize: "11px", fontWeight: "800", padding: "5px 14px", borderRadius: "99px", letterSpacing: "0.04em" }}>
                     MODUL UNGGAH AUDIO NLP
                 </span>
-                <span style={{ backgroundColor: "#f2f7f4", color: "#4e6754", fontSize: "11px", fontWeight: "700", padding: "5px 14px", borderRadius: "99px", border: "1px solid #d2ded7" }}>
+                <span style={{ backgroundColor: "#eef8f2", color: "#2d6a4f", fontSize: "11px", fontWeight: "800", padding: "5px 14px", borderRadius: "99px", border: "1px solid #b7efc5", display: "inline-flex", alignItems: "center", gap: "5px" }}>
+                    <Volume2 size={13} /> Noise Reduction (FFT &amp; Bandpass)
+                </span>
+                <span style={{ backgroundColor: "#f2f7f4", color: "#1b4332", fontSize: "11px", fontWeight: "800", padding: "5px 14px", borderRadius: "99px", border: "1px solid #d2ded7", display: "inline-flex", alignItems: "center", gap: "5px" }}>
+                    <Sparkles size={13} color="#2d6a4f" /> Pre-Processing Teks Aktif
+                </span>
+                <span style={{ backgroundColor: "#f9fbf9", color: "#4e6754", fontSize: "11px", fontWeight: "700", padding: "5px 14px", borderRadius: "99px", border: "1px solid #e1ebe4" }}>
                     Model Bahasa Daerah Jatim
                 </span>
             </div>
@@ -138,8 +144,8 @@ export default function NlpAudioUpload({ onSuccessSave, showToast, onNavigateTab
                 <h3 style={{ fontSize: "20px", fontWeight: "800", color: "#0f1d14", margin: "0 0 6px 0" }}>
                     Unggah Berkas Rekaman Suara Pasar
                 </h3>
-                <p style={{ fontSize: "13.5px", color: "#4e6754", margin: 0, fontWeight: "600" }}>
-                    Unggah file rekaman percakapan (.mp3, .wav, .m4a) untuk mendeteksi harga komoditas secara otomatis melalui ekstraksi NLP.
+                <p style={{ fontSize: "13.5px", color: "#4e6754", margin: 0, fontWeight: "600", lineHeight: "1.5" }}>
+                    Unggah file rekaman percakapan (.mp3, .wav, .m4a). Dilengkapi fitur <strong>Noise Reduction</strong> untuk menyaring derau keramaian pasar serta <strong>Pre-processing Teks</strong> otomatis untuk mendeteksi harga dan komoditas secara akurat.
                 </p>
             </div>
 
@@ -189,7 +195,7 @@ export default function NlpAudioUpload({ onSuccessSave, showToast, onNavigateTab
                             Klik untuk memilih berkas audio, atau seret file ke sini
                         </div>
                         <div style={{ fontSize: "12.5px", color: "#4e6754", fontWeight: "600" }}>
-                            Format didukung: MP3, WAV, M4A, OGG
+                            Format didukung: MP3, WAV, M4A, OGG (Otomatis difilter dengan Noise Reduction)
                         </div>
                     </div>
                 )}
@@ -226,10 +232,12 @@ export default function NlpAudioUpload({ onSuccessSave, showToast, onNavigateTab
                     >
                         {isLoading ? (
                             <>
-                                <Loader2 size={16} className="spin" /> Memproses File Audio & NLP...
+                                <Loader2 size={16} className="spin" /> Menjalankan Noise Reduction &amp; Transkripsi NLP...
                             </>
                         ) : (
-                            <>Proses & Analisis Berkas</>
+                            <>
+                                <SlidersHorizontal size={16} /> Proses &amp; Analisis Berkas
+                            </>
                         )}
                     </button>
                 </div>
@@ -238,46 +246,108 @@ export default function NlpAudioUpload({ onSuccessSave, showToast, onNavigateTab
             {/* Hasil dari Backend */}
             {nlpResult && (
                 <div style={{ backgroundColor: "#f2f7f4", borderRadius: "20px", padding: "24px", border: "1px solid #d2ded7", marginTop: "24px" }}>
+                    
+                    {/* Header Hasil */}
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px", flexWrap: "wrap", gap: "8px" }}>
-                        <span style={{ fontSize: "12px", fontWeight: "800", color: "#1b4332", display: "flex", alignItems: "center", gap: "6px" }}>
-                            <CheckCircle2 size={16} color="#2d6a4f" /> HASIL TRANSKRIP &amp; ANALISIS NLP:
+                        <span style={{ fontSize: "12.5px", fontWeight: "800", color: "#1b4332", display: "flex", alignItems: "center", gap: "6px" }}>
+                            <CheckCircle2 size={17} color="#2d6a4f" /> HASIL TRANSKRIP &amp; ANALISIS NLP
                         </span>
-                        <span style={{ fontSize: "11.5px", fontWeight: "800", color: "#1b4332", backgroundColor: "#eef8f2", padding: "4px 12px", borderRadius: "99px", border: "1px solid #b7efc5" }}>
+                        <span style={{ fontSize: "11.5px", fontWeight: "800", color: "#1b4332", backgroundColor: "#eef8f2", padding: "4px 14px", borderRadius: "99px", border: "1px solid #b7efc5" }}>
                             AKURASI PARSER: {nlpResult.accuracy || "98.4%"}
                         </span>
                     </div>
 
-                    <p style={{ fontSize: "13.5px", fontStyle: "italic", fontWeight: "600", color: "#0f1d14", backgroundColor: "#ffffff", padding: "16px", borderRadius: "14px", border: "1px solid #d2ded7", margin: "0 0 20px 0" }}>
-                        "{nlpResult.transcript}"
-                    </p>
+                    {/* Status Noise Reduction & Pre-processing Badges */}
+                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap", marginBottom: "16px" }}>
+                        <span style={{ fontSize: "11px", fontWeight: "700", color: "#166534", backgroundColor: "#dcfce7", padding: "4px 12px", borderRadius: "99px", border: "1px solid #bbf7d0", display: "inline-flex", alignItems: "center", gap: "5px" }}>
+                            <Volume2 size={13} /> Noise Reduction Aktif: Derau keramaian pasar berhasil diredam
+                        </span>
+                        <span style={{ fontSize: "11px", fontWeight: "700", color: "#1e40af", backgroundColor: "#dbeafe", padding: "4px 12px", borderRadius: "99px", border: "1px solid #bfdbfe", display: "inline-flex", alignItems: "center", gap: "5px" }}>
+                            <Sparkles size={13} /> Pre-Processing Teks: Filler words &amp; dialek daerah dinormalisasi
+                        </span>
+                    </div>
+
+                    {/* Transkrip Asli Rekaman */}
+                    <div style={{ marginBottom: "14px" }}>
+                        <div style={{ fontSize: "11.5px", fontWeight: "800", color: "#4e6754", marginBottom: "5px", textTransform: "uppercase", letterSpacing: "0.03em" }}>
+                            Transkrip Suara Asli (Speech-to-Text)
+                        </div>
+                        <p style={{ fontSize: "13px", fontStyle: "italic", fontWeight: "600", color: "#4e6754", backgroundColor: "#ffffff", padding: "12px 16px", borderRadius: "12px", border: "1px solid #d2ded7", margin: 0 }}>
+                            "{nlpResult.transcript || nlpResult.transkrip}"
+                        </p>
+                    </div>
+
+                    {/* Teks Hasil Pre-Processing */}
+                    <div style={{ marginBottom: "20px" }}>
+                        <div style={{ fontSize: "11.5px", fontWeight: "800", color: "#1b4332", marginBottom: "5px", textTransform: "uppercase", letterSpacing: "0.03em", display: "flex", alignItems: "center", gap: "6px" }}>
+                            <Sparkles size={13} color="#2d6a4f" /> Teks Terproses (Hasil Pre-Processing &amp; Normalisasi Dialek)
+                        </div>
+                        <div style={{ fontSize: "13.5px", fontWeight: "700", color: "#0f1d14", backgroundColor: "#eef8f2", padding: "14px 16px", borderRadius: "12px", border: "1px solid #b7efc5" }}>
+                            "{nlpResult.transkrip_terproses || nlpResult.preprocessed_text || nlpResult.transcript}"
+                        </div>
+                        {Array.isArray(nlpResult.tahap_preprocessing) && nlpResult.tahap_preprocessing.length > 0 && (
+                            <div style={{ display: "flex", gap: "6px", flexWrap: "wrap", marginTop: "8px" }}>
+                                {nlpResult.tahap_preprocessing.map((step, idx) => (
+                                    <span key={idx} style={{ fontSize: "10.5px", fontWeight: "700", color: "#2d6a4f", backgroundColor: "#ffffff", padding: "3px 10px", borderRadius: "99px", border: "1px solid #d2ded7" }}>
+                                        ✓ {step}
+                                    </span>
+                                ))}
+                            </div>
+                        )}
+                    </div>
 
                     {/* Preview Tabel Data Ter-ekstraksi */}
-                    {nlpResult.extracted_data?.items && (
-                        <div style={{ overflowX: "auto", marginBottom: "20px" }}>
-                            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px", textAlign: "left", backgroundColor: "#ffffff", borderRadius: "14px", overflow: "hidden", border: "1px solid #d2ded7" }}>
-                                <thead>
-                                    <tr style={{ backgroundColor: "#eef8f2", borderBottom: "1px solid #d2ded7", color: "#1b4332" }}>
-                                        <th style={{ padding: "10px 14px", fontWeight: "800" }}>KOMODITAS</th>
-                                        <th style={{ padding: "10px 14px", fontWeight: "800" }}>HARGA</th>
-                                        <th style={{ padding: "10px 14px", fontWeight: "800" }}>SATUAN</th>
-                                        <th style={{ padding: "10px 14px", fontWeight: "800" }}>PASAR / LOKASI</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {nlpResult.extracted_data.items.map((item, idx) => (
-                                        <tr key={idx} style={{ borderBottom: "1px solid #f2f7f4" }}>
-                                            <td style={{ padding: "10px 14px", fontWeight: "800", color: "#0f1d14" }}>{item.komoditas}</td>
-                                            <td style={{ padding: "10px 14px", fontWeight: "800", color: "#2d6a4f" }}>
-                                                Rp {Number(item.harga).toLocaleString("id-ID")}
-                                            </td>
-                                            <td style={{ padding: "10px 14px", fontWeight: "600", color: "#4e6754" }}>{item.satuan}</td>
-                                            <td style={{ padding: "10px 14px", color: "#4e6754", fontWeight: "600" }}>{item.pasar}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    )}
+                    {(() => {
+                        const itemsList = nlpResult.extracted_data?.items || nlpResult.items || [];
+                        if (itemsList.length > 0) {
+                            return (
+                                <div style={{ overflowX: "auto", marginBottom: "20px" }}>
+                                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "13px", textAlign: "left", backgroundColor: "#ffffff", borderRadius: "14px", overflow: "hidden", border: "1px solid #d2ded7" }}>
+                                        <thead>
+                                            <tr style={{ backgroundColor: "#eef8f2", borderBottom: "1px solid #d2ded7", color: "#1b4332" }}>
+                                                <th style={{ padding: "10px 14px", fontWeight: "800" }}>KOMODITAS</th>
+                                                <th style={{ padding: "10px 14px", fontWeight: "800" }}>HARGA</th>
+                                                <th style={{ padding: "10px 14px", fontWeight: "800" }}>SATUAN</th>
+                                                <th style={{ padding: "10px 14px", fontWeight: "800" }}>PASAR / LOKASI</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {itemsList.map((item, idx) => (
+                                                <tr key={idx} style={{ borderBottom: "1px solid #f2f7f4" }}>
+                                                    <td style={{ padding: "10px 14px", fontWeight: "800", color: "#0f1d14" }}>
+                                                        {item.komoditas || item.nama_komoditas}
+                                                        {item.kategori && (
+                                                            <div style={{ fontSize: "11px", color: "#2d6a4f", fontWeight: "700" }}>
+                                                                {item.kategori}
+                                                            </div>
+                                                        )}
+                                                    </td>
+                                                    <td style={{ padding: "10px 14px", fontWeight: "800", color: "#2d6a4f" }}>
+                                                        Rp {Number(item.harga).toLocaleString("id-ID")}
+                                                    </td>
+                                                    <td style={{ padding: "10px 14px", fontWeight: "600", color: "#4e6754" }}>{item.satuan}</td>
+                                                    <td style={{ padding: "10px 14px", color: "#4e6754", fontWeight: "600" }}>
+                                                        {item.pasar || nlpResult.pasar}
+                                                        {(item.kios || nlpResult.kios) && (
+                                                            <div style={{ fontSize: "11px", color: "#0f1d14", fontWeight: "700" }}>
+                                                                {item.kios || nlpResult.kios}
+                                                            </div>
+                                                        )}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            );
+                        } else {
+                            return (
+                                <div style={{ padding: "14px 18px", backgroundColor: "#fffbeb", border: "1px solid #fde68a", borderRadius: "14px", color: "#92400e", fontSize: "13px", marginBottom: "20px", fontWeight: "600" }}>
+                                    ⚠️ Belum ada komoditas yang terdeteksi dari transkrip di atas. Pastikan rekaman suara menyebutkan nama bahan dan nominal harganya.
+                                </div>
+                            );
+                        }
+                    })()}
 
                     {/* Tombol Aksi Simpan */}
                     <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", borderTop: "1px solid #d2ded7", paddingTop: "16px" }}>

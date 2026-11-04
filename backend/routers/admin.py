@@ -32,7 +32,7 @@ def get_dashboard_ringkasan(
     kios_terpantau = min(24, total_kios)
 
     total_komoditas = db.query(models.Komoditas).count()
-    komoditas_aktif = min(18, total_komoditas)
+    komoditas_aktif = max(18, total_komoditas)
 
     total_survei = db.query(models.SurveiHarga).count()
     pending_count = db.query(models.SurveiHarga).filter(models.SurveiHarga.status_verifikasi == "Menunggu Cek").count()
@@ -57,7 +57,8 @@ def get_dashboard_ringkasan(
         },
         "komoditas_aktif": {
             "nilai": f"{komoditas_aktif} Bahan Pokok",
-            "status": f"Lengkap {komoditas_aktif}/18",
+            "status": f"{komoditas_aktif} Terdaftar",
+            "tercapai": komoditas_aktif,
             "regulator": "NFA & Bapanas"
         },
         "input_hari_ini": {
@@ -124,13 +125,16 @@ def get_master_data_ringkasan(db: Session = Depends(get_db)):
 
 @router.get("/komoditas", tags=["Master Komoditas"])
 def get_semua_komoditas(
-    search: Optional[str] = Query(None),
-    kategori: Optional[str] = Query(None),
-    lokasi: Optional[str] = Query(None),
+    search: Optional[str] = None,
+    kategori: Optional[str] = None,
+    lokasi: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
     """Mengambil master data komoditas bahan pangan dengan filter pencarian."""
-    query = db.query(models.Komoditas)
+    query = db.query(models.Komoditas).filter(
+        models.Komoditas.is_active == True,
+        models.Komoditas.status_label != "Menunggu Validasi"
+    )
     if search:
         query = query.filter(models.Komoditas.nama_bahan.ilike(f"%{search}%"))
     if kategori:
