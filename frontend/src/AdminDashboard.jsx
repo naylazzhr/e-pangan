@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback } from "react";
+﻿import React, { useState, useEffect, useCallback } from "react";
 import NlpAudioUpload from './NlpAudioUpload';
 import './App.css';
+import logoEpangan from './assets/logo-epangan.png';
 import {
     Bell,
     User,
@@ -291,20 +292,12 @@ export default function AdminDashboard({ setActivePage, showToast }) {
                 <div>
                     {/* Logo Brand */}
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "32px", padding: "0 8px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                            <div style={{
-                                width: "42px", height: "42px", borderRadius: "14px",
-                                background: "linear-gradient(135deg, #1b4332 0%, #2d6a4f 100%)",
-                                display: "flex", alignItems: "center", justifyContent: "center",
-                                color: "#fff", fontWeight: "800", fontSize: "20px",
-                                boxShadow: "0 6px 16px rgba(27,67,50,0.25)"
-                            }}>
-                                E
-                            </div>
-                            <div>
-                                <div style={{ fontWeight: "800", fontSize: "17px", color: "#0f1d14" }}>E-PANGAN</div>
-                                <div style={{ fontSize: "10px", color: "#2d6a4f", fontWeight: "800", letterSpacing: "0.5px" }}>KABUPATEN LAMONGAN</div>
-                            </div>
+                        <div style={{ display: "flex", alignItems: "center", cursor: "pointer" }} onClick={() => setActivePage("dashboard")}>
+                            <img
+                                src={logoEpangan}
+                                alt="E-Pangan Kab. Lamongan"
+                                style={{ height: "42px", width: "auto", objectFit: "contain", display: "block" }}
+                            />
                         </div>
                         <button
                             className="mobile-close-sidebar-btn"
@@ -455,9 +448,9 @@ export default function AdminDashboard({ setActivePage, showToast }) {
                             </button>
 
                             {showNotifications && (
-                                <div style={{
-                                    position: "absolute", right: 0, top: "50px", width: "340px", backgroundColor: "#ffffff",
-                                    borderRadius: "20px", boxShadow: "0 15px 35px rgba(27,67,50,0.15)", border: "1px solid #d2ded7", zIndex: 100, overflow: "hidden"
+                                <div className="admin-notif-panel" style={{
+                                    position: "absolute", right: 0, top: "50px", width: "340px", maxWidth: "calc(100vw - 24px)", backgroundColor: "#ffffff",
+                                    borderRadius: "20px", boxShadow: "0 15px 35px rgba(27,67,50,0.15)", border: "1px solid #d2ded7", zIndex: 1050, overflow: "hidden"
                                 }}>
                                     <div style={{ padding: "16px 20px", borderBottom: "1px solid #d2ded7", backgroundColor: "#f2f7f4", display: "flex", justifyContent: "space-between" }}>
                                         <span style={{ fontWeight: "800", fontSize: "14px", color: "#0f1d14" }}>Notifikasi</span>
@@ -530,7 +523,7 @@ export default function AdminDashboard({ setActivePage, showToast }) {
                     {/* TAB 1: RINGKASAN PASAR */}
                     {activeTab === "Ringkasan Pasar" && (
                         <>
-                            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))", gap: "20px" }}>
+                            <div className="admin-ringkasan-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))", gap: "20px" }}>
                                 <div onClick={() => setShowMasterModal("kios")} style={{ backgroundColor: "#ffffff", padding: "24px", borderRadius: "24px", border: "1px solid #d2ded7", cursor: "pointer", boxShadow: "0 4px 16px rgba(27,67,50,0.04)" }}>
                                     <div style={{ fontSize: "11px", fontWeight: "800", color: "#4e6754" }}>KIOS TERPANTAU</div>
                                     <div style={{ fontSize: "32px", fontWeight: "800", color: "#0f1d14", marginTop: "10px" }}>{getDashboardValue("kios_terpantau", 24)} <span style={{ fontSize: "14px", color: "#4e6754" }}>Kios</span></div>
@@ -560,7 +553,7 @@ export default function AdminDashboard({ setActivePage, showToast }) {
                                     </div>
                                 </div>
 
-                                <div style={{ overflowX: "auto" }}>
+                                <div className="admin-tabel-wrap" style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
                                     <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", minWidth: "600px" }}>
                                     <thead>
                                         <tr style={{ backgroundColor: "#f2f7f4", borderBottom: "1px solid #d2ded7" }}>

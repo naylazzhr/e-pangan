@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { User, Store, BarChart2, Calculator, Home, Shield, Menu, X } from "lucide-react";
+import { Store, BarChart2, Calculator, Home, Shield, Menu, X, Search } from "lucide-react";
+import logoEpangan from "./assets/logo-epangan.png";
 
 export default function Navbar({ activePage, setActivePage, showToast }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -12,47 +13,33 @@ export default function Navbar({ activePage, setActivePage, showToast }) {
 
   return (
     <>
-      <header className="topbar">
-        {/* Brand Logo */}
+      <header className="topbar grocery-topbar">
+        {/* Brand Logo Resmi E-Pangan Kab. Lamongan */}
         <div
           className="brand-wrapper"
           onClick={() => handleNavClick("dashboard")}
           style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "10px" }}
+          title="E-Pangan Kabupaten Lamongan"
         >
-          <div style={{
-            width: "38px",
-            height: "38px",
-            borderRadius: "12px",
-            background: "linear-gradient(135deg, #2d6a4f 0%, #133320 100%)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "#fff",
-            fontWeight: "800",
-            fontSize: "18px",
-            boxShadow: "0 4px 12px rgba(45, 106, 79, 0.25)",
-            flexShrink: 0
-          }}>
-            EP
-          </div>
-          <div>
-            <div style={{ fontSize: "15px", fontWeight: "800", color: "var(--text-dark)", lineHeight: "1.2" }}>
-              E-PANGAN
-            </div>
-            <div style={{ fontSize: "10px", fontWeight: "700", color: "var(--eco-primary)", letterSpacing: "0.05em" }}>
-              KAB. LAMONGAN
-            </div>
-          </div>
+          <img
+            src={logoEpangan}
+            alt="E-Pangan Kab. Lamongan"
+            style={{
+              height: "42px",
+              width: "auto",
+              objectFit: "contain",
+              display: "block"
+            }}
+          />
         </div>
 
         {/* Navigasi Menu Utama (Desktop) */}
-        <nav className="mainnav-links desktop-only">
+        <nav className="mainnav-links desktop-only grocery-nav-links">
           <button
             type="button"
             className={`nav-link ${activePage === "dashboard" ? "active" : ""}`}
             onClick={() => handleNavClick("dashboard")}
           >
-            <Home size={14} style={{ display: "inline", marginRight: "4px" }} />
             Beranda
           </button>
 
@@ -61,7 +48,6 @@ export default function Navbar({ activePage, setActivePage, showToast }) {
             className={`nav-link ${activePage === "cari-harga" ? "active" : ""}`}
             onClick={() => handleNavClick("cari-harga")}
           >
-            <Store size={14} style={{ display: "inline", marginRight: "4px" }} />
             Cari Harga
           </button>
 
@@ -70,8 +56,7 @@ export default function Navbar({ activePage, setActivePage, showToast }) {
             className={`nav-link ${activePage === "komparasi-pasar" ? "active" : ""}`}
             onClick={() => handleNavClick("komparasi-pasar")}
           >
-            <BarChart2 size={14} style={{ display: "inline", marginRight: "4px" }} />
-            Perbandingan Antar Pasar
+            Perbandingan Pasar
           </button>
 
           <button
@@ -79,13 +64,31 @@ export default function Navbar({ activePage, setActivePage, showToast }) {
             className={`nav-link ${activePage === "smart-budgeting" ? "active" : ""}`}
             onClick={() => handleNavClick("smart-budgeting")}
           >
-            <Calculator size={14} style={{ display: "inline", marginRight: "4px" }} />
             Smart Budgeting
           </button>
         </nav>
 
         {/* Aksi Kanan & Hamburger Button */}
-        <div className="topbar-actions">
+        <div className="topbar-actions grocery-actions">
+          <button
+            className="btn-search-trigger desktop-only"
+            type="button"
+            onClick={() => {
+              if (activePage !== "dashboard") setActivePage("dashboard");
+              setTimeout(() => {
+                const el = document.getElementById("search-input-main");
+                if (el) {
+                  el.focus();
+                  el.scrollIntoView({ behavior: "smooth" });
+                }
+              }, 150);
+            }}
+            title="Cari Komoditas"
+          >
+            <Search size={15} />
+            <span>Cari</span>
+          </button>
+
           <button
             className="btn-login-admin desktop-only"
             type="button"
@@ -104,8 +107,9 @@ export default function Navbar({ activePage, setActivePage, showToast }) {
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label="Buka Menu Navigasi"
+            title={mobileMenuOpen ? "Tutup Menu" : "Buka Menu Navigasi"}
           >
-            {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+            {mobileMenuOpen ? <X size={22} color="#1b4332" /> : <Menu size={22} color="#1b4332" />}
           </button>
         </div>
       </header>
@@ -121,25 +125,21 @@ export default function Navbar({ activePage, setActivePage, showToast }) {
       {/* Mobile Drawer Navigation */}
       <div className={`mobile-nav-drawer ${mobileMenuOpen ? "open" : ""}`}>
         <div className="mobile-drawer-header">
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <div style={{
-              width: "32px",
-              height: "32px",
-              borderRadius: "10px",
-              background: "linear-gradient(135deg, #2d6a4f 0%, #133320 100%)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#fff",
-              fontWeight: "800",
-              fontSize: "14px"
-            }}>
-              EP
-            </div>
-            <div>
-              <div style={{ fontSize: "14px", fontWeight: "800", color: "var(--text-dark)" }}>E-PANGAN</div>
-              <div style={{ fontSize: "9px", fontWeight: "700", color: "var(--eco-primary)" }}>LAMONGAN</div>
-            </div>
+          <div
+            onClick={() => handleNavClick("dashboard")}
+            style={{ cursor: "pointer", display: "flex", alignItems: "center" }}
+            title="E-Pangan Kabupaten Lamongan"
+          >
+            <img
+              src={logoEpangan}
+              alt="E-Pangan Kab. Lamongan"
+              style={{
+                height: "36px",
+                width: "auto",
+                objectFit: "contain",
+                display: "block",
+              }}
+            />
           </div>
           <button
             className="mobile-drawer-close"

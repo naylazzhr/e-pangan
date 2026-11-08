@@ -1327,3 +1327,414 @@ body {
     grid-template-columns: 1fr !important;
   }
 }
+
+
+/* =========================================================
+   MOBILE RESPONSIVE – blok akhir bersih
+   ========================================================= */
+
+html, body { overflow-x: hidden; }
+body.drawer-open { overflow: hidden; }
+
+/* Tombol hamburger – default tersembunyi */
+.mobile-hamburger-btn {
+  display: none;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  color: var(--eco-dark, #112216);
+  z-index: 1100;
+}
+
+/* Mobile nav drawer */
+.mobile-nav-drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: 280px;
+  max-width: 85vw;
+  background: #fff;
+  box-shadow: 4px 0 24px rgba(0,0,0,0.12);
+  z-index: 1100;
+  overflow-y: auto;
+  transform: translateX(-100%);
+  transition: transform 0.28s cubic-bezier(.4,0,.2,1);
+}
+
+.mobile-nav-drawer.open {
+  transform: translateX(0);
+}
+
+/* Backdrop */
+.mobile-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 1050;
+}
+
+/* Drawer header */
+.mobile-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid #e8f0ea;
+  background: #f3f9f5;
+}
+
+.mobile-drawer-close {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  color: #112216;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Drawer links */
+.mobile-drawer-links {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 8px;
+  gap: 4px;
+}
+
+.mobile-drawer-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: transparent;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  color: #112216;
+  width: 100%;
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.mobile-drawer-link:hover {
+  background: #edf7f1;
+}
+
+.mobile-drawer-link.active {
+  background: #1b4332;
+  color: #fff;
+}
+
+/* Drawer footer */
+.mobile-drawer-footer {
+  padding: 16px;
+  border-top: 1px solid #e8f0ea;
+  margin-top: auto;
+  text-align: center;
+}
+
+.mobile-btn-admin {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 13px 16px;
+  background: #1b4332;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-bottom: 10px;
+}
+
+.mobile-drawer-badge {
+  font-size: 11px;
+  color: #6b8f71;
+  line-height: 1.4;
+}
+
+/* Tampilkan hamburger, sembunyikan navigasi desktop di ≤768px */
+@media (max-width: 768px) {
+  .mobile-hamburger-btn {
+    display: flex;
+  }
+  .desktop-only {
+    display: none !important;
+  }
+  .commodity-grid-5-full {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+}
+
+/* Layar kecil ≤480px */
+@media (max-width: 480px) {
+  .topbar {
+    padding: 8px 12px !important;
+  }
+  .brand-wrapper img {
+    height: 32px !important;
+  }
+  .hero-wrapper {
+    padding: 10px 10px 4px 10px !important;
+  }
+  .hero-banner-card {
+    padding: 16px 12px !important;
+    border-radius: 16px !important;
+  }
+  .hero-title {
+    font-size: 1.5rem !important;
+  }
+  .hero-action-buttons {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .hero-action-buttons button {
+    flex: 1 1 auto;
+    min-width: 120px;
+  }
+  .hero-stats-row {
+    grid-template-columns: repeat(2, 1fr) !important;
+    padding: 0 10px !important;
+    gap: 10px !important;
+  }
+  .floating-search-wrapper {
+    padding: 0 10px !important;
+  }
+  .announcement-wrapper {
+    padding: 0 10px !important;
+  }
+  .catalog-container-full {
+    padding: 14px 10px !important;
+  }
+  .commodity-grid-5-full {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  .card-thumb-wrap {
+    height: 110px !important;
+  }
+  .card-body-v3 {
+    padding: 10px 8px !important;
+  }
+  .comm-name {
+    font-size: 13px !important;
+  }
+  .comm-price {
+    font-size: 13px !important;
+  }
+  .mobile-nav-drawer {
+    width: 260px !important;
+  }
+}
+
+/* Layar sangat kecil ≤360px */
+@media (max-width: 360px) {
+  .hero-title {
+    font-size: 1.3rem !important;
+  }
+  .hero-stats-row {
+    grid-template-columns: 1fr !important;
+  }
+  .commodity-grid-5-full {
+    grid-template-columns: 1fr !important;
+  }
+  .mobile-nav-drawer {
+    width: 85vw !important;
+  }
+}
+
+
+/* =========================================================
+   RESPONSIVE LAYOUT & TREN HARGA REFINEMENT
+   ========================================================= */
+
+.main-layout {
+  max-width: 1750px;
+  margin: 0 auto;
+  padding: 10px 2.5rem 24px 2.5rem;
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 24px;
+  box-sizing: border-box;
+}
+
+.panel-card#tren-harga {
+  background-color: #ffffff;
+  border-radius: 24px;
+  padding: 28px;
+  border: 1px solid #d2ded7;
+  box-shadow: 0 4px 20px rgba(27,67,50,0.04);
+  box-sizing: border-box;
+}
+
+.panel-title {
+  font-size: clamp(1.15rem, 3vw, 1.35rem);
+  font-weight: 800;
+  color: #0f1d14;
+  margin: 0;
+  line-height: 1.25;
+}
+
+.panel-sub {
+  font-size: 12.5px;
+  color: #4e6754;
+  margin: 4px 0 0 0;
+  font-weight: 600;
+}
+
+.trend-controls-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.trend-select-input {
+  padding: 8px 14px;
+  border-radius: 99px;
+  border: 1px solid #d2ded7;
+  background-color: #f2f7f4;
+  font-weight: 700;
+  color: #1b4332;
+  font-size: 12.5px;
+  outline: none;
+  cursor: pointer;
+}
+
+.timeframe-pill-group {
+  display: flex;
+  background-color: #f2f7f4;
+  padding: 4px;
+  border-radius: 99px;
+  border: 1px solid #d2ded7;
+}
+
+.timeframe-btn {
+  padding: 5px 12px;
+  border-radius: 99px;
+  border: none;
+  background-color: transparent;
+  color: #4e6754;
+  font-size: 11.5px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.timeframe-btn.active {
+  background-color: #1b4332;
+  color: #fff;
+}
+
+.chart-metrics-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  background-color: #f2f7f4;
+  padding: 16px 20px;
+  border-radius: 20px;
+  border: 1px solid #d2ded7;
+  box-sizing: border-box;
+}
+
+.aesthetic-svg-element {
+  width: 100% !important;
+  height: auto !important;
+  display: block;
+}
+
+.aesthetic-chart-scroll-wrap {
+  width: 100%;
+  position: relative;
+  overflow: visible;
+}
+
+/* Tablet & Mobile Styles */
+@media (max-width: 992px) {
+  .main-layout {
+    grid-template-columns: 1fr !important;
+    padding: 10px 1rem 24px 1rem !important;
+    gap: 20px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .main-layout {
+    padding: 8px 12px 20px 12px !important;
+  }
+  .panel-card#tren-harga {
+    padding: 18px 14px !important;
+    border-radius: 20px !important;
+  }
+  .panel-header-row {
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+  .trend-controls-row {
+    width: 100% !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+  }
+  .select-commodity-btn,
+  .trend-select-input {
+    width: 100% !important;
+  }
+  .timeframe-pill-group {
+    width: 100% !important;
+    display: flex !important;
+    justify-content: space-between !important;
+  }
+  .timeframe-btn {
+    flex: 1 !important;
+    text-align: center !important;
+  }
+  .chart-metrics-strip {
+    grid-template-columns: repeat(2, 1fr) !important;
+    padding: 12px 14px !important;
+    gap: 10px !important;
+  }
+  .commodity-grid-5-full {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+  .commodity-card-v3 {
+    padding: 12px 10px !important;
+    border-radius: 16px !important;
+  }
+  .card-thumb-img {
+    height: 110px !important;
+  }
+  .card-title {
+    font-size: 13px !important;
+    margin-bottom: 4px !important;
+  }
+  .card-price-amt {
+    font-size: 14px !important;
+  }
+  .btn-card-compare {
+    padding: 7px 10px !important;
+    font-size: 11px !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .chart-metrics-strip {
+    grid-template-columns: 1fr 1fr !important;
+    padding: 10px !important;
+    gap: 8px !important;
+  }
+}
