@@ -341,9 +341,9 @@ export default function SmartBudgeting({ onBack, onNavigate }) {
       <style>{`
         .sb-container {
           width: 100%;
-          max-width: 1750px;
+          max-width: 1240px;
           margin: 0 auto;
-          padding: 0 3rem;
+          padding: 0 1.5rem 3rem;
           box-sizing: border-box;
         }
         .sb-head {
@@ -482,20 +482,38 @@ export default function SmartBudgeting({ onBack, onNavigate }) {
           .sb-head {
             flex-direction: column;
             align-items: flex-start;
-            padding: 20px 0 16px;
-            gap: 8px;
+            padding: 16px 0 12px;
+            gap: 6px;
           }
           .sb-head h1 {
-            font-size: 1.5rem !important;
-            line-height: 1.2 !important;
+            font-size: 1.35rem !important;
+            line-height: 1.25 !important;
           }
           .sb-head p {
-            font-size: 12.5px !important;
+            font-size: 12px !important;
+            margin-top: 4px !important;
           }
-          .sb-card { padding: 16px; border-radius: 18px; }
-          .sb-item-row { flex-wrap: wrap; padding: 12px; }
+          .sb-card { padding: 14px; border-radius: 18px; }
+          .sb-card-title { font-size: 1.05rem !important; }
+          .sb-label { font-size: 10px !important; }
+          .sb-item-row { flex-wrap: wrap; padding: 10px 12px; gap: 8px; }
           .sb-two-col { grid-template-columns: 1fr !important; }
-          .sb-katalog-grid { grid-template-columns: 1fr !important; }
+          .sb-katalog-grid {
+            grid-template-columns: 1fr !important;
+            max-height: 320px !important;
+          }
+          .sb-katalog-card { padding: 12px !important; }
+          .sb-kasir-list { max-height: 220px !important; }
+          .sb-chip {
+            font-size: 11px !important;
+            padding: 6px 12px !important;
+          }
+          .sb-input {
+            font-size: 16px !important;
+            padding: 10px 12px !important;
+          }
+          .sb-side { position: static !important; }
+          .sb-main-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
 

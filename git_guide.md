@@ -16,6 +16,7 @@
 5. [📋 LOG PEKERJAAN FRONTEND (Work Log & API Sync)](#5--log-pekerjaan-frontend-work-log--api-sync)
 6. [🔌 KONTRAK & PERMINTAAN API KE BACKEND (API Request List)](#6--kontrak--permintaan-api-ke-backend-api-request-list)
 7. [Cheatsheet Perintah Git Praktis](#7-cheatsheet-perintah-git-praktis)
+8. [Panduan Menjalankan Aplikasi di Lokal (Terminal Commands)](#8-panduan-menjalankan-aplikasi-di-lokal-terminal-commands)
 
 ---
 
@@ -65,9 +66,19 @@ git merge origin/development
 # (atau: git pull origin development)
 ```
 
-### Langkah 2: Koding & Uji Coba Lokal
-- Jalankan frontend: `npm run dev` di folder `frontend/`.
-- Jalankan backend: `uvicorn main:app --reload` di folder `backend/` (dengan virtual environment aktif).
+### Langkah 2: Menjalankan Server & Uji Coba Lokal
+1. **Database:** Buka Laragon -> Klik **Start All** (pastikan MySQL port 3306 menyala).
+2. **Terminal 1 (Backend FastAPI):**
+   ```powershell
+   cd "d:\e-pangan\backend"
+   ..\.venv\Scripts\python.exe -m uvicorn main:app --reload --port 8000
+   ```
+3. **Terminal 2 (Frontend Vite):**
+   ```powershell
+   cd "d:\e-pangan\frontend"
+   npm run dev
+   ```
+4. Buka browser di `http://localhost:5173`. Detail lengkap lihat [Bagian 8](#8-panduan-menjalankan-aplikasi-di-lokal-terminal-commands).
 
 ### Langkah 3: Catat Pekerjaan & Commit
 1. Perbarui tabel [LOG PEKERJAAN FRONTEND](#5--log-pekerjaan-frontend-work-log--api-sync) di file ini (`git_guide.md`).
@@ -218,3 +229,33 @@ git checkout -- frontend/src/NamaFile.jsx
 # Bersihkan file baru yang belum ditrack (untracked)
 git clean -fd
 ```
+
+---
+
+## 8. PANDUAN MENJALANKAN APLIKASI DI LOKAL (TERMINAL COMMANDS)
+
+Gunakan panduan berikut setiap kali menyalakan laptop atau memulai sesi kerja:
+
+### 1. Database (Laragon)
+- Buka aplikasi **Laragon** -> Klik **Start All**.
+- Pastikan modul **MySQL** (port 3306) dan Apache (port 80) berstatus menyala (*running*).
+
+### 2. Terminal 1: Backend (FastAPI & Database Engine)
+Buka terminal PowerShell di VS Code, lalu jalankan:
+```powershell
+cd "d:\e-pangan\backend"
+..\.venv\Scripts\python.exe -m uvicorn main:app --reload --port 8000
+```
+> ⚠️ **PENTING:** Selalu gunakan `..\.venv\Scripts\python.exe` untuk menjalankan uvicorn agar otomatis menggunakan pustaka virtual environment proyek (`pymysql`, `sqlalchemy`, dll.), bukan Python bawaan sistem Windows.
+
+### 3. Terminal 2: Frontend (Vite / React)
+Buka tab terminal baru (klik tanda `+` di terminal VS Code), lalu jalankan:
+```powershell
+cd "d:\e-pangan\frontend"
+npm run dev
+```
+
+### 4. Akses Web
+- **Aplikasi Web:** [http://localhost:5173](http://localhost:5173)
+- **Dokumentasi Endpoint Backend (Swagger API):** [http://localhost:8000/docs](http://localhost:8000/docs)
+

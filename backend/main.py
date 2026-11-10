@@ -1,5 +1,7 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 import models
 from database import engine
@@ -44,6 +46,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Direktori Upload untuk Foto Komoditas & Asset Dinamis
+UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "uploads")
+KOMODITAS_UPLOAD_DIR = os.path.join(UPLOAD_DIR, "komoditas")
+os.makedirs(KOMODITAS_UPLOAD_DIR, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 
 # ==============================================================================

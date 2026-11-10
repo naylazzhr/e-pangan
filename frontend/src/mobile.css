@@ -1,0 +1,986 @@
+/* ==========================================================================
+   E-PANGAN MOBILE STYLESHEET (Khusus Mode Device & HP / Layar <= 768px)
+   Didesain khusus untuk tampilan smartphone agar proporsional, font pas, 
+   grafik pas di layar tanpa horizontal scroll, dan nyaman dipakai masyarakat.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. GLOBAL ROOT RESETS & PROPORTIONAL TYPOGRAPHY FOR MOBILE
+   -------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+  html {
+    font-size: 13px !important;
+  }
+
+  html, body {
+    overflow-x: hidden !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Ruang tambahan di bawah agar tidak tertutup Bottom Navigation Bar */
+  .app-container,
+  .grocery-app-container {
+    padding-bottom: 74px !important;
+    overflow-x: hidden !important;
+    width: 100% !important;
+  }
+
+  /* Hilangkan elemen yang khusus desktop */
+  .desktop-only {
+    display: none !important;
+  }
+
+  /* Resizing Typography Global Mobile */
+  h1 {
+    font-size: 1.25rem !important;
+    line-height: 1.25 !important;
+    letter-spacing: -0.02em !important;
+  }
+
+  h2 {
+    font-size: 1.15rem !important;
+    line-height: 1.25 !important;
+    letter-spacing: -0.02em !important;
+  }
+
+  h3 {
+    font-size: 1.05rem !important;
+    line-height: 1.25 !important;
+    letter-spacing: -0.01em !important;
+  }
+
+  p {
+    font-size: 11.5px !important;
+    line-height: 1.45 !important;
+  }
+}
+
+@media (max-width: 480px) {
+  html {
+    font-size: 12px !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   2. BOTTOM NAVIGATION BAR (KHUSUS MODE DEVICE / HP)
+   -------------------------------------------------------------------------- */
+.mobile-bottom-nav {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .mobile-bottom-nav {
+    display: flex !important;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: 58px !important;
+    background: rgba(255, 255, 255, 0.97) !important;
+    backdrop-filter: blur(14px) !important;
+    -webkit-backdrop-filter: blur(14px) !important;
+    border-top: 1px solid #dce8df !important;
+    z-index: 9999 !important;
+    align-items: center !important;
+    justify-content: space-around !important;
+    padding: 3px 6px calc(env(safe-area-inset-bottom, 3px) + 2px) !important;
+    box-shadow: 0 -4px 18px rgba(27, 67, 50, 0.08) !important;
+  }
+
+  .mobile-bottom-nav-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    background: transparent;
+    border: none;
+    color: #557965;
+    font-size: 9.5px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 4px 2px;
+    border-radius: 10px;
+    transition: all 0.2s ease;
+    font-family: inherit;
+  }
+
+  .mobile-bottom-nav-item:active {
+    transform: scale(0.93);
+  }
+
+  .mobile-bottom-nav-item.active {
+    color: #1b4332 !important;
+    font-weight: 800 !important;
+  }
+
+  .mobile-bottom-nav-item.active .nav-icon-wrap {
+    background-color: #e2f5ea;
+    color: #1b4332;
+    border-radius: 99px;
+    padding: 2px 10px;
+  }
+
+  .mobile-bottom-nav-item .nav-icon-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    padding: 2px 6px;
+  }
+
+  .mobile-bottom-nav-item span {
+    letter-spacing: -0.01em;
+    line-height: 1;
+    white-space: nowrap;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   3. TOPBAR & HEADER KHUSUS DEVICE
+   -------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+  .grocery-topbar,
+  .topbar {
+    height: 52px !important;
+    min-height: 52px !important;
+    padding: 0 12px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 1000 !important;
+  }
+
+  .brand-wrapper img {
+    height: 28px !important;
+    max-width: 130px !important;
+  }
+
+  .mobile-hamburger-btn {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 9px !important;
+    border: 1px solid #c2e3cd !important;
+    background: #ffffff !important;
+    cursor: pointer !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   4. BERANDA & HERO SECTION KHUSUS DEVICE
+   -------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+  .grocery-hero-section {
+    padding: 12px 10px 18px 10px !important;
+    border-bottom-left-radius: 18px !important;
+    border-bottom-right-radius: 18px !important;
+  }
+
+  .grocery-hero-container {
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+    gap: 8px !important;
+  }
+
+  .grocery-hero-left {
+    max-width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+  }
+
+  .grocery-hero-left > div:first-child {
+    justify-content: center !important;
+  }
+
+  .grocery-hero-badge {
+    padding: 3px 8px !important;
+    font-size: 8.5px !important;
+    margin-bottom: 6px !important;
+    letter-spacing: 0.03em !important;
+  }
+
+  .grocery-hero-title {
+    font-size: 1.25rem !important;
+    line-height: 1.25 !important;
+    margin: 0 0 6px 0 !important;
+    letter-spacing: -0.02em !important;
+    text-align: center !important;
+  }
+
+  .grocery-hero-desc {
+    font-size: 11px !important;
+    line-height: 1.45 !important;
+    margin: 0 0 12px 0 !important;
+    color: #2b513d !important;
+    max-width: 320px !important;
+    text-align: center !important;
+  }
+
+  .grocery-hero-actions {
+    display: flex !important;
+    justify-content: center !important;
+    width: 100% !important;
+    margin-bottom: 0 !important;
+  }
+
+  .grocery-subscribe-btn {
+    width: auto !important;
+    min-width: 180px !important;
+    justify-content: center !important;
+    padding: 9px 18px !important;
+    font-size: 11.5px !important;
+    border-radius: 99px !important;
+  }
+
+  /* Di HP, sembunyikan foto hero sayur besar agar layar langsung menampilkan pencarian dan katalog */
+  .grocery-hero-right {
+    display: none !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   5. SEARCH BAR SECTION KHUSUS DEVICE
+   -------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+  .grocery-search-section {
+    padding: 0 10px !important;
+    margin-top: -10px !important;
+    position: relative !important;
+    z-index: 10 !important;
+  }
+
+  .grocery-search-container {
+    max-width: 100% !important;
+  }
+
+  .grocery-search-bar {
+    flex-direction: column !important;
+    padding: 8px 10px !important;
+    gap: 6px !important;
+    border-radius: 14px !important;
+    background: #ffffff !important;
+    box-shadow: 0 4px 14px rgba(27, 67, 50, 0.08) !important;
+  }
+
+  .grocery-search-input-wrap {
+    width: 100% !important;
+    height: 36px !important;
+    padding: 0 8px !important;
+  }
+
+  .grocery-search-input-wrap input {
+    font-size: 11.5px !important;
+  }
+
+  .grocery-search-select-wrap {
+    width: 100% !important;
+    height: 36px !important;
+    padding: 0 10px !important;
+    border-radius: 9px !important;
+  }
+
+  .grocery-search-select-wrap select {
+    font-size: 11.5px !important;
+    width: 100% !important;
+  }
+
+  .grocery-search-submit-btn {
+    width: 100% !important;
+    height: 36px !important;
+    justify-content: center !important;
+    padding: 0 14px !important;
+    font-size: 11.5px !important;
+    border-radius: 9px !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   6. KATEGORI PILIHAN & GRID KOMODITAS KHUSUS DEVICE
+   -------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+  .grocery-categories-section {
+    padding: 1rem 10px 0.5rem 10px !important;
+  }
+
+  .grocery-section-header {
+    margin-bottom: 8px !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 4px !important;
+  }
+
+  .grocery-section-title {
+    font-size: 1.15rem !important;
+    letter-spacing: -0.02em !important;
+  }
+
+  .grocery-section-sub {
+    font-size: 10.5px !important;
+    line-height: 1.35 !important;
+  }
+
+  .grocery-view-all-btn {
+    font-size: 10.5px !important;
+    padding: 4px 8px !important;
+  }
+
+  .grocery-categories-grid {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 6px !important;
+  }
+
+  .circle-icon-wrap {
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 50% !important;
+    margin: 0 auto 3px !important;
+  }
+
+  .circle-emoji {
+    font-size: 17px !important;
+  }
+
+  .category-label {
+    font-size: 9.5px !important;
+    line-height: 1.15 !important;
+    text-align: center !important;
+  }
+
+  /* Grid Produk Komoditas 2 Kolom Rapi di Layar HP */
+  .grocery-products-section {
+    padding: 0.5rem 10px 1rem 10px !important;
+  }
+
+  .grocery-products-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  .grocery-product-card {
+    padding: 8px !important;
+    border-radius: 12px !important;
+    box-shadow: 0 2px 8px rgba(27, 67, 50, 0.04) !important;
+  }
+
+  .grocery-card-img-wrap {
+    height: 85px !important;
+    border-radius: 10px !important;
+    margin-bottom: 6px !important;
+  }
+
+  .grocery-card-img {
+    height: 85px !important;
+    border-radius: 10px !important;
+    object-fit: cover !important;
+  }
+
+  .grocery-card-meta {
+    font-size: 9px !important;
+    margin-bottom: 2px !important;
+  }
+
+  .grocery-card-title {
+    font-size: 11.5px !important;
+    line-height: 1.25 !important;
+    min-height: 28px !important;
+    margin-bottom: 3px !important;
+    font-weight: 800 !important;
+  }
+
+  .grocery-price-val {
+    font-size: 12.5px !important;
+    font-weight: 800 !important;
+  }
+
+  .grocery-price-unit {
+    font-size: 9.5px !important;
+  }
+
+  .grocery-card-action-btn {
+    padding: 5px 8px !important;
+    font-size: 10.5px !important;
+    border-radius: 99px !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   7. GRAFIK TREN HARGA (AESTHETIC SVG) KHUSUS DEVICE
+   -------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+  .grocery-bestsells-section {
+    padding: 0.75rem 10px !important;
+  }
+
+  .grocery-bestsells-wrapper {
+    padding: 10px !important;
+    border-radius: 16px !important;
+  }
+
+  /* Balik urutan: Chart Panel di atas agar langsung terlihat, Promo banner di bawah */
+  .grocery-bestsells-grid {
+    display: flex !important;
+    flex-direction: column-reverse !important;
+    gap: 10px !important;
+  }
+
+  /* Mini Promo Banner di bawah grafik */
+  .grocery-nature-promo-banner {
+    padding: 12px 14px !important;
+    border-radius: 14px !important;
+  }
+
+  .nature-banner-badge {
+    font-size: 8.5px !important;
+    padding: 3px 8px !important;
+  }
+
+  .nature-banner-title {
+    font-size: 1rem !important;
+    margin: 6px 0 4px 0 !important;
+    line-height: 1.25 !important;
+  }
+
+  .nature-banner-desc {
+    font-size: 10.5px !important;
+    line-height: 1.35 !important;
+    margin-bottom: 8px !important;
+  }
+
+  /* Sembunyikan checklist feature yang panjang di HP */
+  .nature-banner-features {
+    display: none !important;
+  }
+
+  .nature-banner-btn {
+    width: 100% !important;
+    justify-content: center !important;
+    padding: 8px 14px !important;
+    font-size: 11px !important;
+    border-radius: 99px !important;
+  }
+
+  /* Panel Grafik Utama di HP */
+  .grocery-chart-panel {
+    padding: 10px !important;
+    border-radius: 14px !important;
+    border: 1px solid #d5e9db !important;
+    box-shadow: 0 2px 10px rgba(27, 67, 50, 0.04) !important;
+  }
+
+  .grocery-chart-header {
+    margin-bottom: 8px !important;
+    gap: 6px !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+  }
+
+  .chart-title-text {
+    font-size: 1.05rem !important;
+    margin: 0 0 2px 0 !important;
+    line-height: 1.25 !important;
+  }
+
+  .chart-sub-text {
+    font-size: 10px !important;
+    line-height: 1.3 !important;
+  }
+
+  .live-indicator-pill {
+    font-size: 8.5px !important;
+    padding: 2px 8px !important;
+    margin-bottom: 4px !important;
+  }
+
+  .grocery-chart-controls {
+    flex-direction: column !important;
+    gap: 6px !important;
+    width: 100% !important;
+  }
+
+  .grocery-commodity-select {
+    width: 100% !important;
+    font-size: 11px !important;
+    padding: 5px 10px !important;
+    border-radius: 8px !important;
+  }
+
+  .grocery-timeframe-group {
+    width: 100% !important;
+    display: flex !important;
+  }
+
+  .grocery-tf-btn {
+    flex: 1 !important;
+    text-align: center !important;
+    font-size: 10.5px !important;
+    padding: 5px 4px !important;
+  }
+
+  /* Strip 4 Metrik di atas grafik — dibuat 2x2 ringkas */
+  .chart-metrics-strip {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 6px !important;
+    padding: 8px !important;
+    border-radius: 12px !important;
+    margin-bottom: 8px !important;
+  }
+
+  .chart-metric-item {
+    gap: 1px !important;
+  }
+
+  .chart-metric-label {
+    font-size: 8.5px !important;
+    letter-spacing: 0.02em !important;
+    margin-bottom: 1px !important;
+  }
+
+  .chart-metric-value {
+    font-size: 12.5px !important;
+    font-weight: 800 !important;
+  }
+
+  .chart-metric-unit {
+    font-size: 9px !important;
+  }
+
+  .chart-metric-sub {
+    font-size: 8.5px !important;
+    margin-top: 1px !important;
+  }
+
+  /* Wadah SVG Grafik — Pas 100% lebar layar HP tanpa scrollbar horizontal */
+  .aesthetic-chart-scroll-wrap {
+    width: 100% !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .aesthetic-svg-element {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 900 / 260 !important;
+    display: block !important;
+  }
+
+  /* Kotak analisis insight bawah grafik */
+  .chart-insight-box {
+    padding: 8px 10px !important;
+    border-radius: 10px !important;
+    gap: 8px !important;
+    margin-top: 6px !important;
+  }
+
+  .chart-insight-icon {
+    padding: 4px !important;
+    border-radius: 6px !important;
+  }
+
+  .chart-insight-title {
+    font-size: 9.5px !important;
+  }
+
+  .chart-insight-desc {
+    font-size: 10.5px !important;
+    line-height: 1.35 !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   8. HALAMAN CARI HARGA & DETAIL KIOS KHUSUS DEVICE
+   -------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+  .ch-container {
+    padding: 0 10px !important;
+  }
+
+  .ch-hero {
+    padding-bottom: 12px !important;
+    margin-bottom: 10px !important;
+  }
+
+  .ch-head {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    padding: 12px 0 8px !important;
+    margin-bottom: 8px !important;
+    gap: 4px !important;
+  }
+
+  .ch-head-badge {
+    padding: 3px 8px !important;
+    margin-bottom: 3px !important;
+  }
+
+  .ch-head-badge span {
+    font-size: 8.5px !important;
+  }
+
+  .ch-title {
+    font-size: 1.15rem !important;
+    line-height: 1.25 !important;
+  }
+
+  .ch-desc {
+    font-size: 10.5px !important;
+    margin-top: 3px !important;
+    line-height: 1.35 !important;
+  }
+
+  .ch-search-bar {
+    grid-template-columns: 1fr !important;
+    border-radius: 14px !important;
+    padding: 8px !important;
+    gap: 6px !important;
+  }
+
+  .ch-search-bar input {
+    font-size: 11.5px !important;
+  }
+
+  .ch-cell {
+    border-left: none !important;
+    padding-left: 0 !important;
+    border-top: 1px solid #e5ede8 !important;
+    padding-top: 6px !important;
+    height: 34px !important;
+  }
+
+  .ch-cell select {
+    font-size: 11px !important;
+  }
+
+  .ch-btn-filter {
+    height: 36px !important;
+    font-size: 11.5px !important;
+    border-radius: 9px !important;
+    width: 100% !important;
+  }
+
+  .ch-banner {
+    padding: 10px 12px !important;
+    border-radius: 12px !important;
+    margin-bottom: 12px !important;
+    gap: 8px !important;
+  }
+
+  .ch-banner h2 {
+    font-size: 12px !important;
+  }
+
+  .ch-banner div[style*="font-size: 1.25rem"] {
+    font-size: 1.05rem !important;
+  }
+
+  .ch-list-head {
+    margin-bottom: 10px !important;
+  }
+
+  .ch-list-head h2 {
+    font-size: 1.1rem !important;
+  }
+
+  .ch-aside-filter {
+    padding: 12px !important;
+    border-radius: 14px !important;
+    gap: 10px !important;
+  }
+
+  .ch-main-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .ch-kios-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  .ch-kios-card {
+    padding: 12px !important;
+    border-radius: 14px !important;
+  }
+
+  .ch-kios-card h3 {
+    font-size: 1.05rem !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   9. HALAMAN PERBANDINGAN PASAR KHUSUS DEVICE
+   -------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+  .kp-container {
+    padding: 0 10px !important;
+  }
+
+  .kp-title {
+    font-size: 1.15rem !important;
+    line-height: 1.25 !important;
+  }
+
+  .kp-desc {
+    font-size: 10.5px !important;
+    line-height: 1.35 !important;
+  }
+
+  .kp-summary-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 6px !important;
+  }
+
+  .kp-card {
+    padding: 10px 8px !important;
+    border-radius: 12px !important;
+  }
+
+  .kp-card h3 {
+    font-size: 0.95rem !important;
+  }
+
+  .kp-toolbar {
+    padding: 8px 10px !important;
+    border-radius: 12px !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 6px !important;
+  }
+
+  .kp-table-container {
+    border-radius: 12px !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  .kp-table {
+    min-width: 600px !important;
+    font-size: 10.5px !important;
+  }
+
+  .kp-table th,
+  .kp-table td {
+    padding: 6px 8px !important;
+  }
+
+  .kp-sticky {
+    position: sticky !important;
+    left: 0 !important;
+    z-index: 5 !important;
+    background: #ffffff !important;
+    min-width: 160px !important;
+    box-shadow: 2px 0 6px rgba(0, 0, 0, 0.05) !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   10. HALAMAN SMART BUDGETING KHUSUS DEVICE
+   -------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+  .sb-container {
+    padding: 0 10px !important;
+  }
+
+  .sb-title {
+    font-size: 1.15rem !important;
+    line-height: 1.25 !important;
+  }
+
+  .sb-desc {
+    font-size: 10.5px !important;
+    line-height: 1.35 !important;
+  }
+
+  .sb-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  .sb-card {
+    padding: 12px !important;
+    border-radius: 14px !important;
+  }
+
+  .sb-card h2,
+  .sb-card h3 {
+    font-size: 1.05rem !important;
+  }
+
+  .sb-btn-generate {
+    width: 100% !important;
+    height: 38px !important;
+    font-size: 11.5px !important;
+    border-radius: 10px !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   11. FOOTER KHUSUS DEVICE
+   -------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+  .grocery-main-footer {
+    padding: 1.5rem 10px calc(env(safe-area-inset-bottom, 8px) + 68px) 10px !important;
+    margin-top: 1.5rem !important;
+  }
+
+  .grocery-footer-container {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+    margin-bottom: 1rem !important;
+  }
+
+  .footer-brand-title {
+    font-size: 1.05rem !important;
+  }
+
+  .footer-brand-desc {
+    font-size: 10.5px !important;
+    line-height: 1.4 !important;
+  }
+
+  .grocery-footer-bottom-container {
+    flex-direction: column !important;
+    text-align: center !important;
+    gap: 6px !important;
+    font-size: 10px !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   12. ULTRA-COMPACT SCREEN (MAX-WIDTH: 420px)
+   -------------------------------------------------------------------------- */
+@media (max-width: 420px) {
+  .grocery-hero-title,
+  .ch-title,
+  .kp-title,
+  .sb-title {
+    font-size: 1.15rem !important;
+  }
+
+  .grocery-products-grid {
+    gap: 6px !important;
+  }
+
+  .grocery-product-card {
+    padding: 6px !important;
+  }
+
+  .grocery-card-img-wrap,
+  .grocery-card-img {
+    height: 75px !important;
+  }
+
+  .grocery-card-title {
+    font-size: 10.5px !important;
+    min-height: 24px !important;
+  }
+
+  .grocery-price-val {
+    font-size: 11.5px !important;
+  }
+
+  .chart-metric-value {
+    font-size: 11.5px !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   13. DETAIL KIOS — KHUSUS DEVICE
+   -------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+  .dk-container {
+    padding: 0 12px !important;
+  }
+
+  .dk-title {
+    font-size: 1.2rem !important;
+    line-height: 1.25 !important;
+  }
+
+  .dk-hero {
+    padding: 14px 0 20px !important;
+    margin-bottom: 14px !important;
+  }
+
+  .dk-topbar {
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    margin-bottom: 12px !important;
+  }
+
+  .dk-hero-grid {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+
+  .dk-main-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+
+  .dk-product-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   14. ADMIN DASHBOARD — PERBAIKAN KHUSUS DEVICE TAMBAHAN
+   -------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+  /* Pastikan admin 2-kolom stat di tablet kecil */
+  .admin-ringkasan-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+
+  /* Kios grid: 1 kolom di HP */
+  .admin-kios-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Content area padding */
+  .admin-content-area {
+    padding: 10px 10px !important;
+  }
+
+  /* Tabel scroll horizontal */
+  .admin-tabel-wrap {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+
+  /* Modal full width */
+  .admin-modal-card {
+    max-width: 96vw !important;
+    padding: 14px !important;
+    border-radius: 16px !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .admin-ringkasan-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  .admin-stat-value {
+    font-size: 17px !important;
+  }
+}

@@ -208,9 +208,9 @@ export default function CariHarga({ setActivePage, setSelectedKios }) {
       <style>{`
         .ch-container {
           width: 100%;
-          max-width: 1750px;
+          max-width: 1240px;
           margin: 0 auto;
-          padding: 0 3rem;
+          padding: 0 1.5rem;
           box-sizing: border-box;
         }
         .ch-hero {
@@ -265,41 +265,160 @@ export default function CariHarga({ setActivePage, setSelectedKios }) {
         }
         .ch-main-grid {
           display: grid;
-          grid-template-columns: 320px 1fr;
-          gap: 28px;
+          grid-template-columns: 280px 1fr;
+          gap: 24px;
           align-items: start;
+          padding-bottom: 40px;
         }
         .ch-kios-grid {
           display: grid;
           grid-template-columns: repeat(2, 1fr);
           gap: 20px;
         }
+        .ch-kios-card {
+          border-radius: 24px;
+          padding: 24px;
+          gap: 0;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+        }
+        .ch-aside-filter {
+          position: sticky;
+          top: 24px;
+        }
         @keyframes ch-spin {
           to { transform: rotate(360deg); }
         }
+        .ch-title {
+          font-size: 2.3rem;
+          font-weight: 800;
+          margin: 0;
+          letter-spacing: -0.03em;
+          line-height: 1.15;
+        }
+        .ch-desc {
+          color: #4a6550;
+          margin: 12px 0 0 0;
+          font-size: 1rem;
+          max-width: 620px;
+          line-height: 1.6;
+        }
+        .ch-head-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          background-color: #e2f5ea;
+          padding: 6px 16px;
+          border-radius: 999px;
+          margin-bottom: 12px;
+        }
+        .ch-btn-filter {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          height: 48px;
+          padding: 0 28px;
+          background-color: #1b4332;
+          color: #ffffff;
+          border: none;
+          border-radius: 999px;
+          font-weight: 700;
+          font-size: 14px;
+          font-family: inherit;
+          cursor: pointer;
+          white-space: nowrap;
+          transition: all 0.2s;
+        }
         @media (max-width: 900px) {
-          .ch-container { padding: 0 1.25rem; }
+          .ch-container { padding: 0 14px !important; }
+          .ch-hero {
+            padding-bottom: 16px !important;
+            margin-bottom: 16px !important;
+          }
           .ch-head {
-            flex-direction: column;
-            align-items: flex-start;
-            padding: 28px 0 20px;
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            padding: 16px 0 12px !important;
+            margin-bottom: 12px !important;
+            gap: 6px !important;
+          }
+          .ch-head-badge {
+            padding: 4px 10px !important;
+            margin-bottom: 6px !important;
+          }
+          .ch-head-badge span:last-child {
+            font-size: 9.5px !important;
+          }
+          .ch-title {
+            font-size: 1.35rem !important;
+            line-height: 1.25 !important;
+          }
+          .ch-desc {
+            font-size: 12px !important;
+            margin-top: 6px !important;
+            line-height: 1.45 !important;
           }
           .ch-search-bar {
-            grid-template-columns: 1fr;
-            border-radius: 20px;
-            padding: 14px 16px;
-            gap: 12px;
+            grid-template-columns: 1fr !important;
+            border-radius: 16px !important;
+            padding: 10px 12px !important;
+            gap: 8px !important;
           }
           .ch-cell {
-            border-left: none;
-            padding-left: 0;
-            border-top: 1px solid #d8e2dc;
-            padding-top: 12px;
-            height: auto;
+            border-left: none !important;
+            padding-left: 0 !important;
+            border-top: 1px solid #e5ede8 !important;
+            padding-top: 8px !important;
+            height: 36px !important;
           }
-          .ch-banner { flex-direction: column; align-items: flex-start; }
-          .ch-main-grid { grid-template-columns: 1fr; }
-          .ch-kios-grid { grid-template-columns: 1fr; }
+          .ch-btn-filter {
+            height: 40px !important;
+            font-size: 13px !important;
+            padding: 0 16px !important;
+            border-radius: 12px !important;
+            width: 100% !important;
+          }
+          .ch-banner {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            padding: 14px 14px !important;
+            border-radius: 16px !important;
+            margin-bottom: 16px !important;
+            gap: 12px !important;
+          }
+          .ch-banner h2 {
+            font-size: 14px !important;
+          }
+          .ch-banner div[style*="display: flex"] {
+            gap: 16px !important;
+          }
+          .ch-banner div[style*="borderLeft"] {
+            padding-left: 16px !important;
+          }
+          .ch-list-head {
+            margin-bottom: 14px !important;
+          }
+          .ch-list-head h2 {
+            font-size: 15px !important;
+          }
+          .ch-main-grid {
+            grid-template-columns: 1fr !important;
+            gap: 16px !important;
+            padding-bottom: 20px !important;
+          }
+          .ch-aside-filter {
+            position: static !important;
+          }
+          .ch-kios-grid {
+            grid-template-columns: 1fr !important;
+            gap: 12px !important;
+          }
+          .ch-kios-card {
+            padding: 14px !important;
+            border-radius: 16px !important;
+          }
         }
       `}</style>
 
@@ -307,26 +426,16 @@ export default function CariHarga({ setActivePage, setSelectedKios }) {
         <div className="ch-container">
           <div className="ch-head">
             <div>
-              <div
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  backgroundColor: "#e2f5ea",
-                  padding: "6px 16px",
-                  borderRadius: "999px",
-                  marginBottom: "14px",
-                }}
-              >
+              <div className="ch-head-badge">
                 <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#2d6a4f" }}></span>
                 <span style={{ fontSize: "11px", fontWeight: "800", color: "#1b4332", letterSpacing: "0.05em" }}>
                   DINAS KETAHANAN PANGAN DAN PERTANIAN LAMONGAN
                 </span>
               </div>
-              <h1 style={{ fontSize: "2.5rem", fontWeight: "800", margin: 0, letterSpacing: "-0.03em", lineHeight: 1.15 }}>
+              <h1 className="ch-title">
                 Direktori &amp; Pantau Harga Kios Pangan
               </h1>
-              <p style={{ color: "#4a6550", margin: "14px 0 0 0", fontSize: "1rem", maxWidth: "620px", lineHeight: "1.6" }}>
+              <p className="ch-desc">
                 Akses data fluktuasi komoditas harian secara transparan langsung dari katalog pedagang pasar rakyat terdekat.
               </p>
             </div>
@@ -369,7 +478,7 @@ export default function CariHarga({ setActivePage, setSelectedKios }) {
                 <option value="Pasar Babat">Pasar Babat</option>
                 <option value="Pasar Sidoharjo">Pasar Sidoharjo</option>
                 <option value="Pasar Mantup">Pasar Mantup</option>
-                <option value="Pasar Blimbing Brondong">Pasar Blimbing Brondong</option>
+                <option value="Pasar Blimbing">Pasar Blimbing</option>
                 <option value="Pasar Sukodadi">Pasar Sukodadi</option>
                 <option value="Pasar Ngimbang">Pasar Ngimbang</option>
               </select>
@@ -386,23 +495,7 @@ export default function CariHarga({ setActivePage, setSelectedKios }) {
 
             <button
               onClick={handleTerapkanFilter}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "8px",
-                height: "48px",
-                padding: "0 28px",
-                backgroundColor: "#1b4332",
-                color: "#ffffff",
-                border: "none",
-                borderRadius: "999px",
-                fontWeight: "700",
-                fontSize: "14px",
-                fontFamily: "inherit",
-                cursor: "pointer",
-                whiteSpace: "nowrap",
-              }}
+              className="ch-btn-filter"
             >
               <span>Terapkan Filter</span>
               <ArrowRight size={15} />
@@ -453,6 +546,7 @@ export default function CariHarga({ setActivePage, setSelectedKios }) {
 
         <div className="ch-main-grid">
           <aside
+            className="ch-aside-filter"
             style={{
               backgroundColor: "#ffffff",
               padding: "24px",
@@ -572,16 +666,17 @@ export default function CariHarga({ setActivePage, setSelectedKios }) {
                   {currentKiosList.map((kios) => (
                     <div
                       key={kios.id}
+                      className="ch-kios-card"
                       style={{
                         backgroundColor: "#ffffff",
-                        borderRadius: "24px",
                         border: "1px solid #d8e2dc",
+                        borderRadius: "24px",
                         padding: "24px",
                         display: "flex",
                         flexDirection: "column",
                         justifyContent: "space-between",
-                        gap: "20px",
                         position: "relative",
+                        gap: "16px",
                       }}
                     >
                       <div>

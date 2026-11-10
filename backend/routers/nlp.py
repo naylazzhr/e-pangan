@@ -3,7 +3,7 @@ import tempfile
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
@@ -81,7 +81,7 @@ def parse_suara_lapangan(req: NLPParseRequest):
     menjalankan Pre-processing Teks (eliminasi filler words, normalisasi dialek daerah),
     dan memetakan nama komoditas, pedagang/kios, pasar rujukan, serta estimasi harga.
     """
-    result = nlp_parser.parse_suara_lapangan(req.transcript)
+    result = nlp_parser.parse_suara_lapangan(req.transcript, default_pasar=req.default_pasar)
     return result
 
 
@@ -97,7 +97,8 @@ def submit_suara_lapangan(
     PENTING: Data masuk ke antrean Validasi Lapangan dan BELUM dipublikasikan
     ke beranda user / master data sebelum diverifikasi oleh Satgas.
     """
-    parsed = nlp_parser.parse_suara_lapangan(req.transcript)
+    target_pasar = req.pasar or req.default_pasar
+    parsed = nlp_parser.parse_suara_lapangan(req.transcript, default_pasar=target_pasar)
     saved_records = []
 
     now_str = datetime.now().strftime("%H:%M WIB")
@@ -107,8 +108,8 @@ def submit_suara_lapangan(
         verif_status = "Menunggu Cek"
         admin_name = (current_admin.nama_lengkap if current_admin else None) or "Hendra Setiawan"
 
-        detected_kios = parsed.get("kios", "Kios Bu Siti")
-        detected_pasar = parsed.get("pasar", "Pasar Babat")
+        detected_kios = req.kios or parsed.get("kios", "Kios Bu Siti")
+        detected_pasar = req.pasar or parsed.get("pasar") or target_pasar or "Pasar Babat"
 
         entry = models.SurveiHarga(
             nama_komoditas=item["nama_komoditas"],
@@ -169,6 +170,7 @@ def submit_suara_lapangan(
 @router.post("/nlp/upload-suara")
 async def upload_suara_lapangan(
     file: UploadFile = File(..., description="File rekaman suara (MP3, WAV, OGG, M4A, WEBM)"),
+    default_pasar: Optional[str] = Form(None, description="Pilihan pasar dari formulir / dropdown"),
 ):
     """
     Endpoint Upload Rekaman Suara Lapangan (Speech-to-Text):
@@ -256,8 +258,10 @@ async def upload_suara_lapangan(
     if not transkrip:
         transkrip = "Ini dari pasar Gios Bu City harga kulat 1 kg 15.000 rupiah"
 
-    # Tahap 3 & 4: Pre-processing Teks & Ekstraksi NLP
-    parsed = nlp_parser.parse_suara_lapangan(transkrip)
+    # Tahap 3 & 4: Pre-processing Teks & Ekstraksi NLP (Memperhatikan default_pasar pilihan user)
+    parsed = nlp_parser.parse_suara_lapangan(transkrip, default_pasar=default_pasar)
+    final_pasar = parsed.get("pasar") or default_pasar or "Pasar Babat"
+    final_kios = parsed.get("kios") or "Kios Bu Siti"
 
     extracted_items = [
         {
@@ -265,8 +269,8 @@ async def upload_suara_lapangan(
             "nama_komoditas": it["nama_komoditas"],
             "harga": it["harga"],
             "satuan": it["satuan"],
-            "pasar": parsed.get("pasar", "Pasar Babat"),
-            "kios": parsed.get("kios", "Kios Bu Siti"),
+            "pasar": final_pasar,
+            "kios": final_kios,
             "status_het": it.get("status_het", "Sesuai HET"),
             "kategori": it.get("kategori", "BAHAN PANGAN SEGAR")
         }
@@ -289,14 +293,14 @@ async def upload_suara_lapangan(
         "filters_applied": noise_reduction_info.get("filters", "Highpass (180Hz) + Lowpass (3800Hz) + FFT De-Noise (afftdn) + Speech Normalizer"),
         "akurasi_nlp": parsed.get("akurasi", 98.4),
         "accuracy": f"{parsed.get('akurasi', 98.4)}%",
-        "pasar": parsed.get("pasar", "Pasar Babat"),
-        "kios": parsed.get("kios", "Kios Bu Siti"),
+        "pasar": final_pasar,
+        "kios": final_kios,
         "items": extracted_items,
         "extracted_data": {
             "transcript": transkrip,
             "transkrip_terproses": parsed.get("transkrip_terproses", transkrip),
-            "pasar": parsed.get("pasar", "Pasar Babat"),
-            "kios": parsed.get("kios", "Kios Bu Siti"),
+            "pasar": final_pasar,
+            "kios": final_kios,
             "items": extracted_items
         },
         "harga_terdeteksi": parsed.get("harga_terdeteksi", [])
@@ -306,6 +310,7 @@ async def upload_suara_lapangan(
 @router.post("/nlp/upload-submit-suara")
 async def upload_dan_submit_suara(
     file: UploadFile = File(..., description="File rekaman suara (MP3, WAV, OGG, M4A, WEBM)"),
+    default_pasar: Optional[str] = Form(None),
     current_admin: models.Admin = Depends(get_admin_sekarang_optional),
     db: Session = Depends(get_db)
 ):
@@ -382,12 +387,12 @@ async def upload_dan_submit_suara(
     if not transkrip:
         transkrip = "Ini dari pasar Gios Bu City harga kulat 1 kg 15.000 rupiah"
 
-    parsed = nlp_parser.parse_suara_lapangan(transkrip)
+    parsed = nlp_parser.parse_suara_lapangan(transkrip, default_pasar=default_pasar)
     saved_records = []
     now_str = datetime.now().strftime("%H:%M WIB")
 
     detected_kios = parsed.get("kios", "Kios Bu Siti")
-    detected_pasar = parsed.get("pasar", "Pasar Babat")
+    detected_pasar = parsed.get("pasar") or default_pasar or "Pasar Babat"
     admin_name = getattr(current_admin, "nama_lengkap", None) or getattr(current_admin, "username", "Petugas Enumerator")
 
     for item in parsed.get("items", []):

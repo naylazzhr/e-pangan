@@ -80,9 +80,9 @@ PASAR_LIST = [
     "Pasar Babat",
     "Pasar Sidoharjo",
     "Pasar Mantup",
-    "Pasar Blimbing Brondong",
+    "Pasar Blimbing",
     "Pasar Sukodadi",
-    "Pasar Ngimbang",
+    "Pasar Sendangrejo",
 ]
 
 # Kamus Komoditas Pangan Populer & Tradisional
@@ -541,7 +541,7 @@ def parse_generic_commodity_patterns(text: str) -> List[Dict[str, Any]]:
     return results
 
 
-def parse_suara_lapangan(transcript: str) -> Dict[str, Any]:
+def parse_suara_lapangan(transcript: str, default_pasar: Optional[str] = None) -> Dict[str, Any]:
     """
     Parser NLP Suara Lapangan Berbasis Model Bahasa Daerah Jawa Timur / Lamongan.
     Terintegrasi dengan Pipeline Pre-Processing Teks Otomatis.
@@ -551,12 +551,23 @@ def parse_suara_lapangan(transcript: str) -> Dict[str, Any]:
     normalized_text = preproc["normalized_text"]
     lower_text = normalized_text.lower()
 
-    # 2. Ekstraksi Pasar Resmi
-    detected_pasar = "Pasar Babat"  # Default rujukan resmi
-    for pasar in PASAR_LIST:
-        if pasar.lower() in lower_text:
-            detected_pasar = pasar
-            break
+    # 2. Ekstraksi Pasar Resmi (Mendeteksi pasar dari teks; jika tidak disebut, pakai default_pasar pilihan user)
+    detected_pasar = default_pasar or "Pasar Babat"
+    
+    if "babat" in lower_text:
+        detected_pasar = "Pasar Babat"
+    elif "sidoharjo" in lower_text or "sidoarjo" in lower_text:
+        detected_pasar = "Pasar Sidoharjo"
+    elif "mantup" in lower_text:
+        detected_pasar = "Pasar Mantup"
+    elif "blimbing" in lower_text or "brondong" in lower_text:
+        detected_pasar = "Pasar Blimbing"
+    elif "sukodadi" in lower_text:
+        detected_pasar = "Pasar Sukodadi"
+    elif "ngimbang" in lower_text or "sendangrejo" in lower_text:
+        detected_pasar = "Pasar Sendangrejo"
+    elif default_pasar:
+        detected_pasar = default_pasar
 
     # 3. Ekstraksi Nama Kios / Stan (Toleran terhadap fonetik STT & dialek pasar)
     detected_kios = "Kios Makmur"  # Default

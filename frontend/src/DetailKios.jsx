@@ -124,9 +124,9 @@ export default function DetailKios({ kios, onBack }) {
       <style>{`
         .dk-container {
           width: 100%;
-          max-width: 1750px;
+          max-width: 1240px;
           margin: 0 auto;
-          padding: 0 3rem;
+          padding: 0 1.5rem 3rem;
           box-sizing: border-box;
         }
         .dk-hero {
@@ -159,11 +159,37 @@ export default function DetailKios({ kios, onBack }) {
           grid-template-columns: repeat(2, 1fr);
           gap: 16px;
         }
+        .dk-title {
+          font-size: 2.3rem;
+          font-weight: 800;
+          margin: 0;
+          letter-spacing: -0.03em;
+          line-height: 1.15;
+        }
         @media (max-width: 900px) {
-          .dk-container { padding: 0 1.25rem; }
-          .dk-hero-grid { flex-direction: column; align-items: flex-start; }
-          .dk-main-grid { grid-template-columns: 1fr; }
-          .dk-product-grid { grid-template-columns: 1fr; }
+          .dk-container { padding: 0 14px !important; }
+          .dk-hero { padding: 18px 0 24px !important; margin-bottom: 18px !important; }
+          .dk-topbar { margin-bottom: 16px !important; flex-direction: row !important; }
+          .dk-hero-grid { flex-direction: column !important; align-items: flex-start !important; gap: 14px !important; }
+          .dk-title { font-size: 1.35rem !important; line-height: 1.25 !important; }
+          .dk-main-grid { grid-template-columns: 1fr !important; gap: 16px !important; }
+          .dk-product-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
+        }
+        @media (max-width: 768px) {
+          .dk-container { padding: 0 12px !important; }
+          .dk-hero { padding: 14px 0 20px !important; margin-bottom: 14px !important; }
+          .dk-topbar {
+            flex-direction: row !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            gap: 8px !important;
+            margin-bottom: 12px !important;
+            flex-wrap: wrap !important;
+          }
+          .dk-title { font-size: 1.2rem !important; }
+          .dk-hero-grid { flex-direction: column !important; align-items: stretch !important; gap: 12px !important; }
+          .dk-main-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
+          .dk-product-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
         }
       `}</style>
 
@@ -179,10 +205,10 @@ export default function DetailKios({ kios, onBack }) {
                 gap: "8px",
                 backgroundColor: "#ffffff",
                 border: "1px solid #d8e2dc",
-                padding: "10px 20px",
+                padding: "8px 18px",
                 borderRadius: "999px",
                 fontWeight: "700",
-                fontSize: "13.5px",
+                fontSize: "13px",
                 fontFamily: "inherit",
                 cursor: "pointer",
                 color: "#1b4332",
@@ -190,26 +216,26 @@ export default function DetailKios({ kios, onBack }) {
             >
               <ArrowLeft size={16} /> Kembali ke Direktori
             </button>
-            <span style={{ fontSize: "13px", color: "#4a6550", fontWeight: "600" }}>
-              Update data terakhir: <strong style={{ color: "#112216" }}>{dataKios.terakhirDiupdate}</strong>
+            <span style={{ fontSize: "12px", color: "#4a6550", fontWeight: "600" }}>
+              Update data: <strong style={{ color: "#112216" }}>{dataKios.terakhirDiupdate}</strong>
             </span>
           </div>
 
           <div className="dk-hero-grid">
             <div>
-              <div style={{ display: "flex", gap: "10px", marginBottom: "14px", flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: "10px", marginBottom: "12px", flexWrap: "wrap" }}>
                 <div
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
                     gap: "8px",
                     backgroundColor: "#e2f5ea",
-                    padding: "6px 16px",
+                    padding: "4px 12px",
                     borderRadius: "999px",
                   }}
                 >
                   <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#2d6a4f" }}></span>
-                  <span style={{ fontSize: "11px", fontWeight: "800", color: "#1b4332", letterSpacing: "0.05em", textTransform: "uppercase" }}>
+                  <span style={{ fontSize: "10.5px", fontWeight: "800", color: "#1b4332", letterSpacing: "0.05em", textTransform: "uppercase" }}>
                     {dataKios.statusIzin}
                   </span>
                 </div>
@@ -219,17 +245,17 @@ export default function DetailKios({ kios, onBack }) {
                     alignItems: "center",
                     gap: "6px",
                     backgroundColor: "#ffffff",
-                    padding: "6px 16px",
+                    padding: "4px 12px",
                     borderRadius: "999px",
                   }}
                 >
                   <MapPin size={12} color="#2d6a4f" />
-                  <span style={{ fontSize: "11px", fontWeight: "800", color: "#1b4332", letterSpacing: "0.05em", textTransform: "uppercase" }}>
+                  <span style={{ fontSize: "10.5px", fontWeight: "800", color: "#1b4332", letterSpacing: "0.05em", textTransform: "uppercase" }}>
                     {dataKios.pasar}
                   </span>
                 </div>
               </div>
-              <h1 style={{ fontSize: "2.5rem", fontWeight: "800", margin: 0, letterSpacing: "-0.03em", lineHeight: 1.15 }}>
+              <h1 className="dk-title">
                 {dataKios.nama}
               </h1>
             </div>

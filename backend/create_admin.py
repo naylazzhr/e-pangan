@@ -16,7 +16,7 @@ def hash_password(password: str) -> str:
 DAFTAR_ADMIN = [
     {
         "nama_lengkap": "Intan Permatasari",
-        "username": "intan_permatasari",
+        "username": "intan",
         "email": "intan@lamongankab",
         "nip": "19850412 201001 1014",
         "jabatan": "Petugas Enumerator",
@@ -26,7 +26,7 @@ DAFTAR_ADMIN = [
     },
     {
         "nama_lengkap": "Nayla Santika",
-        "username": "nayla_santika",
+        "username": "nayla",
         "email": "nayla@lamongankab",
         "nip": "19820516 200801 1 009",
         "jabatan": "Surveyor Supervisor / Admin DKPP",

@@ -4,8 +4,9 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
-# Memuat konfigurasi dari file .env
-load_dotenv()
+# Memuat konfigurasi dari file .env (jalur absolut ke folder backend)
+env_path = os.path.join(os.path.dirname(__file__), ".env")
+load_dotenv(dotenv_path=env_path)
 
 # URL Koneksi Database (Default ke SQLite lokal jika tidak disetel)
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./epangan.db")

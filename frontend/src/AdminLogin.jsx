@@ -390,17 +390,49 @@ export default function AdminLogin({ setActivePage, showToast }) {
                     z-index: 10;
                 }
 
-                @media (max-width: 480px) {
+                @media (max-width: 768px) {
+                    .epangan-login-page {
+                        padding: 32px 16px;
+                    }
                     .epangan-stepped-card-container {
-                        max-width: 92vw;
+                        max-width: 100%;
+                        margin-top: 20px;
                     }
                     .epangan-form-card {
-                        padding: 50px 20px 22px 20px;
                         border-radius: 28px;
+                        padding: 54px 20px 24px 20px;
+                    }
+                    .epangan-input-box {
+                        height: 48px;
+                    }
+                    .epangan-input-field {
+                        font-size: 16px !important;
                     }
                     .epangan-stepped-btn {
-                        width: 82%;
+                        width: 80%;
                         height: 48px;
+                        font-size: 13px;
+                    }
+                    .epangan-glow-1 {
+                        width: 300px;
+                        height: 300px;
+                    }
+                    .epangan-glow-2 {
+                        width: 320px;
+                        height: 320px;
+                    }
+                }
+                @media (max-width: 480px) {
+                    .epangan-stepped-card-container {
+                        max-width: 96vw;
+                    }
+                    .epangan-form-card {
+                        padding: 50px 18px 20px 18px;
+                        border-radius: 24px;
+                    }
+                    .epangan-stepped-btn {
+                        width: 84%;
+                        height: 46px;
                     }
                 }
             `}</style>

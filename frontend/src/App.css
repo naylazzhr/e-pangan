@@ -1278,24 +1278,361 @@ body {
   }
 }
 
+/* =========================================================
+   ADMIN DASHBOARD LAYOUT & RESPONSIVE MOBILE SYSTEM
+   ========================================================= */
+.admin-dashboard-container {
+  display: flex;
+  height: 100vh;
+  max-height: 100vh;
+  overflow: hidden;
+  background-color: #f3f6f4;
+  position: relative;
+}
+
+.admin-sidebar {
+  width: 280px;
+  height: 100vh;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background-color: #ffffff;
+  border-right: 1px solid #d2ded7;
+  padding: 24px 18px;
+  box-sizing: border-box;
+  overflow-y: auto;
+  z-index: 999;
+}
+
+.admin-main-wrapper {
+  flex: 1;
+  height: 100vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  scroll-behavior: smooth;
+}
+
+/* NAVBAR ATAS DESKTOP */
+.admin-topbar {
+  min-height: 80px;
+  height: 80px;
+  flex-shrink: 0;
+  background-color: #ffffff;
+  border-bottom: 1px solid #d2ded7;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  box-sizing: border-box;
+}
+
+.admin-hamburger-btn {
+  display: none;
+  background: #f2f7f4;
+  border: 1px solid #d2ded7;
+  border-radius: 12px;
+  width: 42px;
+  height: 42px;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #1b4332;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.admin-mobile-brand {
+  display: none;
+  align-items: center;
+  cursor: pointer;
+}
+
+.admin-status-badge {
+  background-color: #eef8f2;
+  color: #1b4332;
+  padding: 9px 18px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 800;
+  border: 1px solid #b7efc5;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  letter-spacing: 0.2px;
+}
+
+.admin-refresh-btn {
+  background-color: #f2f7f4;
+  border: 1px solid #d2ded7;
+  padding: 9px 18px;
+  border-radius: 99px;
+  color: #1b4332;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  transition: all 0.2s;
+}
+
+.admin-notif-btn {
+  background-color: #f2f7f4;
+  border: 1px solid #d2ded7;
+  border-radius: 50%;
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #1b4332;
+  position: relative;
+  transition: all 0.2s;
+}
+
+.admin-notif-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 16px;
+  height: 16px;
+  background-color: #ef4444;
+  color: #fff;
+  border-radius: 50%;
+  font-size: 9px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #fff;
+}
+
+.admin-user-pill {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-left: 1px solid #d2ded7;
+  padding-left: 16px;
+}
+
+.admin-user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #1b4332;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 15px;
+  border: 2px solid #b7efc5;
+  flex-shrink: 0;
+}
+
+.admin-user-name {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #0f1d14;
+  line-height: 1.2;
+}
+
+.admin-user-role {
+  font-size: 11px;
+  color: #4e6754;
+  font-weight: 600;
+}
+
+/* KONTEN AREA DESKTOP */
+.admin-content-area {
+  padding: 32px 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.admin-profile-banner {
+  background-color: #ffffff;
+  border-radius: 24px;
+  padding: 28px 32px;
+  border: 1px solid #d2ded7;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 18px;
+  box-shadow: 0 4px 20px rgba(27,67,50,0.04);
+}
+
+.admin-banner-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  background-color: #f2f7f4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #d2ded7;
+  flex-shrink: 0;
+}
+
+.admin-banner-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f1d14;
+  margin: 0;
+}
+
+.admin-ringkasan-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 18px;
+}
+
+.admin-stat-card {
+  background-color: #ffffff;
+  padding: 22px 24px;
+  border-radius: 20px;
+  border: 1px solid #d2ded7;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(27,67,50,0.04);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.admin-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(27,67,50,0.08);
+}
+
+.admin-stat-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+
+.admin-stat-value {
+  font-size: 30px;
+  font-weight: 800;
+  color: #0f1d14;
+  margin-top: 8px;
+}
+
+.admin-card-section {
+  background-color: #ffffff;
+  border-radius: 24px;
+  border: 1px solid #d2ded7;
+  padding: 28px 32px;
+  box-shadow: 0 4px 20px rgba(27,67,50,0.04);
+}
+
+.admin-section-title {
+  font-size: 19px;
+  font-weight: 800;
+  color: #0f1d14;
+  margin: 0;
+}
+
+.admin-tabel-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+}
+
+.admin-kios-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 18px;
+}
+
+.admin-kios-card {
+  padding: 22px;
+  border-radius: 20px;
+  border: 1px solid #d2ded7;
+  background-color: #ffffff;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.nlp-upload-card {
+  background-color: #ffffff;
+  border-radius: 24px;
+  border: 1px solid #d2ded7;
+  padding: 32px;
+  box-shadow: 0 4px 20px rgba(27,67,50,0.04);
+}
+
+.admin-sidebar::-webkit-scrollbar,
+.admin-main-wrapper::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.admin-sidebar::-webkit-scrollbar-track,
+.admin-main-wrapper::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.admin-sidebar::-webkit-scrollbar-thumb,
+.admin-main-wrapper::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.admin-sidebar::-webkit-scrollbar-thumb:hover,
+.admin-main-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* =========================================================
+   MEDIA QUERY MOBILE: KHUSUS LAYAR HP & TABLET (< 900px)
+   ========================================================= */
 @media (max-width: 900px) {
+  /* Sidebar Drawer Mobile */
   .admin-sidebar {
     position: fixed !important;
-    left: -320px;
-    top: 0;
-    transition: left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.25) !important;
+    left: -320px !important;
+    top: 0 !important;
+    width: 290px !important;
+    max-width: 85vw !important;
+    height: 100vh !important;
+    transition: left 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    box-shadow: 4px 0 32px rgba(0, 0, 0, 0.3) !important;
+    z-index: 9999 !important;
   }
 
   .admin-sidebar.mobile-open {
     left: 0 !important;
   }
 
-  .admin-hamburger-btn {
+  .mobile-close-sidebar-btn {
     display: flex !important;
   }
 
-  .mobile-close-sidebar-btn {
+  /* Navbar Atas HP */
+  .admin-topbar {
+    min-height: 60px !important;
+    height: 60px !important;
+    padding: 0 14px !important;
+  }
+
+  .admin-hamburger-btn {
+    display: flex !important;
+    width: 38px !important;
+    height: 38px !important;
+    padding: 6px !important;
+  }
+
+  .admin-mobile-brand {
     display: flex !important;
   }
 
@@ -1303,27 +1640,162 @@ body {
     display: none !important;
   }
 
+  .admin-refresh-text,
   .admin-sync-time {
     display: none !important;
   }
 
+  .admin-refresh-btn {
+    padding: 8px !important;
+    border-radius: 50% !important;
+    width: 38px !important;
+    height: 38px !important;
+    justify-content: center !important;
+  }
+
+  .admin-notif-btn {
+    width: 38px !important;
+    height: 38px !important;
+  }
+
+  .admin-user-pill {
+    padding-left: 10px !important;
+    gap: 8px !important;
+  }
+
+  .admin-user-avatar {
+    width: 34px !important;
+    height: 34px !important;
+    font-size: 13px !important;
+  }
+
+  .admin-user-text {
+    display: none !important;
+  }
+
+  .admin-notif-panel {
+    position: fixed !important;
+    top: 60px !important;
+    right: 8px !important;
+    left: 8px !important;
+    width: auto !important;
+    max-width: 100% !important;
+    border-radius: 16px !important;
+    z-index: 99999 !important;
+  }
+
+  /* Konten HP - Mengecil Proporsional Sesuai Ukuran HP */
   .admin-content-area {
-    padding: 20px 16px !important;
+    padding: 12px 10px !important;
+    gap: 12px !important;
   }
 
   .admin-profile-banner {
-    padding: 20px !important;
-    border-radius: 20px !important;
+    padding: 14px 12px !important;
+    border-radius: 16px !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
   }
 
-  .admin-topbar {
-    padding: 0 16px !important;
-    height: 70px !important;
+  .admin-banner-avatar {
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 12px !important;
+  }
+
+  .admin-banner-avatar svg {
+    width: 22px !important;
+    height: 22px !important;
+  }
+
+  .admin-banner-title {
+    font-size: 15px !important;
+  }
+
+  .admin-export-btn {
+    width: 100% !important;
+    justify-content: center !important;
+    padding: 9px 14px !important;
+    font-size: 12px !important;
+  }
+
+  /* Ringkasan Grid HP: 1 Kolom atau 2 Kolom Ringkas */
+  .admin-ringkasan-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+
+  .admin-stat-card {
+    padding: 12px !important;
+    border-radius: 14px !important;
+  }
+
+  .admin-stat-label {
+    font-size: 9.5px !important;
+  }
+
+  .admin-stat-value {
+    font-size: 19px !important;
+    margin-top: 4px !important;
+  }
+
+  .admin-stat-value span {
+    font-size: 11px !important;
+  }
+
+  /* Kartu Bagian & Tabel HP */
+  .admin-card-section {
+    padding: 14px 12px !important;
+    border-radius: 16px !important;
+  }
+
+  .admin-section-title {
+    font-size: 15px !important;
+  }
+
+  .admin-tabel-wrap table {
+    min-width: 520px !important;
+    font-size: 11.5px !important;
+  }
+
+  .admin-tabel-wrap th,
+  .admin-tabel-wrap td {
+    padding: 10px 8px !important;
+  }
+
+  /* Kios Grid HP */
+  .admin-kios-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  .admin-kios-card {
+    padding: 14px 12px !important;
+    border-radius: 16px !important;
+  }
+
+  .nlp-upload-card {
+    padding: 14px 12px !important;
+    border-radius: 16px !important;
+  }
+
+  /* Modals Mobile */
+  .admin-modal-overlay {
+    padding: 8px !important;
+  }
+
+  .admin-modal-card {
+    max-width: 96vw !important;
+    max-height: 92vh !important;
+    padding: 16px 14px !important;
+    border-radius: 18px !important;
+    overflow-y: auto !important;
   }
 }
 
 @media (max-width: 480px) {
-  .commodity-grid-5-full {
+  .admin-ringkasan-grid {
     grid-template-columns: 1fr !important;
   }
 }

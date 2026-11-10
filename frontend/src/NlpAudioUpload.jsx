@@ -3,6 +3,7 @@ import { CloudUpload, Music, CheckCircle2, Loader2, AlertCircle, Volume2, Sparkl
 
 export default function NlpAudioUpload({ onSuccessSave, showToast, onNavigateTab }) {
     const [selectedFile, setSelectedFile] = useState(null);
+    const [selectedPasar, setSelectedPasar] = useState("Pasar Babat");
     const [isLoading, setIsLoading] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [isSaved, setIsSaved] = useState(false);
@@ -10,6 +11,15 @@ export default function NlpAudioUpload({ onSuccessSave, showToast, onNavigateTab
     const [errorMsg, setErrorMsg] = useState("");
     const [isDragOver, setIsDragOver] = useState(false);
     const fileInputRef = useRef(null);
+
+    const PASAR_OPTIONS = [
+        "Pasar Babat",
+        "Pasar Sidoharjo",
+        "Pasar Mantup",
+        "Pasar Blimbing",
+        "Pasar Sukodadi",
+        "Pasar Sendangrejo",
+    ];
 
     // Endpoint API Lokal E-Pangan
     const BACKEND_NLP_URL = "/api/nlp/upload-suara";
@@ -53,6 +63,7 @@ export default function NlpAudioUpload({ onSuccessSave, showToast, onNavigateTab
 
         const formData = new FormData();
         formData.append("file", selectedFile);
+        formData.append("default_pasar", selectedPasar);
 
         try {
             const token = localStorage.getItem("epangan_token");
@@ -86,6 +97,9 @@ export default function NlpAudioUpload({ onSuccessSave, showToast, onNavigateTab
         try {
             const token = localStorage.getItem("epangan_token");
             const transcriptText = nlpResult.transkrip_terproses || nlpResult.transcript || nlpResult.transkrip || "";
+            const targetPasar = nlpResult.pasar || selectedPasar;
+            const targetKios = nlpResult.kios || "Kios Bu Siti";
+
             const response = await fetch(BACKEND_SAVE_URL, {
                 method: "POST",
                 headers: {
@@ -94,6 +108,9 @@ export default function NlpAudioUpload({ onSuccessSave, showToast, onNavigateTab
                 },
                 body: JSON.stringify({
                     transcript: transcriptText,
+                    default_pasar: targetPasar,
+                    pasar: targetPasar,
+                    kios: targetKios,
                     simpan_langsung: true,
                 }),
             });
@@ -122,7 +139,7 @@ export default function NlpAudioUpload({ onSuccessSave, showToast, onNavigateTab
     };
 
     return (
-        <div style={{ backgroundColor: "#ffffff", borderRadius: "28px", border: "1px solid #d2ded7", padding: "36px", boxShadow: "0 4px 20px rgba(27,67,50,0.05)" }}>
+        <div className="nlp-upload-card" style={{ backgroundColor: "#ffffff", border: "1px solid #d2ded7", boxShadow: "0 4px 20px rgba(27,67,50,0.05)" }}>
 
             {/* Label Badge Header */}
             <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px", flexWrap: "wrap" }}>
@@ -147,6 +164,59 @@ export default function NlpAudioUpload({ onSuccessSave, showToast, onNavigateTab
                 <p style={{ fontSize: "13.5px", color: "#4e6754", margin: 0, fontWeight: "600", lineHeight: "1.5" }}>
                     Unggah file rekaman percakapan (.mp3, .wav, .m4a). Dilengkapi fitur <strong>Noise Reduction</strong> untuk menyaring derau keramaian pasar serta <strong>Pre-processing Teks</strong> otomatis untuk mendeteksi harga dan komoditas secara akurat.
                 </p>
+            </div>
+
+            {/* Pilihan Titik Pasar Rujukan Pemantauan */}
+            <div style={{
+                backgroundColor: "#f4f8f5",
+                border: "1px solid #b7efc5",
+                borderRadius: "20px",
+                padding: "16px 22px",
+                marginBottom: "20px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                flexWrap: "wrap",
+                gap: "14px"
+            }}>
+                <div>
+                    <label style={{ display: "block", fontSize: "13px", fontWeight: "800", color: "#1b4332", marginBottom: "4px" }}>
+                        📍 Titik Pasar Pemantauan (Pilihan Awal):
+                    </label>
+                    <span style={{ fontSize: "12px", color: "#4e6754", fontWeight: "600" }}>
+                        Pilih pasar tempat Anda menyurvei agar sistem tidak salah menebak jika rekaman suara tidak menyebutkan nama pasarnya.
+                    </span>
+                </div>
+                <select
+                    value={selectedPasar}
+                    onChange={(e) => {
+                        const val = e.target.value;
+                        setSelectedPasar(val);
+                        if (nlpResult) {
+                            setNlpResult(prev => ({
+                                ...prev,
+                                pasar: val,
+                                items: (prev.items || []).map(it => ({ ...it, pasar: val }))
+                            }));
+                        }
+                    }}
+                    style={{
+                        padding: "10px 18px",
+                        borderRadius: "99px",
+                        border: "1.5px solid #2d6a4f",
+                        backgroundColor: "#ffffff",
+                        color: "#1b4332",
+                        fontSize: "13px",
+                        fontWeight: "800",
+                        outline: "none",
+                        cursor: "pointer",
+                        boxShadow: "0 2px 8px rgba(45,106,79,0.1)"
+                    }}
+                >
+                    {PASAR_OPTIONS.map((p) => (
+                        <option key={p} value={p}>{p}</option>
+                    ))}
+                </select>
             </div>
 
             {/* Drag & Drop File Area */}
@@ -327,10 +397,37 @@ export default function NlpAudioUpload({ onSuccessSave, showToast, onNavigateTab
                                                     </td>
                                                     <td style={{ padding: "10px 14px", fontWeight: "600", color: "#4e6754" }}>{item.satuan}</td>
                                                     <td style={{ padding: "10px 14px", color: "#4e6754", fontWeight: "600" }}>
-                                                        {item.pasar || nlpResult.pasar}
+                                                        <select
+                                                            value={item.pasar || nlpResult.pasar || selectedPasar}
+                                                            onChange={(e) => {
+                                                                const newP = e.target.value;
+                                                                setNlpResult(prev => ({
+                                                                    ...prev,
+                                                                    pasar: newP,
+                                                                    items: (prev.items || []).map((it, i) => i === idx ? { ...it, pasar: newP } : it)
+                                                                }));
+                                                            }}
+                                                            style={{
+                                                                padding: "4px 8px",
+                                                                borderRadius: "8px",
+                                                                border: "1px solid #b7efc5",
+                                                                backgroundColor: "#f4f8f5",
+                                                                fontSize: "12px",
+                                                                fontWeight: "700",
+                                                                color: "#1b4332",
+                                                                cursor: "pointer",
+                                                                outline: "none",
+                                                                display: "block",
+                                                                marginBottom: "4px"
+                                                            }}
+                                                        >
+                                                            {PASAR_OPTIONS.map((p) => (
+                                                                <option key={p} value={p}>{p}</option>
+                                                            ))}
+                                                        </select>
                                                         {(item.kios || nlpResult.kios) && (
                                                             <div style={{ fontSize: "11px", color: "#0f1d14", fontWeight: "700" }}>
-                                                                {item.kios || nlpResult.kios}
+                                                                🏪 {item.kios || nlpResult.kios}
                                                             </div>
                                                         )}
                                                     </td>

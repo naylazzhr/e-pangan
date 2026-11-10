@@ -8,7 +8,6 @@ import {
   RefreshCw,
   AlertCircle,
   Search,
-  Zap,
   Award,
   X,
   Check,
@@ -48,7 +47,6 @@ export default function KomparasiPasar() {
   const [selectedPasar, setSelectedPasar] = useState([]);
   const [sortCol, setSortCol] = useState(null);
   const [sortDir, setSortDir] = useState("asc");
-  const [savedItems, setSavedItems] = useState([]);
 
   const [data, setData] = useState([]);
   const [pasarList, setPasarList] = useState([]);
@@ -113,10 +111,6 @@ export default function KomparasiPasar() {
     }
   };
 
-  const toggleSimulasiItem = (id) => {
-    setSavedItems((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]));
-  };
-
   const handleExport = () => {
     if (!data.length) return;
     const visiblePasar = pasarList.filter((p) => selectedPasar.includes(p));
@@ -138,9 +132,6 @@ export default function KomparasiPasar() {
 
   const activePasarList = pasarList.filter((p) => selectedPasar.includes(p));
   const colCount = activePasarList.length + 2;
-  const totalSimulasiHemat = data
-    .filter((r) => savedItems.includes(r.id))
-    .reduce((acc, r) => acc + (r.selisih || 0), 0);
 
   return (
     <div
@@ -155,9 +146,9 @@ export default function KomparasiPasar() {
       <style>{`
         .kp-container {
           width: 100%;
-          max-width: 1750px;
+          max-width: 1240px;
           margin: 0 auto;
-          padding: 0 3rem;
+          padding: 0 1.5rem 3rem;
           box-sizing: border-box;
         }
         .kp-head {
@@ -275,26 +266,25 @@ export default function KomparasiPasar() {
           background: #fef2f2;
         }
         .kp-sticky {
-          position: sticky;
-          left: 0;
-          z-index: 5;
-          background: #ffffff !important;
-          border-right: 2px solid #d8e2dc;
-          min-width: 155px;
-          max-width: 175px;
-          white-space: normal !important;
-          word-break: normal !important;
-          box-shadow: 3px 0 8px rgba(0,0,0,0.05);
+          position: static;
+          background: transparent !important;
+          border-right: 1px solid #e6eee9;
+          min-width: 260px;
+          max-width: none;
+          white-space: nowrap !important;
+          box-shadow: none;
         }
         .kp-table th.kp-sticky {
           background: #f4f8f5 !important;
-          z-index: 6;
+          border-right: 1px solid #d8e2dc;
+          box-shadow: none;
+          z-index: 1;
         }
         .kp-row:hover td.kp-sticky {
           background: #f4f8f5 !important;
         }
         .kp-col-pasar {
-          min-width: 115px !important;
+          min-width: 125px !important;
           white-space: nowrap !important;
           text-align: right;
         }
@@ -314,18 +304,34 @@ export default function KomparasiPasar() {
         }
         @media (max-width: 768px) {
           .kp-container { padding: 0 1rem; }
+          .kp-sticky {
+            position: sticky !important;
+            left: 0 !important;
+            z-index: 5 !important;
+            background: #ffffff !important;
+            border-right: 2px solid #d8e2dc !important;
+            min-width: 160px !important;
+            max-width: 180px !important;
+            white-space: normal !important;
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.06) !important;
+          }
+          .kp-table th.kp-sticky {
+            background: #f4f8f5 !important;
+            z-index: 6 !important;
+          }
           .kp-head {
             flex-direction: column;
             align-items: flex-start;
-            padding: 20px 0 16px;
-            gap: 8px;
+            padding: 16px 0 12px;
+            gap: 6px;
           }
           .kp-head h1 {
-            font-size: 1.55rem !important;
-            line-height: 1.2 !important;
+            font-size: 1.35rem !important;
+            line-height: 1.25 !important;
           }
           .kp-head p {
-            font-size: 12.5px !important;
+            font-size: 12px !important;
+            margin-top: 4px !important;
           }
           .kp-summary-grid {
             grid-template-columns: repeat(2, 1fr) !important;
@@ -462,20 +468,7 @@ export default function KomparasiPasar() {
             </p>
           </div>
 
-          <div className="kp-card kp-card-dark">
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12 }}>
-              <div>
-                <p style={{ ...labelStyle, color: "#74c69d" }}>Simulasi Hemat Saya</p>
-                <h3 style={{ fontSize: "1.25rem", fontWeight: "800", margin: 0 }}>{formatRp(totalSimulasiHemat)}</h3>
-              </div>
-              <div className="kp-icon-bubble"><Zap size={20} /></div>
-            </div>
-            <p style={{ margin: "14px 0 0", fontSize: "12px", color: "#d8f3dc", fontWeight: "600" }}>
-              {savedItems.length === 0
-                ? "Centang komoditas di tabel untuk menghitung hemat"
-                : `${savedItems.length} komoditas dipilih`}
-            </p>
-          </div>
+
         </div>
 
         {/* FILTER */}
@@ -663,24 +656,14 @@ export default function KomparasiPasar() {
                         const visibleVals = activePasarList.map((p) => prices[p]).filter((v) => v != null);
                         const minVal = visibleVals.length ? Math.min(...visibleVals) : 0;
                         const maxVal = visibleVals.length ? Math.max(...visibleVals) : 0;
-                        const isSaved = savedItems.includes(row.id);
 
                         return (
                           <tr key={row.id} className="kp-row">
                             <td className="kp-sticky">
-                              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                                <input
-                                  type="checkbox"
-                                  checked={isSaved}
-                                  onChange={() => toggleSimulasiItem(row.id)}
-                                  title="Masukkan ke simulasi hemat"
-                                  style={{ width: 17, height: 17, cursor: "pointer", accentColor: "#2d6a4f", flexShrink: 0 }}
-                                />
-                                <div>
-                                  <div style={{ fontWeight: "800", fontSize: "13px", lineHeight: "1.25" }}>{row.komoditas}</div>
-                                  <div style={{ fontSize: "11px", color: "#4a6550", fontWeight: "600", marginTop: 2 }}>
-                                    {row.kategori} · per {row.satuan}
-                                  </div>
+                              <div>
+                                <div style={{ fontWeight: "800", fontSize: "13px", lineHeight: "1.25" }}>{row.komoditas}</div>
+                                <div style={{ fontSize: "11px", color: "#4a6550", fontWeight: "600", marginTop: 2 }}>
+                                  {row.kategori} · per {row.satuan}
                                 </div>
                               </div>
                             </td>

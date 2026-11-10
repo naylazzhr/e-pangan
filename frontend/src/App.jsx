@@ -1,14 +1,16 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import "./App.css";
 import "./GroceryTheme.css";
+import "./mobile.css";
 import Navbar from "./Navbar";
+import BottomNav from "./BottomNav";
 import SmartBudgetting from "./SmartBudgetting";
 import AdminLogin from "./AdminLogin";
 import AdminDashboard from "./AdminDashboard";
 import CariHarga from "./CariHarga";
 import KomparasiPasar from "./KomparasiPasar";
 import DetailKios from "./DetailKios";
-import { getKomoditas, getPasar, getKomparasiPasar, getTrenHarga, isLoggedIn, getCurrentUser } from "./api";
+import { getKomoditas, getPasar, getKomparasiPasar, getTrenHarga, isLoggedIn, getCurrentUser, getCustomPhotos } from "./api";
 import heroVegetables from "./assets/hero-vegetables.jpg";
 
 // -----------------------------------------------------------------
@@ -26,6 +28,10 @@ import fotoTelurAyam from "./assets/telurAyam.jpeg";
 import fotoIkanSegar from "./assets/ikanSegar.jpeg";
 import fotoMinyakGoreng from "./assets/minyakGoreng.jpeg";
 import fotoGulaPasar from "./assets/gulaPasir.jpeg";
+import fotoGulaAren from "./assets/gulaAren.jpeg";
+import fotoJagung from "./assets/jagung.jpeg";
+import fotoKedelai from "./assets/kedelai.jpeg";
+import fotoJamur from "./assets/jamur.jpeg";
 import fotoTepungTerigu from "./assets/tepungTerigu.jpeg";
 
 import {
@@ -52,22 +58,36 @@ const CATEGORIES = [
 ];
 
 // Fungsi pemetaan gambar terpisah untuk tiap jenis komoditas
-function getKomoditasImage(namaBahan, apiImage) {
-  if (apiImage && (apiImage.startsWith("http") || apiImage.startsWith("/static"))) {
+export function getKomoditasImage(namaBahan, apiImage, customPhotosMap = {}) {
+  const cleanName = (namaBahan || "").toLowerCase().trim();
+
+  // 0. Prioritaskan Foto Kustom yang Diatur Admin (Tanpa perlu ngoding)
+  if (customPhotosMap && typeof customPhotosMap === "object") {
+    if (customPhotosMap[cleanName]) {
+      return customPhotosMap[cleanName];
+    }
+    for (const [key, url] of Object.entries(customPhotosMap)) {
+      if (key && url && (cleanName.includes(key) || key.includes(cleanName))) {
+        return url;
+      }
+    }
+  }
+
+  if (apiImage && (apiImage.startsWith("http") || apiImage.startsWith("/static") || apiImage.startsWith("/uploads") || apiImage.startsWith("data:"))) {
     return apiImage;
   }
 
-  const nama = (namaBahan || "").toLowerCase().trim();
+  const nama = cleanName;
 
   // 1. Bawang Merah & Putih Sendiri-sendiri
   if (nama.includes("bawang merah")) return fotoBawangMerah;
   if (nama.includes("bawang putih") || nama.includes("bawang bombay")) return fotoBawangPutih;
 
   // 2. Beras Premium & Beras Medium Sendiri-sendiri
-  if (nama.includes("beras premium") || nama.includes("rojolele") || nama.includes("kepala")) {
+  if (nama.includes("beras premium") || nama.includes("rojolele") || nama.includes("kepala") || nama.includes("mentik")) {
     return fotoBerasPremium;
   }
-  if (nama.includes("beras") || nama.includes("medium") || nama.includes("sphp") || nama.includes("ir-64") || nama.includes("padi")) {
+  if (nama.includes("beras") || nama.includes("medium") || nama.includes("sphp") || nama.includes("ir-64") || nama.includes("ir 64") || nama.includes("padi")) {
     return fotoBerasMedium;
   }
 
@@ -75,16 +95,22 @@ function getKomoditasImage(namaBahan, apiImage) {
   if (nama.includes("rawit")) return fotoCabaiRawit;
   if (nama.includes("cabai") || nama.includes("cabe")) return fotoCabaiKeriting;
 
-  // 4. Protein (Ayam, Sapi, Telur, Ikan) Sendiri-sendiri
+  // 4. Protein (Ayam, Sapi, Telur, Ikan) — telur HARUS dicek SEBELUM ayam
+  if (nama.includes("telur")) return fotoTelurAyam;
   if (nama.includes("ayam")) return fotoDagingAyam;
   if (nama.includes("sapi")) return fotoDagingSapi;
-  if (nama.includes("telur")) return fotoTelurAyam;
   if (nama.includes("ikan") || nama.includes("bandeng") || nama.includes("tongkol")) return fotoIkanSegar;
 
-  // 5. Minyak, Gula, & Tepung Sendiri-sendiri
+  // 5. Minyak, Gula, & Tepung — gula aren vs gula pasir dipisah
   if (nama.includes("minyak")) return fotoMinyakGoreng;
+  if (nama.includes("gula aren") || nama.includes("aren")) return fotoGulaAren;
   if (nama.includes("gula")) return fotoGulaPasar;
   if (nama.includes("tepung") || nama.includes("terigu")) return fotoTepungTerigu;
+
+  // 6. Bahan baku lainnya — jagung, kedelai, jamur
+  if (nama.includes("jagung")) return fotoJagung;
+  if (nama.includes("kedelai") || nama.includes("kacang kedelai")) return fotoKedelai;
+  if (nama.includes("jamur") || nama.includes("kulat")) return fotoJamur;
 
   // Fallback default jika tidak ada yang cocok
   return fotoBerasMedium;
@@ -158,6 +184,33 @@ export default function App() {
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
+
+  // Foto kustom yang diatur langsung oleh Admin di Portal Admin
+  const [customPhotos, setCustomPhotos] = useState(() => {
+    try {
+      const saved = localStorage.getItem("epangan_custom_photos");
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  // Sinkronisasi foto kustom komoditas dari database/backend
+  useEffect(() => {
+    getCustomPhotos()
+      .then((res) => {
+        if (res?.data && typeof res.data === "object") {
+          setCustomPhotos((prev) => {
+            const merged = { ...prev, ...res.data };
+            try {
+              localStorage.setItem("epangan_custom_photos", JSON.stringify(merged));
+            } catch {}
+            return merged;
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const greetingData = useMemo(() => {
     const hour = new Date().getHours();
@@ -252,7 +305,7 @@ export default function App() {
             { name: "Pasar Babat", address: "Jl. Raya Babat No. 12, Babat, Lamongan" },
             { name: "Pasar Sidoharjo", address: "Jl. Pahlawan, Sidoharjo, Kec. Lamongan" },
             { name: "Pasar Mantup", address: "Jl. Raya Mantup, Mantup, Lamongan" },
-            { name: "Pasar Blimbing Brondong", address: "Jl. Raya Daendels, Blimbing, Paciran / Brondong" },
+            { name: "Pasar Blimbing", address: "Jl. Raya Daendels, Blimbing, Paciran / Brondong" },
             { name: "Pasar Sukodadi", address: "Jl. Raya Sukodadi No. 8, Sukodadi, Lamongan" },
             { name: "Pasar Ngimbang", address: "Desa Sendangrejo, Kec. Ngimbang, Lamongan" },
           ]);
@@ -278,7 +331,8 @@ export default function App() {
               unit: `/${item.satuan || "kg"}`,
               deltaText: item.status_label || "Stabil",
               deltaType: "flat",
-              image: getKomoditasImage(namaBahan, item.image),
+              originalImage: item.image,
+              image: getKomoditasImage(namaBahan, item.image, customPhotos),
               marketPrices: marketEntries,
             };
           });
@@ -357,6 +411,21 @@ export default function App() {
     setCurrentPage(1);
   }, [searchTerm, selectedCategory, selectedMarketFilter]);
 
+  // Perbarui foto produk secara reaktif saat ada perubahan foto dari Admin
+  useEffect(() => {
+    if (products.length > 0) {
+      setProducts((prev) =>
+        prev.map((p) => {
+          const newImg = getKomoditasImage(p.name, p.originalImage, customPhotos);
+          if (p.image !== newImg) {
+            return { ...p, image: newImg };
+          }
+          return p;
+        })
+      );
+    }
+  }, [customPhotos]);
+
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage) || 1;
   const paginatedProducts = useMemo(() => {
     const start = (currentPage - 1) * itemsPerPage;
@@ -368,7 +437,17 @@ export default function App() {
   }
 
   if (activePage === "admin-dashboard") {
-    return <AdminDashboard setActivePage={setActivePage} showToast={showToast} products={products} setProducts={setProducts} />;
+    return (
+      <AdminDashboard
+        setActivePage={setActivePage}
+        showToast={showToast}
+        products={products}
+        setProducts={setProducts}
+        customPhotos={customPhotos}
+        setCustomPhotos={setCustomPhotos}
+        getKomoditasImage={getKomoditasImage}
+      />
+    );
   }
 
   return (
@@ -1046,6 +1125,13 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Navigasi Menu Bawah Khusus Layar HP / Smartphone */}
+      <BottomNav
+        activePage={activePage}
+        setActivePage={setActivePage}
+        showToast={showToast}
+      />
     </div>
   );
 }
@@ -1088,52 +1174,58 @@ function AestheticSvgChart({ dataPoints, liveData }) {
   const activePoint = points[activeIdx] || points[points.length - 1];
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "16px", width: "100%" }}>
+    <div className="aesthetic-chart-container">
       <div className="chart-metrics-strip">
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          <span style={{ fontSize: "11px", color: "#4e6754", fontWeight: "700" }}>HARGA TERPILIH</span>
-          <div style={{ display: "flex", alignItems: "baseline", gap: "6px" }}>
-            <span style={{ fontSize: "1.3rem", fontWeight: "800", color: "#0f1d14" }}>
+        <div className="chart-metric-item">
+          <span className="chart-metric-label">HARGA TERPILIH</span>
+          <div className="chart-metric-value-row">
+            <span className="chart-metric-value">
               Rp {activePoint.price.toLocaleString("id-ID")}
             </span>
-            <span style={{ fontSize: "11px", color: "#4e6754", fontWeight: "600" }}>/kg</span>
+            <span className="chart-metric-unit">/kg</span>
           </div>
-          <span style={{
-            fontSize: "10.5px",
-            fontWeight: "800",
-            color: activePoint.deltaType === "up" ? "#b91c1c" : activePoint.deltaType === "down" ? "#166534" : "#1b4332",
-            marginTop: "2px"
-          }}>
+          <span
+            className="chart-metric-sub"
+            style={{
+              color: activePoint.deltaType === "up" ? "#b91c1c" : activePoint.deltaType === "down" ? "#166534" : "#1b4332",
+            }}
+          >
             {activePoint.deltaText || "Stabil"} ({activePoint.fullDay || activePoint.date})
           </span>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          <span style={{ fontSize: "11px", color: "#4e6754", fontWeight: "700" }}>RATA-RATA HARGA</span>
-          <div style={{ fontSize: "1.15rem", fontWeight: "800", color: "#0f1d14" }}>
-            Rp {Number(liveData?.avgPrice || activePoint.price).toLocaleString("id-ID")}
+        <div className="chart-metric-item">
+          <span className="chart-metric-label">RATA-RATA HARGA</span>
+          <div className="chart-metric-value-row">
+            <span className="chart-metric-value">
+              Rp {Number(liveData?.avgPrice || activePoint.price).toLocaleString("id-ID")}
+            </span>
           </div>
-          <span style={{ fontSize: "10.5px", color: "#4e6754", fontWeight: "600", marginTop: "2px" }}>
+          <span className="chart-metric-sub">
             Rentang: Rp {Number(liveData?.minPrice || minPrice).toLocaleString("id-ID")} - Rp {Number(liveData?.maxPrice || maxPrice).toLocaleString("id-ID")}
           </span>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          <span style={{ fontSize: "11px", color: "#4e6754", fontWeight: "700" }}>STATUS HET PANGAN</span>
-          <div style={{ fontSize: "1.15rem", fontWeight: "800", color: "#166534" }}>
-            {liveData?.statusHet || "Sesuai HET"}
+        <div className="chart-metric-item">
+          <span className="chart-metric-label">STATUS HET PANGAN</span>
+          <div className="chart-metric-value-row">
+            <span className="chart-metric-value text-het">
+              {liveData?.statusHet || "Sesuai HET"}
+            </span>
           </div>
-          <span style={{ fontSize: "10.5px", color: "#4e6754", fontWeight: "600", marginTop: "2px" }}>
+          <span className="chart-metric-sub">
             HET: Rp {Number(liveData?.het || 13000).toLocaleString("id-ID")}/kg
           </span>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          <span style={{ fontSize: "11px", color: "#4e6754", fontWeight: "700" }}>TITIK PANTAU PASAR</span>
-          <div style={{ fontSize: "13px", fontWeight: "800", color: "#0f1d14" }}>
-            {activePoint.market || liveData?.sampleMarket || "Pasar Babat & Sidoharjo"}
+        <div className="chart-metric-item">
+          <span className="chart-metric-label">TITIK PANTAU PASAR</span>
+          <div className="chart-metric-value-row">
+            <span className="chart-metric-value text-market">
+              {activePoint.market || liveData?.sampleMarket || "Pasar Babat & Sidoharjo"}
+            </span>
           </div>
-          <span style={{ fontSize: "10.5px", color: "#2d6a4f", fontWeight: "700", marginTop: "2px" }}>
+          <span className="chart-metric-sub text-verified">
             ● Terverifikasi Enumerator
           </span>
         </div>
@@ -1257,23 +1349,15 @@ function AestheticSvgChart({ dataPoints, liveData }) {
       </div>
 
       {liveData?.insight && (
-        <div style={{
-          backgroundColor: "#eef8f2",
-          border: "1px solid #b7efc5",
-          borderRadius: "16px",
-          padding: "14px 18px",
-          display: "flex",
-          alignItems: "flex-start",
-          gap: "12px"
-        }}>
-          <div style={{ backgroundColor: "#2d6a4f", color: "#fff", padding: "6px", borderRadius: "10px", marginTop: "2px", display: "flex" }}>
+        <div className="chart-insight-box">
+          <div className="chart-insight-icon">
             <Sparkles size={14} />
           </div>
           <div>
-            <div style={{ fontSize: "11px", fontWeight: "800", color: "#1b4332", letterSpacing: "0.04em", textTransform: "uppercase" }}>
+            <div className="chart-insight-title">
               Analisis Stabilitas DKPP Lamongan
             </div>
-            <p style={{ margin: "2px 0 0 0", fontSize: "12.5px", color: "#112216", fontWeight: "600", lineHeight: "1.5" }}>
+            <p className="chart-insight-desc">
               {liveData.insight}
             </p>
           </div>

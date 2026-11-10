@@ -261,6 +261,18 @@ def get_komparasi_pasar(
     cheapest_market_counter = {}
     selisih_list = []
 
+    # Load custom photos jika ada
+    custom_photos = {}
+    try:
+        from routers.admin import _load_json_photos
+        custom_photos = _load_json_photos()
+        photo_rows = db.query(models.KatalogFoto).all()
+        for pr in photo_rows:
+            if pr.nama_komoditas and pr.foto_url:
+                custom_photos[pr.nama_komoditas.strip().lower()] = pr.foto_url
+    except Exception:
+        pass
+
     for nama, g in groups.items():
         prices = g["prices"]
         base_price = next(iter(prices.values())) if prices else 12000
@@ -293,6 +305,7 @@ def get_komparasi_pasar(
             "kategori": g["kategori"],
             "satuan": g["satuan"],
             "het": g["het"],
+            "image": custom_photos.get(g["komoditas"].strip().lower()),
             "prices": prices,
             "minPrice": min_item[1],
             "maxPrice": max_item[1],

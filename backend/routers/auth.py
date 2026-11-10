@@ -109,11 +109,16 @@ def login_petugas(creds: LoginPetugasRequest, db: Session = Depends(get_db)):
     # Bersihkan spasi NIP untuk pencocokan fleksibel
     clean_ident_nip = re.sub(r"\s+", "", ident)
 
-    # Cari petugas berdasarkan username, email, atau NIP
+    # Cari petugas berdasarkan username, email, atau NIP (termasuk variasi domain .go.id)
+    username_prefix = ident.split("@")[0]
+    email_alt = ident.replace(".go.id", "") if ident.endswith(".go.id") else f"{ident}.go.id"
+
     admin = db.query(models.Admin).filter(
         or_(
             models.Admin.username == ident,
+            models.Admin.username == username_prefix,
             models.Admin.email == ident,
+            models.Admin.email == email_alt,
             models.Admin.nip == ident,
             models.Admin.nip == clean_ident_nip
         )

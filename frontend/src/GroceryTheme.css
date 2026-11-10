@@ -51,9 +51,15 @@
 
 /* Grocery Topbar */
 .grocery-topbar {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 999 !important;
   background-color: #d2ead7 !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid rgba(39, 82, 61, 0.1) !important;
   transition: all 0.25s ease;
+  box-shadow: 0 2px 12px rgba(27, 67, 50, 0.08);
 }
 
 .grocery-nav-links .nav-link {
@@ -815,6 +821,13 @@
 }
 
 /* Chart Metrics Strip — info box 4 kolom di atas grafik */
+.aesthetic-chart-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
 .chart-metrics-strip {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -826,16 +839,103 @@
   margin-bottom: 16px;
 }
 
-/* SVG chart wrapper — scroll horizontal di mobile */
+.chart-metric-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-metric-label {
+  font-size: 11px;
+  color: #4e6754;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 2px;
+}
+
+.chart-metric-value-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.chart-metric-value {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #0f1d14;
+}
+
+.chart-metric-value.text-het {
+  color: #166534;
+}
+
+.chart-metric-value.text-market {
+  font-size: 13px;
+}
+
+.chart-metric-unit {
+  font-size: 11px;
+  color: #4e6754;
+  font-weight: 600;
+}
+
+.chart-metric-sub {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #4e6754;
+  margin-top: 2px;
+}
+
+.chart-metric-sub.text-verified {
+  color: #2d6a4f;
+  font-weight: 800;
+}
+
+.chart-insight-box {
+  background-color: #eef8f2;
+  border: 1px solid #b7efc5;
+  border-radius: 16px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.chart-insight-icon {
+  background-color: #2d6a4f;
+  color: #fff;
+  padding: 6px;
+  border-radius: 10px;
+  margin-top: 2px;
+  display: flex;
+}
+
+.chart-insight-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: #1b4332;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.chart-insight-desc {
+  margin: 2px 0 0 0;
+  font-size: 12.5px;
+  color: #112216;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+/* SVG chart wrapper */
 .aesthetic-chart-scroll-wrap {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
   width: 100%;
+  overflow: hidden;
 }
 
 .aesthetic-svg-element {
   width: 100%;
-  min-width: 400px;
+  height: auto;
+  aspect-ratio: 900 / 260;
   display: block;
 }
 
@@ -850,26 +950,52 @@
 @media (max-width: 768px) {
   .chart-metrics-strip {
     grid-template-columns: 1fr 1fr !important;
-    gap: 10px !important;
-    padding: 12px !important;
+    gap: 8px !important;
+    padding: 10px !important;
     border-radius: 14px !important;
+    margin-bottom: 10px !important;
+  }
+  .chart-metric-label {
+    font-size: 9px !important;
+  }
+  .chart-metric-value {
+    font-size: 13.5px !important;
+  }
+  .chart-metric-unit {
+    font-size: 9.5px !important;
+  }
+  .chart-metric-sub {
+    font-size: 9.5px !important;
   }
   .aesthetic-chart-scroll-wrap {
-    overflow-x: auto !important;
+    width: 100% !important;
+    overflow: hidden !important;
   }
   .aesthetic-svg-element {
-    min-width: 360px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 900 / 260 !important;
+    display: block !important;
   }
   .grocery-chart-panel {
-    padding: 14px !important;
+    padding: 12px !important;
     border-radius: 16px !important;
     overflow: visible !important;
     height: auto !important;
   }
-  .grocery-chart-body {
-    overflow-x: auto !important;
-    overflow-y: visible !important;
-    height: auto !important;
+  .chart-insight-box {
+    padding: 10px 12px !important;
+    border-radius: 12px !important;
+    gap: 8px !important;
+  }
+  .chart-insight-title {
+    font-size: 10px !important;
+  }
+  .chart-insight-desc {
+    font-size: 11px !important;
+    line-height: 1.4 !important;
   }
 }
 
@@ -1563,23 +1689,19 @@
   .chart-metrics-strip {
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 8px !important;
-    padding: 10px 12px !important;
+    padding: 8px 10px !important;
     border-radius: 14px !important;
-  }
-  .chart-metrics-strip span[style*="1.3rem"],
-  .chart-metrics-strip span[style*="1.15rem"],
-  .chart-metrics-strip div[style*="1.15rem"],
-  .chart-metrics-strip div[style*="1.3rem"] {
-    font-size: 1.05rem !important;
   }
   .aesthetic-chart-scroll-wrap {
     width: 100% !important;
-    overflow-x: auto !important;
-    -webkit-overflow-scrolling: touch !important;
+    overflow: hidden !important;
   }
   .aesthetic-svg-element {
-    min-width: 500px !important;
-    height: 200px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: auto !important;
+    aspect-ratio: 900 / 260 !important;
     display: block !important;
   }
   .grocery-chart-body {

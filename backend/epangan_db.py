@@ -80,8 +80,8 @@ def init_db():
         # A. SEEDING / PEMBARUAN 2 AKUN ADMIN / PETUGAS
         admin_data_list = [
             {
-                "username": "intan_permatasari",
-                "email": "intan@lamongankab.go.id",
+                "username": "intan",
+                "email": "intan@lamongankab",
                 "nip": "19850412 201001 1014",
                 "nama_lengkap": "Intan Permatasari",
                 "jabatan": "Petugas Enumerator",
@@ -90,7 +90,7 @@ def init_db():
                 "password": "admin123"
             },
             {
-                "username": "nayla_santika",
+                "username": "nayla",
                 "email": "nayla@lamongankab",
                 "nip": "19820516 200801 1 009",
                 "nama_lengkap": "Nayla Santika",
@@ -134,8 +134,8 @@ def init_db():
         db.commit()
         print("2 Akun Admin Resmi (Intan Permatasari & Nayla Santika) berhasil disinkronisasi.")
 
-        # B. SEEDING MASTER DATA PASAR (6 Titik Pantau Resmi Resmi Pemkab Lamongan)
-        # 1. Pasar Babat, 2. Pasar Sidoharjo, 3. Pasar Mantup, 4. Pasar Blimbing Brondong, 5. Pasar Sukodadi, 6. Pasar Ngimbang
+        # B. SEEDING MASTER DATA PASAR (6 Titik Pantau Resmi Pemkab Lamongan)
+        # 1. Pasar Babat, 2. Pasar Sidoharjo, 3. Pasar Mantup, 4. Pasar Blimbing (Brondong), 5. Pasar Sukodadi, 6. Pasar Desa Sendangrejo Ngimbang
         pasar_list_master = [
             {
                 "nama_pasar": "Pasar Babat",
@@ -152,8 +152,8 @@ def init_db():
                 "nama_pasar": "Pasar Sidoharjo",
                 "alamat": "Jl. Pahlawan, Sidoharjo, Kec. Lamongan",
                 "kecamatan": "Lamongan",
-                "latitude": -7.1272345,
-                "longitude": 112.4108064,
+                "latitude": -7.1276909,
+                "longitude": 112.4129975,
                 "kontak": "0812-3456-7802",
                 "jam_operasional": "05:00 - 17:00 WIB",
                 "deskripsi": "Pasar induk pusat kota Kabupaten Lamongan",
@@ -171,9 +171,9 @@ def init_db():
                 "radius_gps_aktif": True
             },
             {
-                "nama_pasar": "Pasar Blimbing Brondong",
+                "nama_pasar": "Pasar Blimbing",
                 "alamat": "Jl. Raya Daendels, Blimbing, Kec. Paciran / Brondong, Lamongan",
-                "kecamatan": "Paciran",
+                "kecamatan": "Brondong",
                 "latitude": -6.8765792,
                 "longitude": 112.2957889,
                 "kontak": "0812-3456-7804",
@@ -193,7 +193,7 @@ def init_db():
                 "radius_gps_aktif": True
             },
             {
-                "nama_pasar": "Pasar Ngimbang",
+                "nama_pasar": "Pasar Sendangrejo",
                 "alamat": "Desa Sendangrejo, Kec. Ngimbang, Lamongan",
                 "kecamatan": "Ngimbang",
                 "latitude": -7.2808001,
