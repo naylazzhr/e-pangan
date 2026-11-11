@@ -196,3 +196,15 @@ class HETNasional(Base):
     zona = Column(String(50), default="Nasional")              # "Nasional", "Jawa-Bali"
     is_aktif = Column(Boolean, default=True)
     updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+
+
+class KatalogFoto(Base):
+    """
+    Kustomisasi Foto Katalog Komoditas yang diatur langsung oleh Admin tanpa perlu koding.
+    """
+    __tablename__ = "katalog_foto"
+
+    id = Column(Integer, primary_key=True, index=True)
+    nama_komoditas = Column(String(100), unique=True, index=True, nullable=False)
+    foto_url = Column(Text, nullable=False)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)

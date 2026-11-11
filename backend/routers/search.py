@@ -84,8 +84,8 @@ def cari_harga_kios(
 
     semua_data = query.all()
     if not semua_data:
-        # Fallback ke data survei_harga jika KiosHarga kosong
-        survei_fallback = db.query(models.SurveiHarga)
+        # Fallback ke data survei_harga jika KiosHarga kosong (Hanya yang terverifikasi)
+        survei_fallback = db.query(models.SurveiHarga).filter(models.SurveiHarga.status_verifikasi == "Terverifikasi")
         if komoditas:
             survei_fallback = survei_fallback.filter(
                 models.SurveiHarga.nama_komoditas.ilike(f"%{komoditas}%")

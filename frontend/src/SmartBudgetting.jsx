@@ -1,223 +1,292 @@
-import React, { useState, useEffect } from 'react';
-import { getKomoditas, getPasar, kalkulasiSmartBudgeting } from './api';
-
-// Data Pasar Resmi Kabupaten Lamongan beserta Koordinat GPS & Navigasi
-const PASAR_OPTIONS = [
-  {
-    id: 'babat',
-    name: 'Pasar Babat',
-    sub: 'Pasar Babat (Kecamatan Babat)',
-    alamat: 'Jl. Raya Babat No. 12, Babat, Kab. Lamongan',
-    info: 'Jarak: ± 1,8 Km • Status: Termurah & Terlengkap',
-    lat: -7.1126,
-    lon: 112.1634,
-    maps: 'https://www.google.com/maps/search/?api=1&query=-7.1126,112.1634',
-    rute: 'https://www.google.com/maps/dir/?api=1&destination=-7.1126,112.1634'
-  },
-  {
-    id: 'sidoharjo',
-    name: 'Pasar Sidoharjo',
-    sub: 'Pasar Sidoharjo (Kecamatan Lamongan)',
-    alamat: 'Jl. Pahlawan, Sidoharjo, Kec. Lamongan',
-    info: 'Jarak: ± 3,2 Km • Status: Pasar Induk Pusat Kota',
-    lat: -7.1205,
-    lon: 112.4152,
-    maps: 'https://www.google.com/maps/search/?api=1&query=-7.1205,112.4152',
-    rute: 'https://www.google.com/maps/dir/?api=1&destination=-7.1205,112.4152'
-  },
-  {
-    id: 'sukodadi',
-    name: 'Pasar Sukodadi',
-    sub: 'Pasar Sukodadi (Kecamatan Sukodadi)',
-    alamat: 'Jl. Raya Sukodadi No. 8, Kec. Sukodadi, Lamongan',
-    info: 'Jarak: ± 5,4 Km • Status: Pasar Tradisional Terpadu',
-    lat: -7.1082,
-    lon: 112.3354,
-    maps: 'https://www.google.com/maps/search/?api=1&query=-7.1082,112.3354',
-    rute: 'https://www.google.com/maps/dir/?api=1&destination=-7.1082,112.3354'
-  },
-  {
-    id: 'agrobis',
-    name: 'Pasar Agrobis Babat',
-    sub: 'Pasar Agrobis (Kecamatan Babat)',
-    alamat: 'Kawasan Agrobisnis Babat, Babat, Kab. Lamongan',
-    info: 'Jarak: ± 2,5 Km • Status: Grosir & Eceran Pertanian',
-    lat: -7.1095,
-    lon: 112.1720,
-    maps: 'https://www.google.com/maps/search/?api=1&query=-7.1095,112.1720',
-    rute: 'https://www.google.com/maps/dir/?api=1&destination=-7.1095,112.1720'
-  },
-  {
-    id: 'mantup',
-    name: 'Pasar Mantup',
-    sub: 'Pasar Mantup (Kecamatan Mantup)',
-    alamat: 'Jl. Raya Mantup, Kec. Mantup, Kab. Lamongan',
-    info: 'Jarak: ± 12 Km • Status: Komoditas Lokal Wilayah Selatan',
-    lat: -7.2415,
-    lon: 112.3582,
-    maps: 'https://www.google.com/maps/search/?api=1&query=-7.2415,112.3582',
-    rute: 'https://www.google.com/maps/dir/?api=1&destination=-7.2415,112.3582'
-  },
-  {
-    id: 'brondong',
-    name: 'Pasar Brondong',
-    sub: 'Pasar Brondong (Kecamatan Brondong)',
-    alamat: 'Jl. Raya Brondong - Tuban, Kec. Brondong, Lamongan',
-    info: 'Jarak: ± 25 Km • Status: Pasar Ikan & Pesisir Pantura',
-    lat: -6.8924,
-    lon: 112.2856,
-    maps: 'https://www.google.com/maps/search/?api=1&query=-6.8924,112.2856',
-    rute: 'https://www.google.com/maps/dir/?api=1&destination=-6.8924,112.2856'
-  },
-  {
-    id: 'blimbing',
-    name: 'Pasar Blimbing',
-    sub: 'Pasar Blimbing (Kecamatan Paciran)',
-    alamat: 'Jl. Raya Daendels, Paciran, Kab. Lamongan',
-    info: 'Jarak: ± 28 Km • Status: Sentra Logistik Nelayan Pantura',
-    lat: -6.8781,
-    lon: 112.3524,
-    maps: 'https://www.google.com/maps/search/?api=1&query=-6.8781,112.3524',
-    rute: 'https://www.google.com/maps/dir/?api=1&destination=-6.8781,112.3524'
-  }
-];
-
-// Master Katalog Komoditas Pasar Lamongan
-const MASTER_KOMODITAS = [
-  { id: '1', name: 'Beras Medium IR-64', price: 13000, unit: 'kg', category: 'Bahan Pokok' },
-  { id: '2', name: 'Beras Premium', price: 15500, unit: 'kg', category: 'Bahan Pokok' },
-  { id: '3', name: 'Minyak Goreng Sawit', price: 15700, unit: 'liter', category: 'Minyak & Gula' },
-  { id: '4', name: 'Telur Ayam Ras Segar', price: 28500, unit: 'kg', category: 'Daging & Telur' },
-  { id: '5', name: 'Daging Ayam Broiler', price: 34000, unit: 'kg', category: 'Daging & Telur' },
-  { id: '6', name: 'Cabai Rawit Merah', price: 48500, unit: 'kg', category: 'Bumbu Dapur' },
-  { id: '7', name: 'Cabai Keriting', price: 28000, unit: 'kg', category: 'Bumbu Dapur' },
-  { id: '8', name: 'Bawang Merah Allium', price: 27500, unit: 'kg', category: 'Bumbu Dapur' },
-  { id: '9', name: 'Gula Pasir Kristal', price: 17500, unit: 'kg', category: 'Minyak & Gula' },
-  { id: '10', name: 'Bawang Putih Honan', price: 36000, unit: 'kg', category: 'Bumbu Dapur' },
-  { id: '11', name: 'Daging Sapi Segar', price: 115000, unit: 'kg', category: 'Daging & Telur' },
-  { id: '12', name: 'Tepung Terigu Cakra', price: 12500, unit: 'kg', category: 'Bahan Pokok' }
-];
+import React, { useState, useEffect } from "react";
+import { getKomoditas, getPasar, kalkulasiSmartBudgeting } from "./api";
+import {
+  ArrowLeft,
+  RefreshCw,
+  MapPin,
+  Search,
+  Trash2,
+  Zap,
+  AlertTriangle,
+  CheckCircle,
+  X,
+  Navigation,
+  ExternalLink,
+  Lightbulb,
+  ShoppingCart,
+  Minus,
+  Plus,
+} from "lucide-react";
 
 const SUBSTITUSI_MAP = {
-  'Cabai Rawit Merah': 'Cabai Keriting',
-  'Beras Premium': 'Beras Medium IR-64',
+  "Cabai Rawit Merah": "Cabai Keriting",
+  "Beras Premium": "Beras Medium IR-64",
 };
 
-export default function SmartBudgeting() {
-  const [budget, setBudget] = useState(200000);
-  const [period, setPeriod] = useState('bulanan');
+const periodMultiplier = { harian: 1, mingguan: 7, bulanan: 30 };
+
+// perkiraan konsumsi per orang per hari (kg atau liter)
+const KONSUMSI_PER_HARI = [
+  { kata: "beras", jumlah: 0.15 },
+  { kata: "minyak", jumlah: 0.03 },
+  { kata: "gula", jumlah: 0.02 },
+  { kata: "telur", jumlah: 0.03 },
+  { kata: "bawang", jumlah: 0.01 },
+  { kata: "cabai", jumlah: 0.01 },
+  { kata: "ayam", jumlah: 0.04 },
+  { kata: "ikan", jumlah: 0.03 },
+  { kata: "daging", jumlah: 0.015 },
+  { kata: "tomat", jumlah: 0.02 },
+  { kata: "tepung", jumlah: 0.01 },
+  { kata: "garam", jumlah: 0.005 },
+];
+const KONSUMSI_DEFAULT = 0.02;
+
+function hitungQty(nama, anggota, hari) {
+  const n = (nama || "").toLowerCase();
+  const cocok = KONSUMSI_PER_HARI.find((k) => n.includes(k.kata));
+  const perHari = cocok ? cocok.jumlah : KONSUMSI_DEFAULT;
+  return Math.max(1, Math.round(perHari * anggota * hari));
+}
+
+function formatRp(n) {
+  return "Rp " + Number(n || 0).toLocaleString("id-ID");
+}
+
+function QtyControl({ qty, onMinus, onPlus, small }) {
+  const pad = small ? "4px 8px" : "7px 12px";
+  const btn = {
+    border: "none",
+    background: "transparent",
+    padding: pad,
+    cursor: "pointer",
+    display: "flex",
+    alignItems: "center",
+    color: "#1b4332",
+  };
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        background: "#ffffff",
+        border: "1px solid #d8e2dc",
+        borderRadius: "999px",
+        overflow: "hidden",
+      }}
+    >
+      <button onClick={onMinus} style={btn} aria-label="Kurangi">
+        <Minus size={small ? 12 : 14} />
+      </button>
+      <span style={{ minWidth: small ? 18 : 24, textAlign: "center", fontWeight: "800", fontSize: small ? "12px" : "13.5px" }}>
+        {qty}
+      </span>
+      <button onClick={onPlus} style={btn} aria-label="Tambah">
+        <Plus size={small ? 12 : 14} />
+      </button>
+    </div>
+  );
+}
+
+export default function SmartBudgeting({ onBack, onNavigate }) {
+  const [budget, setBudget] = useState(600000);
+  const [period, setPeriod] = useState("bulanan");
   const [familyMembers, setFamilyMembers] = useState(4);
-  const [selectedPasarId, setSelectedPasarId] = useState('babat');
+  const [selectedPasarId, setSelectedPasarId] = useState("");
   const [items, setItems] = useState([]);
-  const [searchKatalog, setSearchKatalog] = useState('');
-  const [pasarList, setPasarList] = useState(PASAR_OPTIONS);
-  const [katalogList, setKatalogList] = useState(MASTER_KOMODITAS);
+  const [searchKatalog, setSearchKatalog] = useState("");
+  const [pasarList, setPasarList] = useState([]);
+  const [katalogList, setKatalogList] = useState([]);
   const [isOptimizing, setIsOptimizing] = useState(false);
+  const [loadingData, setLoadingData] = useState(true);
+  const [allKomoditasData, setAllKomoditasData] = useState([]);
 
-  const periodMultiplier = { harian: 1, mingguan: 7, bulanan: 30 };
-
-  // Ambil Master Pasar & Komoditas Resmi dari Backend
   useEffect(() => {
-    getPasar().then(res => {
-      if (res && res.data && Array.isArray(res.data) && res.data.length > 0) {
-        const mapped = res.data.map(p => ({
-          id: String(p.id),
-          name: p.nama_pasar,
-          sub: `${p.nama_pasar} (${p.kecamatan || 'Kabupaten Lamongan'})`,
-          alamat: p.alamat || `${p.nama_pasar}, Lamongan`,
-          info: `Titik Pantau Resmi • ${p.jam_operasional || '05:00 - 15:00 WIB'}`,
-          lat: p.latitude || -7.1126,
-          lon: p.longitude || 112.1634,
-          maps: `https://www.google.com/maps/search/?api=1&query=${p.latitude || -7.1126},${p.longitude || 112.1634}`,
-          rute: `https://www.google.com/maps/dir/?api=1&destination=${p.latitude || -7.1126},${p.longitude || 112.1634}`
-        }));
-        setPasarList(mapped);
-        if (mapped.length > 0) setSelectedPasarId(mapped[0].id);
-      }
-    }).catch(() => null);
+    let isMounted = true;
+    setLoadingData(true);
 
-    getKomoditas().then(res => {
-      if (res && res.data && Array.isArray(res.data) && res.data.length > 0) {
-        const unique = [];
-        const seen = new Set();
-        res.data.forEach(item => {
-          if (!seen.has(item.nama_bahan)) {
-            seen.add(item.nama_bahan);
-            unique.push({
-              id: String(item.id),
-              name: item.nama_bahan,
-              price: item.harga,
-              unit: item.satuan || 'kg',
-              category: item.kategori || 'Bahan Pokok'
-            });
-          }
-        });
-        if (unique.length > 0) {
-          setKatalogList(unique);
+    Promise.all([getPasar().catch(() => null), getKomoditas().catch(() => null)])
+      .then(([pasarRes, komoditasRes]) => {
+        if (!isMounted) return;
+
+        const rawPasar = pasarRes?.data || pasarRes?.pasar || [];
+        if (Array.isArray(rawPasar) && rawPasar.length > 0) {
+          const mappedPasar = rawPasar.map((p, idx) => ({
+            id: String(p.id || idx + 1),
+            name: p.nama_pasar || p.name,
+            sub: `${p.nama_pasar || p.name} (${p.kecamatan || "Kabupaten Lamongan"})`,
+            alamat: p.alamat || `${p.nama_pasar || p.name}, Lamongan`,
+            info: `Titik Pantau Resmi • ${p.jam_operasional || "05:00 - 15:00 WIB"}`,
+            lat: p.latitude || -7.1043741,
+            lon: p.longitude || 112.1661619,
+            maps: `https://www.google.com/maps/search/?api=1&query=${p.latitude || -7.1043741},${p.longitude || 112.1661619}`,
+            rute: `https://www.google.com/maps/dir/?api=1&destination=${p.latitude || -7.1043741},${p.longitude || 112.1661619}`,
+          }));
+          setPasarList(mappedPasar);
+          setSelectedPasarId(mappedPasar[0].id);
         }
-      }
-    }).catch(() => null);
+
+        const rawKomoditas = komoditasRes?.data || komoditasRes?.komoditas || [];
+        if (Array.isArray(rawKomoditas) && rawKomoditas.length > 0) {
+          setAllKomoditasData(rawKomoditas);
+        }
+      })
+      .finally(() => {
+        if (isMounted) setLoadingData(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   useEffect(() => {
-    const days = periodMultiplier[period];
-    // Gunakan harga real dari katalog backend jika ada
-    const getPrice = (name, fallback) => {
-      const found = katalogList.find(k => k.name.toLowerCase().includes(name.toLowerCase()));
-      return found ? found.price : fallback;
-    };
+    if (!allKomoditasData || allKomoditasData.length === 0) return;
+    const currentPasarObj = pasarList.find((p) => p.id === selectedPasarId) || pasarList[0];
+    const targetPasarName = currentPasarObj?.name || "";
 
-    const initialList = [
-      { id: '1', name: 'Beras Medium IR-64', price: getPrice('Beras Medium', 13000), unit: 'kg', qty: Math.max(1, Math.round(0.25 * familyMembers * days)) },
-      { id: '3', name: 'Minyak Goreng Sawit', price: getPrice('Minyak Goreng', 15700), unit: 'liter', qty: Math.max(1, Math.round(0.04 * familyMembers * days)) },
-      { id: '4', name: 'Telur Ayam Ras Segar', price: getPrice('Telur Ayam', 28500), unit: 'kg', qty: Math.max(1, Math.round(0.05 * familyMembers * days)) },
-      { id: '5', name: 'Daging Ayam Broiler', price: getPrice('Daging Ayam', 34000), unit: 'kg', qty: Math.max(1, Math.round(0.03 * familyMembers * days)) },
-      { id: '6', name: 'Cabai Rawit Merah', price: getPrice('Cabai Rawit', 48500), unit: 'kg', qty: Math.max(1, Math.round(0.01 * familyMembers * days)) },
-      { id: '8', name: 'Bawang Merah Allium', price: getPrice('Bawang Merah', 27500), unit: 'kg', qty: Math.max(1, Math.round(0.015 * familyMembers * days)) },
-      { id: '9', name: 'Gula Pasir Kristal', price: getPrice('Gula Pasir', 17500), unit: 'kg', qty: Math.max(1, Math.round(0.02 * familyMembers * days)) },
-    ];
-    setItems(initialList);
-  }, [period, familyMembers, katalogList]);
+    let pasarItems = allKomoditasData.filter(
+      (item) =>
+        !targetPasarName || (item.lokasi && item.lokasi.toLowerCase().includes(targetPasarName.toLowerCase()))
+    );
+    if (pasarItems.length === 0) {
+      pasarItems = allKomoditasData;
+    }
+
+    const unique = [];
+    const seen = new Set();
+    pasarItems.forEach((item, idx) => {
+      const namaBahan = item.nama_bahan || item.komoditas;
+      if (namaBahan && !seen.has(namaBahan)) {
+        seen.add(namaBahan);
+        unique.push({
+          id: String(item.id || idx + 1),
+          name: namaBahan,
+          price: item.harga || item.minPrice || 0,
+          unit: item.satuan || "kg",
+          category: (item.kategori || "BAHAN POKOK").toUpperCase(),
+        });
+      }
+    });
+
+    setKatalogList(unique);
+
+    setItems((prevItems) => {
+      if (prevItems.length === 0) {
+        const hari = periodMultiplier[period];
+        const dipilih = [];
+        KONSUMSI_PER_HARI.forEach((k) => {
+          if (dipilih.length >= 6) return;
+          const cocok = unique.find((u) => u.name.toLowerCase().includes(k.kata) && !dipilih.includes(u));
+          if (cocok) dipilih.push(cocok);
+        });
+        const awal = dipilih.length > 0 ? dipilih : unique.slice(0, 6);
+
+        return awal.map((k) => ({
+          ...k,
+          qty: hitungQty(k.name, familyMembers, hari),
+          auto: true,
+        }));
+      }
+      return prevItems.map((it) => {
+        const match = unique.find((u) => u.name.toLowerCase() === it.name.toLowerCase());
+        return match ? { ...it, price: match.price } : it;
+      });
+    });
+  }, [selectedPasarId, allKomoditasData, pasarList, familyMembers, period]);
+
+  useEffect(() => {
+    const hari = periodMultiplier[period];
+    setItems((prev) =>
+      prev.map((it) => (it.auto ? { ...it, qty: hitungQty(it.name, familyMembers, hari) } : it))
+    );
+  }, [period, familyMembers]);
 
   const updateQty = (id, delta) => {
-    setItems(prev =>
-      prev.map(item => item.id === id ? { ...item, qty: Math.max(1, item.qty + delta) } : item)
+    setItems((prev) =>
+      prev.map((item) =>
+        item.id === id ? { ...item, qty: Math.max(1, item.qty + delta), auto: false } : item
+      )
     );
   };
 
-  const removeItem = (id) => setItems(prev => prev.filter(item => item.id !== id));
+  const removeItem = (id) => setItems((prev) => prev.filter((item) => item.id !== id));
 
   const addFromKatalog = (katalogItem) => {
-    const exists = items.find(i => i.id === katalogItem.id);
+    const exists = items.find((i) => i.id === katalogItem.id);
     if (exists) {
       updateQty(katalogItem.id, 1);
     } else {
-      setItems([...items, { ...katalogItem, qty: 1 }]);
+      setItems([
+        ...items,
+        {
+          ...katalogItem,
+          qty: hitungQty(katalogItem.name, familyMembers, periodMultiplier[period]),
+          auto: true,
+        },
+      ]);
     }
   };
 
   const handleApplySubstitution = (oldName, newName) => {
-    const subItem = katalogList.find(m => m.name === newName);
-    if (!subItem) return;
-    setItems(prev => prev.map(item => item.name === oldName ? { ...item, ...subItem } : item));
+    let subItem = katalogList.find((m) => m.name && m.name.toLowerCase().includes(newName.toLowerCase()));
+    
+    if (!subItem && allKomoditasData.length > 0) {
+      const globalMatch = allKomoditasData.find((m) => (m.nama_bahan || m.komoditas || "").toLowerCase().includes(newName.toLowerCase()));
+      if (globalMatch) {
+        subItem = {
+          id: String(globalMatch.id || Date.now()),
+          name: globalMatch.nama_bahan || globalMatch.komoditas,
+          price: globalMatch.harga || globalMatch.minPrice || 15000,
+          unit: globalMatch.satuan || "kg",
+          category: (globalMatch.kategori || "BAHAN POKOK").toUpperCase(),
+        };
+      }
+    }
+
+    if (!subItem) {
+      subItem = {
+        id: String(Date.now()),
+        name: newName,
+        price: 25000,
+        unit: "kg",
+        category: "BAHAN POKOK",
+      };
+    }
+
+    setItems((prev) =>
+      prev.map((item) =>
+        item.name && item.name.toLowerCase().trim() === oldName.toLowerCase().trim()
+          ? {
+              ...item,
+              id: subItem.id,
+              name: subItem.name,
+              price: subItem.price,
+              unit: subItem.unit,
+              category: subItem.category || item.category,
+              auto: false,
+            }
+          : item
+      )
+    );
   };
 
-  // Panggil endpoint resmi FastAPI /smart-budgeting
   const handleOptimasiOtomatis = async () => {
     setIsOptimizing(true);
     try {
-      const activeP = pasarList.find(p => p.id === selectedPasarId);
+      const activeP = pasarList.find((p) => p.id === selectedPasarId);
       const res = await kalkulasiSmartBudgeting({
         budget,
-        lokasi_pasar: activeP ? activeP.name : ""
+        lokasi_pasar: activeP ? activeP.name : "",
       });
-      if (res && res.rekomendasi_paket && res.rekomendasi_paket.length > 0) {
-        const paketItems = res.rekomendasi_paket.map((r, idx) => ({
+      const paket = res?.rekomendasi_paket || res?.data || [];
+      if (Array.isArray(paket) && paket.length > 0) {
+        const paketItems = paket.map((r, idx) => ({
           id: String(r.id || idx + 1),
-          name: r.nama_bahan,
-          price: r.harga,
-          unit: r.satuan || 'kg',
-          qty: 1
+          name: r.nama_bahan || r.komoditas,
+          price: r.harga || r.minPrice || 10000,
+          unit: r.satuan || "kg",
+          qty: 1,
         }));
         setItems(paketItems);
       }
@@ -233,383 +302,659 @@ export default function SmartBudgeting() {
   const isOverBudget = remainingBudget < 0;
   const daysInPeriod = periodMultiplier[period];
   const dailySpend = Math.round(totalCost / daysInPeriod);
+  const usedPercent = budget > 0 ? Math.min(100, Math.round((totalCost / budget) * 100)) : 0;
 
-  const activePasar = pasarList.find(p => p.id === selectedPasarId) || pasarList[0] || PASAR_OPTIONS[0];
-  const expensiveItem = items.find(i => SUBSTITUSI_MAP[i.name]);
+  const activePasar = pasarList.find((p) => p.id === selectedPasarId) ||
+    pasarList[0] || {
+      name: "Memuat Pasar...",
+      alamat: "Kabupaten Lamongan",
+      info: "Titik Pantau Resmi DKPP",
+      lat: -7.1126,
+      lon: 112.1634,
+      maps: "#",
+      rute: "#",
+    };
 
-  const filteredKatalog = katalogList.filter(item =>
-    item.name.toLowerCase().includes(searchKatalog.toLowerCase()) ||
-    item.category.toLowerCase().includes(searchKatalog.toLowerCase())
+  const expensiveItem = items.find((i) => SUBSTITUSI_MAP[i.name]);
+
+  const filteredKatalog = katalogList.filter(
+    (item) =>
+      item.name.toLowerCase().includes(searchKatalog.toLowerCase()) ||
+      item.category.toLowerCase().includes(searchKatalog.toLowerCase())
   );
 
+  const goBack = () => {
+    if (onBack) onBack();
+    else if (onNavigate) onNavigate("dashboard");
+  };
+
   return (
-    <div className="container py-4">
-      {/* HEADER BANNER */}
-      <div className="card bg-emerald-light border-emerald rounded-4 p-4 mb-4">
-        <div className="d-flex align-items-center gap-2 mb-2">
-          <span className="text-emerald fw-semibold small" style={{ cursor: 'pointer' }}>
-            ← Kembali ke Dashboard
-          </span>
-          <span className="badge bg-white text-success border border-success-subtle rounded-pill">
-            # INOVASI DKPP KABUPATEN LAMONGAN
-          </span>
-        </div>
-        <h2 className="fw-bold text-dark m-0">
-          Smart Budgeting: <span className="text-emerald">Kalkulator & Optimasi Dapur</span>
-        </h2>
-        <p className="text-muted small mt-1 mb-0">
-          Hitung estimasi kebutuhan dapur secara riil dan dapatkan rekomendasi pasar rakyat dengan kombinasi harga paling hemat di Kabupaten Lamongan.
-        </p>
-      </div>
+    <div
+      style={{
+        backgroundColor: "#f3f6f4",
+        minHeight: "100vh",
+        paddingBottom: "5rem",
+        color: "#112216",
+        fontFamily: "'Plus Jakarta Sans', sans-serif",
+      }}
+    >
+      <style>{`
+        .sb-container {
+          width: 100%;
+          max-width: 1240px;
+          margin: 0 auto;
+          padding: 0 1.5rem 3rem;
+          box-sizing: border-box;
+        }
+        .sb-head {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-end;
+          gap: 24px;
+          padding: 32px 0 28px;
+          margin-bottom: 28px;
+          border-bottom: 1px solid #d8e2dc;
+        }
+        .sb-main-grid {
+          display: grid;
+          grid-template-columns: 1fr 380px;
+          gap: 28px;
+          align-items: start;
+        }
+        .sb-col {
+          display: flex;
+          flex-direction: column;
+          gap: 24px;
+          min-width: 0;
+        }
+        .sb-card {
+          background: #ffffff;
+          border: 1px solid #d8e2dc;
+          border-radius: 24px;
+          padding: 28px;
+        }
+        .sb-label {
+          font-size: 11px;
+          font-weight: 800;
+          color: #2d6a4f;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+        }
+        .sb-card-title {
+          font-size: 1.25rem;
+          font-weight: 800;
+          margin: 0;
+        }
+        .sb-field-label {
+          display: block;
+          font-size: 11px;
+          font-weight: 800;
+          color: #4a6550;
+          margin-bottom: 8px;
+          letter-spacing: 0.04em;
+        }
+        .sb-input {
+          width: 100%;
+          box-sizing: border-box;
+          padding: 12px 16px;
+          border-radius: 14px;
+          border: 1px solid #d8e2dc;
+          background: #f4f8f5;
+          font-size: 14px;
+          font-weight: 600;
+          font-family: inherit;
+          color: #112216;
+          outline: none;
+        }
+        .sb-input:focus {
+          border-color: #2d6a4f;
+        }
+        .sb-chip {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 8px 16px;
+          border-radius: 999px;
+          border: 1px solid #d8e2dc;
+          background: #ffffff;
+          color: #4a6550;
+          font-size: 13px;
+          font-weight: 700;
+          font-family: inherit;
+          cursor: pointer;
+          white-space: nowrap;
+        }
+        .sb-chip.active {
+          background: #1b4332;
+          border-color: #1b4332;
+          color: #ffffff;
+        }
+        .sb-item-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          padding: 14px 18px;
+          border-radius: 18px;
+          background: #f4f8f5;
+          border: 1px solid #e6eee9;
+        }
+        .sb-katalog-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+          gap: 14px;
+          max-height: 460px;
+          overflow-y: auto;
+          padding-right: 4px;
+        }
+        .sb-katalog-card {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 12px;
+          padding: 18px;
+          border: 1px solid #d8e2dc;
+          border-radius: 20px;
+          background: #ffffff;
+        }
+        .sb-side {
+          position: sticky;
+          top: 90px;
+          display: flex;
+          flex-direction: column;
+          gap: 24px;
+        }
+        .sb-kasir-list {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          max-height: 300px;
+          overflow-y: auto;
+          margin-bottom: 16px;
+          padding-right: 4px;
+        }
+        @media (max-width: 1000px) {
+          .sb-main-grid { grid-template-columns: 1fr; }
+          .sb-side { position: static; }
+        }
+        @media (max-width: 768px) {
+          .sb-container { padding: 0 1rem; }
+          .sb-head {
+            flex-direction: column;
+            align-items: flex-start;
+            padding: 16px 0 12px;
+            gap: 6px;
+          }
+          .sb-head h1 {
+            font-size: 1.35rem !important;
+            line-height: 1.25 !important;
+          }
+          .sb-head p {
+            font-size: 12px !important;
+            margin-top: 4px !important;
+          }
+          .sb-card { padding: 14px; border-radius: 18px; }
+          .sb-card-title { font-size: 1.05rem !important; }
+          .sb-label { font-size: 10px !important; }
+          .sb-item-row { flex-wrap: wrap; padding: 10px 12px; gap: 8px; }
+          .sb-two-col { grid-template-columns: 1fr !important; }
+          .sb-katalog-grid {
+            grid-template-columns: 1fr !important;
+            max-height: 320px !important;
+          }
+          .sb-katalog-card { padding: 12px !important; }
+          .sb-kasir-list { max-height: 220px !important; }
+          .sb-chip {
+            font-size: 11px !important;
+            padding: 6px 12px !important;
+          }
+          .sb-input {
+            font-size: 16px !important;
+            padding: 10px 12px !important;
+          }
+          .sb-side { position: static !important; }
+          .sb-main-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
 
-      {/* MAIN GRID */}
-      <div className="row g-4">
-        {/* LEFT COLUMN */}
-        <div className="col-lg-8">
-          {/* ALOKASI ANGGARAN */}
-          <div className="card border-0 shadow-sm rounded-4 p-4 mb-4">
-            <div className="d-flex justify-content-between align-items-center mb-2">
-              <span className="fw-bold text-emerald text-uppercase fs-7">ALOKASI ANGGARAN</span>
-              <div className="d-flex gap-2 align-items-center">
-                <button
-                  onClick={handleOptimasiOtomatis}
-                  disabled={isOptimizing}
-                  className="btn btn-sm btn-success rounded-pill px-3 py-1 small fw-bold"
-                  title="Hitung paket belanja paling optimal dari database resmi"
-                >
-                  {isOptimizing ? "⏳ Menghitung..." : "⚡ Optimasi Paket Otomatis"}
-                </button>
-                <button
-                  onClick={() => { setBudget(200000); setPeriod('bulanan'); setFamilyMembers(4); }}
-                  className="btn btn-sm btn-link text-muted text-decoration-none p-0 small"
-                >
-                  🔄 Reset
-                </button>
-              </div>
-            </div>
+      <div className="sb-container">
+        <div className="sb-head">
+          <div>
+            <button
+              onClick={goBack}
+              style={{
+                background: "none",
+                border: "none",
+                color: "#2d6a4f",
+                fontWeight: "700",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                fontSize: "13.5px",
+                padding: 0,
+                marginBottom: "18px",
+                fontFamily: "inherit",
+              }}
+            >
+              <ArrowLeft size={16} /> Kembali ke Beranda
+            </button>
 
-            <h5 className="fw-bold text-dark mb-3">
-              Pagu Anggaran Belanja {period === 'harian' ? 'Harian' : period === 'mingguan' ? 'Mingguan' : 'Bulanan'}
-            </h5>
-
-            <div className="input-group input-group-lg mb-3">
-              <span className="input-group-text bg-light text-success fw-bold border-end-0">Rp</span>
-              <input
-                type="number"
-                value={budget}
-                onChange={(e) => setBudget(Number(e.target.value))}
-                className="form-control bg-light fw-bold border-start-0"
-                step="10000"
-              />
-            </div>
-
-            <div className="d-flex flex-wrap gap-2 mb-4">
-              {[200000, 400000, 600000, 850000, 1200000].map((val) => (
-                <button
-                  key={val}
-                  onClick={() => setBudget(val)}
-                  className={`btn btn-sm rounded-3 ${budget === val ? 'btn-success fw-bold' : 'btn-outline-secondary'}`}
-                >
-                  Rp {val.toLocaleString('id-ID')}
-                </button>
-              ))}
-            </div>
-
-            <div className="row g-3 pt-3 border-top">
-              <div className="col-sm-6">
-                <label className="form-label text-muted small fw-semibold">PERIODE BELANJA</label>
-                <select
-                  value={period}
-                  onChange={(e) => setPeriod(e.target.value)}
-                  className="form-select bg-light rounded-3"
-                >
-                  <option value="harian">Harian (1 Hari)</option>
-                  <option value="mingguan">Mingguan (7 Hari)</option>
-                  <option value="bulanan">Bulanan (30 Hari)</option>
-                </select>
-              </div>
-
-              <div className="col-sm-6">
-                <label className="form-label text-muted small fw-semibold">JUMLAH ANGGOTA KELUARGA</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={familyMembers}
-                  onChange={(e) => setFamilyMembers(Number(e.target.value))}
-                  className="form-control bg-light rounded-3"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* REKOMENDASI PASAR & LIVE MAPS LOKASI PASAR LAMONGAN */}
-          <div className="card border-0 shadow-sm rounded-4 p-4 mb-4">
-            <div className="d-flex justify-content-between align-items-center mb-2">
-              <span className="fw-bold text-emerald text-uppercase fs-7">REKOMENDASI LOKASI &amp; PETA PASAR</span>
-              <span className="badge bg-success-subtle text-success border border-success-subtle px-2 py-1 small">
-                Titik GPS Terverifikasi DKPP
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                backgroundColor: "#e2f5ea",
+                padding: "6px 16px",
+                borderRadius: "999px",
+                marginBottom: "14px",
+              }}
+            >
+              <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#2d6a4f" }}></span>
+              <span style={{ fontSize: "11px", fontWeight: "800", color: "#1b4332", letterSpacing: "0.05em" }}>
+                INOVASI DKPP KABUPATEN LAMONGAN
               </span>
             </div>
-            <h5 className="fw-bold text-dark mb-1">Pilih Pasar Rakyat Tujuan di Lamongan</h5>
-            <p className="text-muted small mb-3">
-              Klik nama pasar untuk melihat estimasi jarak, alamat lengkap, dan navigasi langsung Google Maps ke titik pasar.
-            </p>
-
-            <div className="d-flex flex-wrap gap-2 mb-3">
-              {pasarList.map((pasar) => (
-                <button
-                  key={pasar.id}
-                  onClick={() => setSelectedPasarId(pasar.id)}
-                  className={`btn btn-sm rounded-3 ${selectedPasarId === pasar.id ? 'btn-success fw-bold shadow-sm' : 'btn-light text-secondary border'}`}
-                >
-                  📍 {pasar.name}
-                </button>
-              ))}
-            </div>
-
-            {/* Info Box Pasar Aktif */}
-            <div className="p-3 bg-emerald-light rounded-3 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3 border border-emerald-subtle">
-              <div>
-                <div className="fw-bold text-dark fs-6">📍 {activePasar.name}</div>
-                <div className="text-secondary small fw-medium mt-1">🏠 Alamat: {activePasar.alamat}</div>
-                <div className="text-success small fw-semibold mt-1">✨ {activePasar.info}</div>
-              </div>
-              <div className="d-flex gap-2 flex-wrap">
-                <a
-                  href={activePasar.rute}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="btn btn-sm btn-success rounded-2 text-nowrap d-inline-flex align-items-center gap-1 shadow-sm"
-                >
-                  <span>🧭 Petunjuk Rute Maps</span>
-                </a>
-                <a
-                  href={activePasar.maps}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="btn btn-sm btn-outline-success bg-white rounded-2 text-nowrap d-inline-flex align-items-center gap-1"
-                >
-                  <span>🔍 Buka Titik Maps</span>
-                </a>
-              </div>
-            </div>
-
-            {/* Live Interactive Embed Map Pasar Lamongan */}
-            <div className="rounded-3 overflow-hidden border shadow-sm" style={{ height: '230px', position: 'relative' }}>
-              <iframe
-                title={`Peta Lokasi ${activePasar.name}`}
-                src={`https://maps.google.com/maps?q=${activePasar.lat},${activePasar.lon}&z=15&output=embed`}
-                width="100%"
-                height="100%"
-                style={{ border: 0 }}
-                allowFullScreen=""
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-              ></iframe>
-              <div
-                style={{
-                  position: 'absolute',
-                  bottom: '10px',
-                  left: '10px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                  padding: '6px 12px',
-                  borderRadius: '8px',
-                  fontSize: '11px',
-                  fontWeight: '600',
-                  color: '#065f46',
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.15)',
-                  backdropFilter: 'blur(4px)'
-                }}
-              >
-                📍 Lokasi Terpilih: {activePasar.name} (Lamongan) • Lat: {activePasar.lat}, Lon: {activePasar.lon}
-              </div>
-            </div>
+            <h1 style={{ fontSize: "2.5rem", fontWeight: "800", margin: 0, letterSpacing: "-0.03em", lineHeight: 1.15 }}>
+              Smart Budgeting: <span style={{ color: "#2d6a4f" }}>Kalkulator &amp; Optimasi Dapur</span>
+            </h1>
           </div>
+          <p style={{ color: "#4a6550", margin: 0, fontSize: "1rem", maxWidth: "460px", lineHeight: "1.6" }}>
+            Hitung kebutuhan dapur keluarga dan temukan pasar rakyat dengan kombinasi harga paling hemat di Kabupaten Lamongan.
+          </p>
+        </div>
 
-          {/* LIST ITEM PANGAN YANG DIPILIH */}
-          <div className="card border-0 shadow-sm rounded-4 p-4 mb-4">
-            <div className="d-flex justify-content-between align-items-center mb-3">
-              <div>
-                <h5 className="fw-bold text-dark m-0">Rencana Belanja Pangan</h5>
-                <small className="text-muted">Total {items.length} Komoditas Terpilih</small>
-              </div>
-            </div>
-
-            <div className="d-flex flex-column gap-2">
-              {items.map((item) => (
-                <div key={item.id} className="p-3 rounded-3 d-flex align-items-center justify-content-between bg-light border">
-                  <div>
-                    <div className="fw-bold text-dark small">{item.name}</div>
-                    <div className="text-muted small">
-                      Rp {item.price.toLocaleString('id-ID')} /{item.unit}
-                    </div>
-                  </div>
-
-                  <div className="d-flex align-items-center gap-3">
-                    <div className="btn-group btn-group-sm bg-white border rounded-2">
-                      <button onClick={() => updateQty(item.id, -1)} className="btn btn-light fw-bold px-2">-</button>
-                      <span className="btn btn-light disabled text-dark fw-bold px-3">{item.qty}</span>
-                      <button onClick={() => updateQty(item.id, 1)} className="btn btn-light fw-bold px-2">+</button>
-                    </div>
-
-                    <span className="fw-bold text-dark text-end" style={{ minWidth: '90px' }}>
-                      Rp {(item.qty * item.price).toLocaleString('id-ID')}
-                    </span>
-
-                    <button onClick={() => removeItem(item.id)} className="btn btn-sm text-danger border-0 p-1" title="Hapus">
-                      🗑
-                    </button>
-                  </div>
+        <div className="sb-main-grid">
+          <div className="sb-col">
+            <div className="sb-card">
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px", flexWrap: "wrap", gap: "10px" }}>
+                <span className="sb-label">Alokasi Anggaran</span>
+                <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+                  <button
+                    onClick={handleOptimasiOtomatis}
+                    disabled={isOptimizing}
+                    style={{
+                      background: "#1b4332",
+                      color: "#ffffff",
+                      border: "none",
+                      padding: "9px 18px",
+                      borderRadius: "999px",
+                      fontWeight: "700",
+                      fontSize: "13px",
+                      fontFamily: "inherit",
+                      cursor: isOptimizing ? "wait" : "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "6px",
+                    }}
+                  >
+                    <Zap size={14} /> {isOptimizing ? "Menghitung..." : "Optimasi Paket Otomatis"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setBudget(600000);
+                      setPeriod("bulanan");
+                      setFamilyMembers(4);
+                    }}
+                    style={{ background: "none", border: "none", color: "#4a6550", fontSize: "13px", cursor: "pointer", fontWeight: "700", display: "flex", alignItems: "center", gap: "4px", fontFamily: "inherit" }}
+                  >
+                    <RefreshCw size={13} /> Reset
+                  </button>
                 </div>
-              ))}
-            </div>
-          </div>
-
-          {/* KOMPONEN KATALOG LENGKAP HARGA KOMODITAS */}
-          <div className="card border-0 shadow-sm rounded-4 p-4">
-            <div className="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mb-3">
-              <div>
-                <h5 className="fw-bold text-dark m-0">Katalog Komoditas Pangan</h5>
-                <small className="text-muted">Daftar acuan harga riil di {activePasar.name}</small>
               </div>
-              <div style={{ maxWidth: '250px' }}>
+
+              <h3 className="sb-card-title" style={{ marginBottom: "16px" }}>
+                Pagu Anggaran Belanja {period === "harian" ? "Harian" : period === "mingguan" ? "Mingguan" : "Bulanan"}
+              </h3>
+
+              <div style={{ display: "flex", alignItems: "center", background: "#f4f8f5", borderRadius: "16px", border: "1px solid #d8e2dc", padding: "0 18px", marginBottom: "14px" }}>
+                <span style={{ fontSize: "18px", fontWeight: "800", color: "#2d6a4f" }}>Rp</span>
                 <input
                   type="text"
-                  placeholder="🔍 Cari komoditas..."
-                  value={searchKatalog}
-                  onChange={(e) => setSearchKatalog(e.target.value)}
-                  className="form-control form-control-sm bg-light rounded-3"
+                  value={budget === 0 ? "" : budget.toLocaleString("id-ID")}
+                  onChange={(e) => {
+                    const rawVal = e.target.value.replace(/\D/g, "");
+                    setBudget(rawVal === "" ? 0 : Number(rawVal));
+                  }}
+                  style={{ width: "100%", border: "none", outline: "none", background: "transparent", padding: "15px", fontSize: "20px", fontWeight: "800", fontFamily: "inherit", color: "#112216" }}
                 />
               </div>
+
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "22px" }}>
+                {[200000, 400000, 600000, 850000, 1200000].map((val) => (
+                  <button key={val} onClick={() => setBudget(val)} className={`sb-chip ${budget === val ? "active" : ""}`}>
+                    {formatRp(val)}
+                  </button>
+                ))}
+              </div>
+
+              <div className="sb-two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", paddingTop: "20px", borderTop: "1px solid #d8e2dc" }}>
+                <div>
+                  <label className="sb-field-label">PERIODE BELANJA</label>
+                  <select value={period} onChange={(e) => setPeriod(e.target.value)} className="sb-input" style={{ cursor: "pointer" }}>
+                    <option value="harian">Harian (1 Hari)</option>
+                    <option value="mingguan">Mingguan (7 Hari)</option>
+                    <option value="bulanan">Bulanan (30 Hari)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="sb-field-label">JUMLAH ANGGOTA KELUARGA</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={familyMembers}
+                    onChange={(e) => setFamilyMembers(Math.max(1, Number(e.target.value)))}
+                    className="sb-input"
+                  />
+                </div>
+              </div>
             </div>
 
-            <div className="row g-2" style={{ maxHeight: '350px', overflowY: 'auto' }}>
-              {filteredKatalog.map((katalog) => {
-                const isAdded = items.some(i => i.id === katalog.id);
-                return (
-                  <div key={katalog.id} className="col-sm-6">
-                    <div className="p-3 border rounded-3 bg-white d-flex justify-content-between align-items-center h-100">
-                      <div>
-                        <span className="badge bg-light text-secondary border mb-1" style={{ fontSize: '0.65rem' }}>
-                          {katalog.category}
-                        </span>
-                        <div className="fw-bold text-dark small">{katalog.name}</div>
-                        <div className="text-emerald fw-semibold small">
-                          Rp {katalog.price.toLocaleString('id-ID')} /{katalog.unit}
+            <div className="sb-card">
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", flexWrap: "wrap", gap: "8px" }}>
+                <span className="sb-label">Rekomendasi Lokasi &amp; Peta Pasar</span>
+                <span style={{ background: "#e2f5ea", color: "#1b4332", padding: "4px 12px", borderRadius: "999px", fontSize: "11px", fontWeight: "800" }}>
+                  Titik GPS Terverifikasi DKPP
+                </span>
+              </div>
+              <h3 className="sb-card-title" style={{ marginBottom: "6px" }}>Pilih Pasar Rakyat Tujuan di Lamongan</h3>
+              <p style={{ color: "#4a6550", fontSize: "13.5px", margin: "0 0 18px 0", lineHeight: "1.5" }}>
+                Pilih pasar untuk melihat alamat lengkap dan navigasi langsung ke titik pasar.
+              </p>
+
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "18px" }}>
+                {loadingData ? (
+                  <p style={{ fontSize: "13px", color: "#4a6550", margin: 0 }}>Memuat daftar pasar...</p>
+                ) : (
+                  pasarList.map((pasar) => (
+                    <button
+                      key={pasar.id}
+                      onClick={() => setSelectedPasarId(pasar.id)}
+                      className={`sb-chip ${selectedPasarId === pasar.id ? "active" : ""}`}
+                    >
+                      <MapPin size={14} color={selectedPasarId === pasar.id ? "#74c69d" : "#2d6a4f"} /> {pasar.name}
+                    </button>
+                  ))
+                )}
+              </div>
+
+              <div style={{ background: "#e2f5ea", borderRadius: "20px", padding: "20px", marginBottom: "18px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", fontWeight: "800", fontSize: "16px" }}>
+                    <MapPin size={17} color="#2d6a4f" /> {activePasar.name}
+                  </div>
+                  <div style={{ color: "#4a6550", fontSize: "13px", fontWeight: "600", marginTop: "6px" }}>{activePasar.alamat}</div>
+                  <div style={{ color: "#1b4332", fontSize: "12.5px", fontWeight: "700", marginTop: "4px" }}>{activePasar.info}</div>
+                </div>
+                <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                  <a
+                    href={activePasar.rute}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ background: "#1b4332", color: "#ffffff", padding: "10px 18px", borderRadius: "999px", fontSize: "12.5px", fontWeight: "700", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "6px" }}
+                  >
+                    <Navigation size={14} /> Petunjuk Rute
+                  </a>
+                  <a
+                    href={activePasar.maps}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ background: "#ffffff", color: "#1b4332", border: "1px solid #2d6a4f", padding: "10px 18px", borderRadius: "999px", fontSize: "12.5px", fontWeight: "700", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "6px" }}
+                  >
+                    <ExternalLink size={14} /> Buka di Maps
+                  </a>
+                </div>
+              </div>
+
+              <div style={{ borderRadius: "20px", overflow: "hidden", border: "1px solid #d8e2dc", height: "250px" }}>
+                <iframe
+                  title={`Peta Lokasi ${activePasar.name}`}
+                  src={`https://maps.google.com/maps?q=${activePasar.lat},${activePasar.lon}&z=15&output=embed`}
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0 }}
+                  allowFullScreen=""
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                ></iframe>
+              </div>
+            </div>
+
+            <div className="sb-card">
+              <div style={{ marginBottom: "18px" }}>
+                <h3 className="sb-card-title">Rencana Belanja Pangan</h3>
+                <span style={{ fontSize: "13px", color: "#4a6550", fontWeight: "600" }}>
+                  {items.length} komoditas terpilih
+                </span>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                {items.length === 0 ? (
+                  <p style={{ textAlign: "center", color: "#4a6550", padding: "20px", margin: 0 }}>
+                    Belum ada item dipilih. Tambahkan dari katalog di bawah.
+                  </p>
+                ) : (
+                  items.map((item) => (
+                    <div key={item.id} className="sb-item-row">
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontWeight: "800", fontSize: "14.5px" }}>{item.name}</div>
+                        <div style={{ color: "#4a6550", fontSize: "12.5px", fontWeight: "600" }}>
+                          {formatRp(item.price)} /{item.unit}
                         </div>
                       </div>
-                      <button
-                        onClick={() => addFromKatalog(katalog)}
-                        className={`btn btn-sm rounded-2 ${isAdded ? 'btn-outline-success' : 'btn-success'} text-nowrap`}
-                      >
-                        {isAdded ? '+ Tambah' : 'Tambah'}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
 
-        </div>
-
-        {/* RIGHT COLUMN */}
-        <div className="col-lg-4">
-          <div style={{ position: 'sticky', top: '1.5rem' }} className="d-flex flex-column gap-4">
-            {/* REALTIME DIAGNOSIS CARD */}
-            <div className="card border-0 bg-emerald-dark text-white rounded-4 p-4 shadow-lg">
-              <span className="badge bg-success bg-opacity-50 text-light w-auto align-self-start mb-3 px-2 py-1 small">
-                ⚡ DIAGNOSA REAL-TIME
-              </span>
-
-              {isOverBudget ? (
-                <div className="mb-3">
-                  <h4 className="fw-bold text-warning mb-1">⚠️ Melebihi Anggaran</h4>
-                  <small className="text-light opacity-75">Defisit Rp {Math.abs(remainingBudget).toLocaleString('id-ID')}</small>
-                </div>
-              ) : (
-                <div className="mb-3">
-                  <h4 className="fw-bold text-success-subtle mb-1">✅ Anggaran Aman</h4>
-                  <small className="text-light opacity-75">Sisa Rp {remainingBudget.toLocaleString('id-ID')}</small>
-                </div>
-              )}
-
-              <div className="mb-3">
-                <div className="d-flex justify-content-between small text-light opacity-75 mb-1">
-                  <span>Terpakai: Rp {totalCost.toLocaleString('id-ID')}</span>
-                  <span>{Math.min(100, Math.round((totalCost / budget) * 100))}%</span>
-                </div>
-                <div className="progress" style={{ height: '8px', backgroundColor: '#022c22' }}>
-                  <div
-                    className={`progress-bar ${isOverBudget ? 'bg-danger' : 'bg-success'}`}
-                    style={{ width: `${Math.min(100, (totalCost / budget) * 100)}%` }}
-                  ></div>
-                </div>
-              </div>
-
-              <div className="border-top border-secondary border-opacity-50 pt-3 small d-flex flex-column gap-1">
-                <div className="d-flex justify-content-between">
-                  <span>Sisa Budget:</span>
-                  <span className="fw-bold">
-                    Rp {remainingBudget < 0 ? 0 : remainingBudget.toLocaleString('id-ID')}
-                  </span>
-                </div>
-                <div className="d-flex justify-content-between text-success-subtle">
-                  <span>Estimasi Pengeluaran:</span>
-                  <span>~Rp {dailySpend.toLocaleString('id-ID')}/hari</span>
-                </div>
-              </div>
-
-              <div className="border-top border-secondary border-opacity-50 pt-3 mt-3">
-                {isOverBudget ? (
-                  <div>
-                    <p className="small text-warning mb-2">💡 <strong>Saran Substitusi Bahan:</strong></p>
-                    {expensiveItem ? (
-                      <div className="p-3 rounded-3 border border-secondary border-opacity-50" style={{ backgroundColor: '#022c22' }}>
-                        <p className="small text-light mb-2">
-                          Ganti <strong>{expensiveItem.name}</strong> dengan <strong>{SUBSTITUSI_MAP[expensiveItem.name]}</strong> untuk hemat.
-                        </p>
+                      <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+                        <QtyControl qty={item.qty} onMinus={() => updateQty(item.id, -1)} onPlus={() => updateQty(item.id, 1)} />
+                        <span style={{ fontWeight: "800", textAlign: "right", minWidth: "110px", fontSize: "15px" }}>
+                          {formatRp(item.qty * item.price)}
+                        </span>
                         <button
-                          onClick={() => handleApplySubstitution(expensiveItem.name, SUBSTITUSI_MAP[expensiveItem.name])}
-                          className="btn btn-sm btn-warning w-100 fw-bold rounded-2 text-dark"
+                          onClick={() => removeItem(item.id)}
+                          style={{ border: "none", background: "transparent", color: "#e11d48", cursor: "pointer", padding: "4px", display: "flex" }}
+                          title="Hapus"
                         >
-                          Terapkan Substitusi
+                          <Trash2 size={16} />
                         </button>
                       </div>
-                    ) : (
-                      <p className="small text-light opacity-75 mb-0">Pertimbangkan mengurangi kuantitas item sekunder.</p>
-                    )}
-                  </div>
-                ) : (
-                  <div className="small text-light">
-                    <p className="fw-bold text-success-subtle mb-1">💰 Opsi Alokasi Sisa:</p>
-                    <p className="m-0 opacity-75">
-                      Sisa dana <strong>Rp {remainingBudget.toLocaleString('id-ID')}</strong> dapat dialokasikan ke <strong>Tabungan Keluarga</strong>.
-                    </p>
-                  </div>
+                    </div>
+                  ))
                 )}
               </div>
             </div>
 
-            {/* KASIR CARD */}
-            <div className="card border-0 shadow-sm rounded-4 p-4">
-              <div className="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
-                <span className="fw-bold text-secondary text-uppercase small">🛒 Rincian Kasir</span>
-                <span className="badge bg-success-subtle text-success">{activePasar.name}</span>
+            <div className="sb-card">
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", flexWrap: "wrap", gap: "14px" }}>
+                <div>
+                  <span className="sb-label">Direktori Pangan Daerah</span>
+                  <h3 className="sb-card-title" style={{ margin: "4px 0 2px" }}>Katalog Komoditas Pangan</h3>
+                  <span style={{ fontSize: "13px", color: "#4a6550", fontWeight: "600" }}>
+                    Daftar harga dari pasar yang dipilih
+                  </span>
+                </div>
+                <div style={{ width: "260px", maxWidth: "100%", position: "relative" }}>
+                  <Search size={15} color="#4a6550" style={{ position: "absolute", left: "16px", top: "50%", transform: "translateY(-50%)" }} />
+                  <input
+                    type="text"
+                    placeholder="Cari komoditas..."
+                    value={searchKatalog}
+                    onChange={(e) => setSearchKatalog(e.target.value)}
+                    className="sb-input"
+                    style={{ padding: "11px 16px 11px 40px", borderRadius: "999px" }}
+                  />
+                </div>
               </div>
 
-              <div className="d-flex flex-column gap-2 small mb-3" style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                {items.map((item) => (
-                  <div key={item.id} className="d-flex justify-content-between text-secondary">
-                    <span>{item.name} <span className="text-muted">({item.qty} {item.unit})</span></span>
-                    <span className="fw-semibold text-dark">Rp {(item.qty * item.price).toLocaleString('id-ID')}</span>
+              <div className="sb-katalog-grid">
+                {loadingData ? (
+                  <p style={{ gridColumn: "1 / -1", textAlign: "center", color: "#4a6550", padding: "30px", margin: 0 }}>
+                    Memuat katalog...
+                  </p>
+                ) : filteredKatalog.length === 0 ? (
+                  <p style={{ gridColumn: "1 / -1", textAlign: "center", color: "#4a6550", padding: "30px", margin: 0 }}>
+                    Komoditas tidak ditemukan.
+                  </p>
+                ) : (
+                  filteredKatalog.map((katalog) => {
+                    const isAdded = items.some((i) => i.id === katalog.id);
+                    return (
+                      <div key={katalog.id} className="sb-katalog-card">
+                        <div style={{ minWidth: 0 }}>
+                          <span style={{ background: "#e2f5ea", color: "#1b4332", padding: "3px 10px", borderRadius: "999px", fontSize: "10px", fontWeight: "800", letterSpacing: "0.04em" }}>
+                            {katalog.category}
+                          </span>
+                          <div style={{ fontWeight: "800", fontSize: "15px", margin: "8px 0 4px" }}>{katalog.name}</div>
+                          <div style={{ color: "#1b4332", fontWeight: "800", fontSize: "16px" }}>
+                            {formatRp(katalog.price)}{" "}
+                            <span style={{ fontSize: "12px", color: "#4a6550", fontWeight: "600" }}>/{katalog.unit}</span>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => addFromKatalog(katalog)}
+                          style={{
+                            background: isAdded ? "#e2f5ea" : "#1b4332",
+                            color: isAdded ? "#1b4332" : "#ffffff",
+                            border: "none",
+                            padding: "10px 18px",
+                            borderRadius: "999px",
+                            fontSize: "12.5px",
+                            fontWeight: "800",
+                            fontFamily: "inherit",
+                            cursor: "pointer",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          {isAdded ? "+ Tambah Lagi" : "Tambah"}
+                        </button>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="sb-side">
+            <div style={{ background: "#1b4332", borderRadius: "24px", padding: "26px", color: "#ffffff" }}>
+              <div style={{ display: "inline-flex", alignItems: "center", gap: "6px", background: "rgba(255,255,255,0.12)", padding: "6px 14px", borderRadius: "999px", fontSize: "11px", fontWeight: "800", color: "#b7efc5", marginBottom: "18px" }}>
+                <Zap size={13} /> DIAGNOSA REAL-TIME
+              </div>
+
+              {isOverBudget ? (
+                <div style={{ marginBottom: "16px" }}>
+                  <h4 style={{ fontSize: "20px", fontWeight: "800", color: "#fca5a5", margin: "0 0 4px 0", display: "flex", alignItems: "center", gap: "8px" }}>
+                    <AlertTriangle size={20} /> Melebihi Anggaran
+                  </h4>
+                  <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.75)" }}>
+                    Defisit {formatRp(Math.abs(remainingBudget))}
+                  </span>
+                </div>
+              ) : (
+                <div style={{ marginBottom: "16px" }}>
+                  <h4 style={{ fontSize: "20px", fontWeight: "800", color: "#b7efc5", margin: "0 0 4px 0", display: "flex", alignItems: "center", gap: "8px" }}>
+                    <CheckCircle size={20} /> Anggaran Aman
+                  </h4>
+                  <span style={{ fontSize: "13px", color: "rgba(255,255,255,0.75)" }}>
+                    Sisa {formatRp(remainingBudget)}
+                  </span>
+                </div>
+              )}
+
+              <div style={{ marginBottom: "20px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", color: "rgba(255,255,255,0.75)", marginBottom: "6px", fontWeight: "600" }}>
+                  <span>Terpakai: {formatRp(totalCost)}</span>
+                  <span>{usedPercent}%</span>
+                </div>
+                <div style={{ height: "8px", background: "rgba(255,255,255,0.15)", borderRadius: "999px", overflow: "hidden" }}>
+                  <div
+                    style={{
+                      height: "100%",
+                      background: isOverBudget ? "#ef4444" : "#74c69d",
+                      width: `${usedPercent}%`,
+                      borderRadius: "999px",
+                      transition: "width 0.4s",
+                    }}
+                  ></div>
+                </div>
+              </div>
+
+              <div style={{ borderTop: "1px solid rgba(255,255,255,0.15)", paddingTop: "16px", fontSize: "13px", display: "flex", flexDirection: "column", gap: "8px", fontWeight: "600" }}>
+                <div style={{ display: "flex", justifyContent: "space-between" }}>
+                  <span style={{ color: "rgba(255,255,255,0.75)" }}>Sisa Budget:</span>
+                  <span>{formatRp(remainingBudget < 0 ? 0 : remainingBudget)}</span>
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", color: "#b7efc5" }}>
+                  <span>Estimasi Pengeluaran:</span>
+                  <span>~{formatRp(dailySpend)}/hari</span>
+                </div>
+              </div>
+
+              {isOverBudget && expensiveItem && (
+                <div style={{ borderTop: "1px solid rgba(255,255,255,0.15)", paddingTop: "16px", marginTop: "16px" }}>
+                  <p style={{ fontSize: "12px", color: "#fca5a5", fontWeight: "700", margin: "0 0 8px 0", display: "flex", alignItems: "center", gap: "6px" }}>
+                    <Lightbulb size={14} /> Saran Substitusi Bahan
+                  </p>
+                  <div style={{ background: "rgba(0,0,0,0.2)", padding: "14px", borderRadius: "14px" }}>
+                    <p style={{ fontSize: "12px", margin: "0 0 10px 0", lineHeight: "1.5" }}>
+                      Ganti <strong>{expensiveItem.name}</strong> dengan <strong>{SUBSTITUSI_MAP[expensiveItem.name]}</strong> untuk menghemat pengeluaran.
+                    </p>
+                    <button
+                      onClick={() => handleApplySubstitution(expensiveItem.name, SUBSTITUSI_MAP[expensiveItem.name])}
+                      style={{ background: "#b7efc5", color: "#1b4332", border: "none", width: "100%", padding: "9px", borderRadius: "999px", fontWeight: "800", fontSize: "12px", fontFamily: "inherit", cursor: "pointer" }}
+                    >
+                      Terapkan Substitusi
+                    </button>
                   </div>
-                ))}
+                </div>
+              )}
+            </div>
+
+            <div className="sb-card" style={{ padding: "24px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", paddingBottom: "12px", borderBottom: "1px solid #d8e2dc", gap: "8px" }}>
+                <span style={{ fontSize: "11px", fontWeight: "800", color: "#4a6550", letterSpacing: "0.04em", textTransform: "uppercase", display: "flex", alignItems: "center", gap: "6px" }}>
+                  <ShoppingCart size={14} color="#2d6a4f" /> Rincian Kasir
+                </span>
+                <span style={{ background: "#e2f5ea", color: "#1b4332", padding: "4px 10px", borderRadius: "999px", fontSize: "11px", fontWeight: "800", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: "160px" }}>
+                  {activePasar.name}
+                </span>
               </div>
 
-              <div className="border-top pt-2 d-flex justify-content-between fw-bold text-dark">
+              <div className="sb-kasir-list">
+                {items.length === 0 ? (
+                  <p style={{ color: "#9ca3af", textAlign: "center", fontSize: "12px", margin: "10px 0" }}>Belum ada item.</p>
+                ) : (
+                  items.map((item) => (
+                    <div
+                      key={item.id}
+                      style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#f4f8f5", padding: "10px 12px", borderRadius: "14px", border: "1px solid #e6eee9", gap: "8px" }}
+                    >
+                      <div style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0 }}>
+                        <span style={{ fontWeight: "700", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "13px" }}>
+                          {item.name}
+                        </span>
+                        <span style={{ fontSize: "11px", color: "#4a6550", fontWeight: "600" }}>
+                          {formatRp(item.price)} /{item.unit}
+                        </span>
+                      </div>
+
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <QtyControl small qty={item.qty} onMinus={() => updateQty(item.id, -1)} onPlus={() => updateQty(item.id, 1)} />
+                        <button
+                          onClick={() => removeItem(item.id)}
+                          style={{ border: "none", background: "#fee2e2", color: "#ef4444", width: "22px", height: "22px", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", padding: 0, flexShrink: 0 }}
+                          title="Hapus item"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <div style={{ borderTop: "1px solid #d8e2dc", paddingTop: "16px", display: "flex", justifyContent: "space-between", fontWeight: "800", fontSize: "16px" }}>
                 <span>Total Belanja:</span>
-                <span className="text-success">Rp {totalCost.toLocaleString('id-ID')}</span>
+                <span style={{ color: "#2d6a4f" }}>{formatRp(totalCost)}</span>
               </div>
             </div>
           </div>

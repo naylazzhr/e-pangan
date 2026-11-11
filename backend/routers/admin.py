@@ -1,6 +1,11 @@
+import os
+import uuid
+import json
+import re
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status, File, UploadFile, Form
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 import models
@@ -32,7 +37,7 @@ def get_dashboard_ringkasan(
     kios_terpantau = min(24, total_kios)
 
     total_komoditas = db.query(models.Komoditas).count()
-    komoditas_aktif = min(18, total_komoditas)
+    komoditas_aktif = max(18, total_komoditas)
 
     total_survei = db.query(models.SurveiHarga).count()
     pending_count = db.query(models.SurveiHarga).filter(models.SurveiHarga.status_verifikasi == "Menunggu Cek").count()
@@ -57,7 +62,8 @@ def get_dashboard_ringkasan(
         },
         "komoditas_aktif": {
             "nilai": f"{komoditas_aktif} Bahan Pokok",
-            "status": f"Lengkap {komoditas_aktif}/18",
+            "status": f"{komoditas_aktif} Terdaftar",
+            "tercapai": komoditas_aktif,
             "regulator": "NFA & Bapanas"
         },
         "input_hari_ini": {
@@ -124,13 +130,16 @@ def get_master_data_ringkasan(db: Session = Depends(get_db)):
 
 @router.get("/komoditas", tags=["Master Komoditas"])
 def get_semua_komoditas(
-    search: Optional[str] = Query(None),
-    kategori: Optional[str] = Query(None),
-    lokasi: Optional[str] = Query(None),
+    search: Optional[str] = None,
+    kategori: Optional[str] = None,
+    lokasi: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
     """Mengambil master data komoditas bahan pangan dengan filter pencarian."""
-    query = db.query(models.Komoditas)
+    query = db.query(models.Komoditas).filter(
+        models.Komoditas.is_active == True,
+        models.Komoditas.status_label != "Menunggu Validasi"
+    )
     if search:
         query = query.filter(models.Komoditas.nama_bahan.ilike(f"%{search}%"))
     if kategori:
@@ -429,3 +438,192 @@ def seed_data_demo_cari_harga(
         "het_ditambah": ["Beras Medium", "Beras Premium"],
         "kios_ditambah": inserted,
     }
+
+
+# ==============================================================================
+# MANAJEMEN FOTO KATALOG KOMODITAS (ADMIN)
+# ==============================================================================
+
+UPLOAD_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploads")
+KOMODITAS_UPLOAD_DIR = os.path.join(UPLOAD_DIR, "komoditas")
+JSON_STORE_PATH = os.path.join(UPLOAD_DIR, "komoditas_photos.json")
+os.makedirs(KOMODITAS_UPLOAD_DIR, exist_ok=True)
+
+
+def _load_json_photos() -> dict:
+    if os.path.exists(JSON_STORE_PATH):
+        try:
+            with open(JSON_STORE_PATH, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return {}
+    return {}
+
+
+def _save_json_photos(data: dict):
+    try:
+        with open(JSON_STORE_PATH, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+    except Exception as e:
+        print("Warning: Gagal menyimpan JSON foto:", e)
+
+
+@router.get("/komoditas-foto", tags=["Katalog Foto"])
+def get_semua_foto_komoditas(db: Session = Depends(get_db)):
+    """Mengambil seluruh data pemetaan foto kustom komoditas untuk publik dan portal admin."""
+    result = _load_json_photos()
+    try:
+        rows = db.query(models.KatalogFoto).all()
+        for r in rows:
+            if r.nama_komoditas and r.foto_url:
+                result[r.nama_komoditas.strip().lower()] = r.foto_url
+    except Exception as e:
+        print("Warning DB get_semua_foto_komoditas:", e)
+    return {"status": "success", "data": result}
+
+
+@router.post("/admin/komoditas-foto/upload", tags=["Katalog Foto"])
+async def upload_foto_komoditas(
+    file: UploadFile = File(...),
+    nama_komoditas: str = Form(...),
+    current_admin: models.Admin = Depends(get_admin_sekarang),
+    db: Session = Depends(get_db)
+):
+    """Mengunggah foto baru untuk komoditas tertentu langsung dari perangkat admin."""
+    clean_nama = nama_komoditas.strip()
+    if not clean_nama:
+        raise HTTPException(status_code=400, detail="Nama komoditas wajib diisi")
+
+    ext = os.path.splitext(file.filename or "")[1].lower()
+    if ext not in [".jpg", ".jpeg", ".png", ".webp", ".svg", ".gif"]:
+        ext = ".jpg"
+
+    slug = re.sub(r'[^a-zA-Z0-9]+', '_', clean_nama).strip('_').lower()
+    unique_id = uuid.uuid4().hex[:8]
+    filename = f"{slug}_{unique_id}{ext}"
+    dest_path = os.path.join(KOMODITAS_UPLOAD_DIR, filename)
+
+    contents = await file.read()
+    if len(contents) == 0:
+        raise HTTPException(status_code=400, detail="File gambar kosong atau tidak valid")
+
+    with open(dest_path, "wb") as f:
+        f.write(contents)
+
+    foto_url = f"/uploads/komoditas/{filename}"
+
+    # Simpan ke JSON file lokal sebagai fallback
+    photos_data = _load_json_photos()
+    photos_data[clean_nama.lower()] = foto_url
+    _save_json_photos(photos_data)
+
+    # Simpan ke Database
+    try:
+        existing = db.query(models.KatalogFoto).filter(
+            models.KatalogFoto.nama_komoditas.ilike(clean_nama)
+        ).first()
+        if existing:
+            existing.foto_url = foto_url
+        else:
+            db.add(models.KatalogFoto(nama_komoditas=clean_nama, foto_url=foto_url))
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        print("Warning DB save foto:", e)
+
+    return {
+        "status": "success",
+        "message": f"Foto untuk '{clean_nama}' berhasil diperbarui!",
+        "nama_komoditas": clean_nama,
+        "foto_url": foto_url
+    }
+
+
+class FotoUrlRequest(BaseModel):
+    nama_komoditas: str
+    foto_url: str
+
+
+@router.post("/admin/komoditas-foto/url", tags=["Katalog Foto"])
+def update_foto_komoditas_url(
+    req: FotoUrlRequest,
+    current_admin: models.Admin = Depends(get_admin_sekarang),
+    db: Session = Depends(get_db)
+):
+    """Menyetel foto komoditas menggunakan URL gambar eksternal atau lokal."""
+    clean_nama = req.nama_komoditas.strip()
+    if not clean_nama or not req.foto_url.strip():
+        raise HTTPException(status_code=400, detail="Nama komoditas dan URL foto wajib diisi")
+
+    foto_url = req.foto_url.strip()
+
+    # Simpan ke JSON
+    photos_data = _load_json_photos()
+    photos_data[clean_nama.lower()] = foto_url
+    _save_json_photos(photos_data)
+
+    # Simpan ke Database
+    try:
+        existing = db.query(models.KatalogFoto).filter(
+            models.KatalogFoto.nama_komoditas.ilike(clean_nama)
+        ).first()
+        if existing:
+            existing.foto_url = foto_url
+        else:
+            db.add(models.KatalogFoto(nama_komoditas=clean_nama, foto_url=foto_url))
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        print("Warning DB save foto URL:", e)
+
+    return {
+        "status": "success",
+        "message": f"URL foto untuk '{clean_nama}' berhasil disimpan!",
+        "nama_komoditas": clean_nama,
+        "foto_url": foto_url
+    }
+
+
+@router.delete("/admin/komoditas-foto/{nama_komoditas}", tags=["Katalog Foto"])
+def reset_foto_komoditas(
+    nama_komoditas: str,
+    current_admin: models.Admin = Depends(get_admin_sekarang),
+    db: Session = Depends(get_db)
+):
+    """Mereset foto komoditas kembali ke foto bawaan sistem (default)."""
+    clean_nama = nama_komoditas.strip()
+    key = clean_nama.lower()
+
+    # Hapus dari JSON
+    photos_data = _load_json_photos()
+    old_url = photos_data.pop(key, None)
+    _save_json_photos(photos_data)
+
+    # Hapus file lokal jika ada
+    if old_url and old_url.startswith("/uploads/komoditas/"):
+        fname = old_url.replace("/uploads/komoditas/", "")
+        fpath = os.path.join(KOMODITAS_UPLOAD_DIR, fname)
+        if os.path.exists(fpath):
+            try:
+                os.remove(fpath)
+            except Exception:
+                pass
+
+    # Hapus dari Database
+    try:
+        existing = db.query(models.KatalogFoto).filter(
+            models.KatalogFoto.nama_komoditas.ilike(clean_nama)
+        ).first()
+        if existing:
+            db.delete(existing)
+            db.commit()
+    except Exception as e:
+        db.rollback()
+        print("Warning DB delete foto:", e)
+
+    return {
+        "status": "success",
+        "message": f"Foto untuk '{clean_nama}' berhasil direset ke foto bawaan!",
+        "nama_komoditas": clean_nama
+    }
+

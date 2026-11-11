@@ -1,6 +1,6 @@
 import math
 from datetime import datetime, timedelta
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, cast
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
@@ -157,7 +157,7 @@ def get_komparasi_pasar(
     pasar_rows = db.query(models.Pasar).all()
     raw_pasar_names = [p.nama_pasar for p in pasar_rows if p.nama_pasar]
     if not raw_pasar_names:
-        raw_pasar_names = ["Pasar Babat", "Pasar Sidoharjo", "Pasar Sukodadi", "Pasar Mantup", "Pasar Brondong"]
+        raw_pasar_names = ["Pasar Babat", "Pasar Sidoharjo", "Pasar Mantup", "Pasar Blimbing Brondong", "Pasar Sukodadi", "Pasar Ngimbang"]
     else:
         seen = set()
         dedup = []
@@ -167,19 +167,22 @@ def get_komparasi_pasar(
                 dedup.append(p)
         raw_pasar_names = dedup
 
-    # Batasi ke 5 pasar utama agar tabel rapi dan proporsional
-    daftar_pasar = raw_pasar_names[:5]
+    # Gunakan seluruh 6 pasar resmi Pemkab Lamongan
+    daftar_pasar = raw_pasar_names[:6]
 
-    # 2. Ambil data komoditas
-    komoditas_query = db.query(models.Komoditas)
+    # 2. Ambil data komoditas (Hanya yang aktif & terverifikasi)
+    komoditas_query = db.query(models.Komoditas).filter(
+        models.Komoditas.is_active == True,
+        models.Komoditas.status_label != "Menunggu Validasi"
+    )
     if search:
         komoditas_query = komoditas_query.filter(models.Komoditas.nama_bahan.ilike(f"%{search}%"))
     if kategori and kategori != "Semua":
         komoditas_query = komoditas_query.filter(models.Komoditas.kategori.ilike(f"%{kategori}%"))
     all_komoditas = komoditas_query.all()
 
-    # Survei harga untuk memperkaya data
-    survei_query = db.query(models.SurveiHarga)
+    # Survei harga untuk memperkaya data (Hanya yang sudah terverifikasi)
+    survei_query = db.query(models.SurveiHarga).filter(models.SurveiHarga.status_verifikasi == "Terverifikasi")
     if search:
         survei_query = survei_query.filter(models.SurveiHarga.nama_komoditas.ilike(f"%{search}%"))
     if kategori and kategori != "Semua":
@@ -258,6 +261,18 @@ def get_komparasi_pasar(
     cheapest_market_counter = {}
     selisih_list = []
 
+    # Load custom photos jika ada
+    custom_photos = {}
+    try:
+        from routers.admin import _load_json_photos
+        custom_photos = _load_json_photos()
+        photo_rows = db.query(models.KatalogFoto).all()
+        for pr in photo_rows:
+            if pr.nama_komoditas and pr.foto_url:
+                custom_photos[pr.nama_komoditas.strip().lower()] = pr.foto_url
+    except Exception:
+        pass
+
     for nama, g in groups.items():
         prices = g["prices"]
         base_price = next(iter(prices.values())) if prices else 12000
@@ -290,6 +305,7 @@ def get_komparasi_pasar(
             "kategori": g["kategori"],
             "satuan": g["satuan"],
             "het": g["het"],
+            "image": custom_photos.get(g["komoditas"].strip().lower()),
             "prices": prices,
             "minPrice": min_item[1],
             "maxPrice": max_item[1],
@@ -346,7 +362,7 @@ def get_tren_harga(
     else:
         num_days = 7
 
-    clean_name = komoditas.replace("Super", "").replace("Pilihan", "").strip()
+    clean_name = (komoditas or "Beras Medium IR-64").replace("Super", "").replace("Pilihan", "").strip()
 
     kom_row = db.query(models.Komoditas).filter(
         models.Komoditas.nama_bahan.ilike(f"%{clean_name}%")
@@ -367,27 +383,27 @@ def get_tren_harga(
     het = 13000.0
     markets_found = set()
 
-    if het_row and het_row.harga_het:
-        het = float(het_row.harga_het)
+    if het_row and het_row.harga_het is not None:
+        het = float(cast(Any, het_row.harga_het))
 
     if kom_row:
-        today_price = float(kom_row.harga)
-        kategori = kom_row.kategori or kategori
-        satuan = kom_row.satuan or satuan
-        if kom_row.het:
-            het = float(kom_row.het)
+        today_price = float(cast(Any, kom_row.harga))
+        kategori = str(kom_row.kategori or kategori)
+        satuan = str(kom_row.satuan or satuan)
+        if kom_row.het is not None:
+            het = float(cast(Any, kom_row.het))
         if kom_row.lokasi:
-            markets_found.add(kom_row.lokasi)
+            markets_found.add(str(kom_row.lokasi))
 
     if surveys:
-        today_price = float(surveys[0].harga)
+        today_price = float(cast(Any, surveys[0].harga))
         if surveys[0].kategori:
-            kategori = surveys[0].kategori
+            kategori = str(surveys[0].kategori)
         if surveys[0].satuan:
-            satuan = surveys[0].satuan
+            satuan = str(surveys[0].satuan)
         for s in surveys[:10]:
             if s.lokasi_pasar:
-                markets_found.add(s.lokasi_pasar)
+                markets_found.add(str(s.lokasi_pasar))
 
     sample_market_str = " & ".join(list(markets_found)[:2]) if markets_found else "Pasar Babat & Sidoharjo"
 

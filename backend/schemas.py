@@ -73,6 +73,7 @@ class KiosCreate(BaseModel):
     alamat_lengkap: Optional[str] = None
     jam_buka: Optional[str] = "06:00 - 16:30 WIB"
     no_telepon: Optional[str] = None
+    status_izin: Optional[str] = "Terdaftar Resmi DKPP"
 
 
 class KiosUpdate(BaseModel):
@@ -235,11 +236,15 @@ class NLPParseRequest(BaseModel):
         ...,
         example="Pasar Babat Kios Makmur, Miyak Goreng limolas ewu sak liter, Beras IR Enam puluh empat Telulas ewu sak kilo"
     )
+    default_pasar: Optional[str] = Field(None, description="Pilihan pasar rujukan jika tidak disebutkan dalam suara")
 
 
 class NLPSubmitRequest(BaseModel):
     transcript: str
     simpan_langsung: bool = True
+    default_pasar: Optional[str] = None
+    pasar: Optional[str] = None
+    kios: Optional[str] = None
 
 
 class WhisperTranscriptResponse(BaseModel):
@@ -248,6 +253,10 @@ class WhisperTranscriptResponse(BaseModel):
     durasi_detik: Optional[float] = None
     bahasa_terdeteksi: Optional[str] = None
     transkrip: str
+    transkrip_terproses: Optional[str] = None
+    preprocessing_applied: Optional[bool] = True
+    noise_reduction_applied: Optional[bool] = True
+    filters_applied: Optional[str] = None
     akurasi_nlp: float
     pasar: str
     kios: str

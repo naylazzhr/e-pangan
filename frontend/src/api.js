@@ -107,6 +107,14 @@ export async function updateSurveiHarga(id, data) {
   return handleResponse(res);
 }
 
+export async function validasiSurveiHarga(id) {
+  const res = await fetch(`${BASE_URL}/survei-harga/${id}/validasi`, {
+    method: "PUT",
+    headers: authHeaders(),
+  });
+  return handleResponse(res);
+}
+
 export async function hapusSurveiHarga(id) {
   const res = await fetch(`${BASE_URL}/survei-harga/${id}`, {
     method: "DELETE",
@@ -248,6 +256,70 @@ export async function getDetailKios(kiosId) {
   return handleResponse(res);
 }
 
+export async function tambahKios(data) {
+  const res = await fetch(`${BASE_URL}/kios`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+    body: JSON.stringify(data),
+  });
+  return handleResponse(res);
+}
+
+export async function updateKios(kiosId, data) {
+  const res = await fetch(`${BASE_URL}/kios/${kiosId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+    body: JSON.stringify(data),
+  });
+  return handleResponse(res);
+}
+
+export async function hapusKios(kiosId) {
+  const res = await fetch(`${BASE_URL}/kios/${kiosId}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  return handleResponse(res);
+}
+
+export async function tambahKomoditasKios(kiosId, data) {
+  const res = await fetch(`${BASE_URL}/kios/${kiosId}/komoditas`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+    body: JSON.stringify(data),
+  });
+  return handleResponse(res);
+}
+
+export async function updateKomoditasKios(kiosId, komoditasId, data) {
+  const res = await fetch(`${BASE_URL}/kios/${kiosId}/komoditas/${komoditasId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders(),
+    },
+    body: JSON.stringify(data),
+  });
+  return handleResponse(res);
+}
+
+export async function hapusKomoditasKios(kiosId, komoditasId) {
+  const res = await fetch(`${BASE_URL}/kios/${kiosId}/komoditas/${komoditasId}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  return handleResponse(res);
+}
+
 // ----------------------------------------------------------------
 // SMART BUDGETING
 // ----------------------------------------------------------------
@@ -260,5 +332,53 @@ export async function kalkulasiSmartBudgeting({ budget, lokasi_pasar = "" }) {
   });
   return handleResponse(res);
 }
+
+// ----------------------------------------------------------------
+// MANAJEMEN FOTO KATALOG KOMODITAS (ADMIN & PUBLIK)
+// ----------------------------------------------------------------
+
+export async function getCustomPhotos() {
+  try {
+    const res = await fetch(`${BASE_URL}/komoditas-foto`);
+    return await handleResponse(res);
+  } catch (err) {
+    console.warn("Gagal memuat foto kustom dari server:", err);
+    return { status: "fallback", data: {} };
+  }
+}
+
+export async function uploadKomoditasFoto(namaKomoditas, file) {
+  const token = localStorage.getItem("epangan_token");
+  const formData = new FormData();
+  formData.append("nama_komoditas", namaKomoditas);
+  formData.append("file", file);
+
+  const res = await fetch(`${BASE_URL}/admin/komoditas-foto/upload`, {
+    method: "POST",
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: formData,
+  });
+  return handleResponse(res);
+}
+
+export async function updateKomoditasFotoUrl(namaKomoditas, fotoUrl) {
+  const res = await fetch(`${BASE_URL}/admin/komoditas-foto/url`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify({ nama_komoditas: namaKomoditas, foto_url: fotoUrl }),
+  });
+  return handleResponse(res);
+}
+
+export async function resetKomoditasFoto(namaKomoditas) {
+  const res = await fetch(`${BASE_URL}/admin/komoditas-foto/${encodeURIComponent(namaKomoditas)}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  return handleResponse(res);
+}
+
 
 
