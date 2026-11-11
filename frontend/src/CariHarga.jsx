@@ -89,7 +89,7 @@ export default function CariHarga({ setActivePage, setSelectedKios }) {
           params.append("lon", lon);
         }
 
-        const baseUrl = import.meta.env?.VITE_API_URL || "http://127.0.0.1:8000";
+        const baseUrl = import.meta.env?.VITE_API_URL || "/api";
         let response;
         try {
           response = await fetch(`${baseUrl}/kios?${params.toString()}`);
@@ -97,7 +97,7 @@ export default function CariHarga({ setActivePage, setSelectedKios }) {
           try {
             response = await fetch(`${baseUrl}/cari-harga?${params.toString()}`);
           } catch {
-            response = await fetch(`http://localhost:8000/kios?${params.toString()}`);
+            response = await fetch(`/api/kios?${params.toString()}`);
           }
         }
 

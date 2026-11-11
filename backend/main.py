@@ -41,7 +41,7 @@ app.add_middleware(
         "http://localhost:8000",
         "http://127.0.0.1:8000",
     ],
-    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?$",
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1|.*\.vercel\.app)(:[0-9]+)?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -52,6 +52,7 @@ UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "uploads")
 KOMODITAS_UPLOAD_DIR = os.path.join(UPLOAD_DIR, "komoditas")
 os.makedirs(KOMODITAS_UPLOAD_DIR, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
+app.mount("/api/uploads", StaticFiles(directory=UPLOAD_DIR), name="api_uploads")
 
 
 # ==============================================================================
@@ -59,6 +60,7 @@ app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 # ==============================================================================
 
 @app.get("/", tags=["Root"])
+@app.get("/api", tags=["Root"])
 def root():
     return {
         "status": "success",
@@ -73,14 +75,20 @@ def root():
 # PENDAFTARAN MODULAR ROUTERS
 # ==============================================================================
 
-app.include_router(auth.router)        # [6, 7] Login Admin & Akses Portal Admin
-app.include_router(kios.router)        # [1, 5] Dashboard User/Penjual & Detail Kios
-app.include_router(search.router)      # [2] Cari Harga (Smart Search)
-app.include_router(pasar.router)       # [3] Perbandingan Antar Pasar
-app.include_router(budgeting.router)   # [4] Smart Budgeting
-app.include_router(admin.router)       # [8, 12] Dashboard Admin & Manajemen Kios
-app.include_router(nlp.router)         # [9] Input Suara (Voice Upload NLP)
-app.include_router(satgas.router)      # [10, 11] Validasi Lapangan & Laporan Satgas
+routers = [
+    auth.router,        # [6, 7] Login Admin & Akses Portal Admin
+    kios.router,        # [1, 5] Dashboard User/Penjual & Detail Kios
+    search.router,      # [2] Cari Harga (Smart Search)
+    pasar.router,       # [3] Perbandingan Antar Pasar
+    budgeting.router,   # [4] Smart Budgeting
+    admin.router,       # [8, 12] Dashboard Admin & Manajemen Kios
+    nlp.router,         # [9] Input Suara (Voice Upload NLP)
+    satgas.router,      # [10, 11] Validasi Lapangan & Laporan Satgas
+]
+
+for r in routers:
+    app.include_router(r)
+    app.include_router(r, prefix="/api")
 
 
 # ==============================================================================

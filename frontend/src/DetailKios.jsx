@@ -26,12 +26,12 @@ export default function DetailKios({ kios, onBack }) {
     const ambilDetail = async () => {
       setLoadingKatalog(true);
       try {
-        const baseUrl = import.meta.env?.VITE_API_URL || "http://127.0.0.1:8000";
+        const baseUrl = import.meta.env?.VITE_API_URL || "/api";
         let response;
         try {
           response = await fetch(`${baseUrl}/kios/${idKios}`);
         } catch {
-          response = await fetch(`http://localhost:8000/kios/${idKios}`);
+          response = await fetch(`/api/kios/${idKios}`);
         }
         if (!response.ok) throw new Error("Gagal mengambil detail kios");
         const result = await response.json();
