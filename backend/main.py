@@ -21,6 +21,18 @@ from routers import (
 # Membuat tabel otomatis di database jika belum ada
 models.Base.metadata.create_all(bind=engine)
 
+# Inisialisasi data awal (seeding) otomatis jika database masih kosong (misal di Vercel / server baru)
+try:
+    from database import SessionLocal
+    with SessionLocal() as _db_init:
+        _komoditas_count = _db_init.query(models.Komoditas).count()
+        _pasar_count = _db_init.query(models.Pasar).count()
+        if _komoditas_count == 0 or _pasar_count == 0:
+            import epangan_db
+            epangan_db.init_db()
+except Exception as _e_init:
+    print(f"[AUTO-SEED NOTICE] {_e_init}")
+
 # Inisialisasi FastAPI Aplikasi
 app = FastAPI(
     title="E-Pangan API Kabupaten Lamongan",

@@ -257,6 +257,38 @@ def get_komparasi_pasar(
             groups[nama]["prices"][loc] = kh.harga_terkini
             groups[nama]["price_counts"][loc] = 1
 
+    # Fallback jika database masih baru/kosong agar tabel komparasi tidak pernah kosong
+    if not groups:
+        default_master = [
+            {"id": 1, "komoditas": "Beras Premium Pandan Wangi", "kategori": "Kebutuhan Pokok", "satuan": "kg", "het": 14900, "base": 15500},
+            {"id": 2, "komoditas": "Beras Medium (IR 64)", "kategori": "Kebutuhan Pokok", "satuan": "kg", "het": 12500, "base": 13000},
+            {"id": 3, "komoditas": "Gula Pasir Kristal", "kategori": "Bahan Baku", "satuan": "kg", "het": 17500, "base": 17500},
+            {"id": 4, "komoditas": "Gula Aren", "kategori": "Bahan Baku", "satuan": "kg", "het": 22000, "base": 21000},
+            {"id": 5, "komoditas": "Minyak Goreng Sawit", "kategori": "Minyak Goreng", "satuan": "liter", "het": 15700, "base": 17500},
+            {"id": 6, "komoditas": "Daging Ayam Broiler", "kategori": "Protein Hewani", "satuan": "kg", "het": 36000, "base": 35000},
+            {"id": 7, "komoditas": "Daging Sapi Murni", "kategori": "Protein Hewani", "satuan": "kg", "het": 130000, "base": 125000},
+            {"id": 8, "komoditas": "Telur Ayam Ras", "kategori": "Protein Hewani", "satuan": "kg", "het": 28000, "base": 28500},
+            {"id": 9, "komoditas": "Cabai Rawit Merah", "kategori": "Bumbu Dapur", "satuan": "kg", "het": 45000, "base": 42000},
+            {"id": 10, "komoditas": "Cabai Merah Keriting", "kategori": "Bumbu Dapur", "satuan": "kg", "het": 40000, "base": 38000},
+            {"id": 11, "komoditas": "Bawang Merah Allium", "kategori": "Bumbu Dapur", "satuan": "kg", "het": 32000, "base": 30000},
+            {"id": 12, "komoditas": "Bawang Putih Honan", "kategori": "Bumbu Dapur", "satuan": "kg", "het": 36000, "base": 35000},
+            {"id": 13, "komoditas": "Jagung Pipilan", "kategori": "Tumbuhan & Sayur", "satuan": "kg", "het": 8000, "base": 8500},
+            {"id": 14, "komoditas": "Kedelai Lokal", "kategori": "Tumbuhan & Sayur", "satuan": "kg", "het": 13000, "base": 12500},
+            {"id": 15, "komoditas": "Jamur Tiram", "kategori": "Tumbuhan & Sayur", "satuan": "kg", "het": 16000, "base": 15000},
+            {"id": 16, "komoditas": "Ikan Segar (Bandeng/Tongkol)", "kategori": "Protein Hewani", "satuan": "kg", "het": 30000, "base": 32000},
+            {"id": 17, "komoditas": "Tepung Terigu Segitiga", "kategori": "Bahan Baku", "satuan": "kg", "het": 12000, "base": 11500},
+        ]
+        for dm in default_master:
+            groups[dm["komoditas"]] = {
+                "id": dm["id"],
+                "komoditas": dm["komoditas"],
+                "kategori": dm["kategori"],
+                "satuan": dm["satuan"],
+                "het": dm["het"],
+                "prices": {p: dm["base"] for p in daftar_pasar},
+                "price_counts": {p: 1 for p in daftar_pasar}
+            }
+
     items_result = []
     cheapest_market_counter = {}
     selisih_list = []

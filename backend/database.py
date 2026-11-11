@@ -1,4 +1,5 @@
 import os
+import shutil
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
@@ -9,7 +10,22 @@ env_path = os.path.join(os.path.dirname(__file__), ".env")
 load_dotenv(dotenv_path=env_path)
 
 # URL Koneksi Database (Default ke SQLite lokal jika tidak disetel)
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./epangan.db")
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if not DATABASE_URL:
+    # Di environment Vercel serverless / AWS Lambda, hanya /tmp yang dapat ditulis (writable)
+    if os.getenv("VERCEL"):
+        tmp_db = "/tmp/epangan.db"
+        local_db = os.path.join(os.path.dirname(__file__), "epangan.db")
+        if not os.path.exists(tmp_db) and os.path.exists(local_db):
+            try:
+                shutil.copyfile(local_db, tmp_db)
+            except Exception:
+                pass
+        DATABASE_URL = f"sqlite:///{tmp_db}"
+    else:
+        db_file = os.path.join(os.path.dirname(__file__), "epangan.db")
+        DATABASE_URL = f"sqlite:///{db_file}"
 
 # Pengaturan engine khusus jika menggunakan SQLite
 connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}

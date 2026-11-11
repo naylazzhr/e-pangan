@@ -7,56 +7,63 @@ from database import engine, SessionLocal
 
 def migrate_sqlite_columns():
     """Menambahkan kolom baru ke tabel SQLite jika belum ada tanpa merusak data lama."""
-    conn = sqlite3.connect("epangan.db")
-    cursor = conn.cursor()
+    try:
+        url_str = str(engine.url)
+        if not url_str.startswith("sqlite"):
+            return
+        db_file = engine.url.database or "epangan.db"
+        conn = sqlite3.connect(db_file)
+        cursor = conn.cursor()
 
-    def add_col_if_missing(table, col_name, col_type):
-        cursor.execute(f"PRAGMA table_info({table});")
-        columns = [c[1] for c in cursor.fetchall()]
-        if col_name not in columns:
-            try:
-                cursor.execute(f"ALTER TABLE {table} ADD COLUMN {col_name} {col_type};")
-                print(f"[MIGRATION] Menambahkan kolom '{col_name}' ke tabel '{table}'.")
-            except Exception as e:
-                print(f"[MIGRATION WARNING] {table}.{col_name}: {e}")
+        def add_col_if_missing(table, col_name, col_type):
+            cursor.execute(f"PRAGMA table_info({table});")
+            columns = [c[1] for c in cursor.fetchall()]
+            if col_name not in columns:
+                try:
+                    cursor.execute(f"ALTER TABLE {table} ADD COLUMN {col_name} {col_type};")
+                    print(f"[MIGRATION] Menambahkan kolom '{col_name}' ke tabel '{table}'.")
+                except Exception as e:
+                    print(f"[MIGRATION WARNING] {table}.{col_name}: {e}")
 
-    # Kolom untuk tabel admins
-    add_col_if_missing("admins", "email", "VARCHAR(100)")
-    add_col_if_missing("admins", "nip", "VARCHAR(50)")
-    add_col_if_missing("admins", "nama_lengkap", "VARCHAR(100) DEFAULT 'Hendra Setiawan'")
-    add_col_if_missing("admins", "jabatan", "VARCHAR(100) DEFAULT 'Petugas Enumerator'")
-    add_col_if_missing("admins", "wilayah_pantau", "VARCHAR(150) DEFAULT 'Pasar Babat & Pasar Sukodadi'")
-    add_col_if_missing("admins", "status_verifikasi", "VARCHAR(50) DEFAULT 'Online & Terverifikasi DKPP'")
-    add_col_if_missing("admins", "avatar", "VARCHAR(255)")
-    add_col_if_missing("admins", "created_at", "DATETIME")
+        # Kolom untuk tabel admins
+        add_col_if_missing("admins", "email", "VARCHAR(100)")
+        add_col_if_missing("admins", "nip", "VARCHAR(50)")
+        add_col_if_missing("admins", "nama_lengkap", "VARCHAR(100) DEFAULT 'Hendra Setiawan'")
+        add_col_if_missing("admins", "jabatan", "VARCHAR(100) DEFAULT 'Petugas Enumerator'")
+        add_col_if_missing("admins", "wilayah_pantau", "VARCHAR(150) DEFAULT 'Pasar Babat & Pasar Sukodadi'")
+        add_col_if_missing("admins", "status_verifikasi", "VARCHAR(50) DEFAULT 'Online & Terverifikasi DKPP'")
+        add_col_if_missing("admins", "avatar", "VARCHAR(255)")
+        add_col_if_missing("admins", "created_at", "DATETIME")
 
-    # Kolom untuk tabel komoditas
-    add_col_if_missing("komoditas", "kualitas_mutu", "VARCHAR(100)")
-    add_col_if_missing("komoditas", "het", "FLOAT")
-    add_col_if_missing("komoditas", "toleransi_fluktuasi", "FLOAT DEFAULT 5.0")
-    add_col_if_missing("komoditas", "is_active", "BOOLEAN DEFAULT 1")
-    add_col_if_missing("komoditas", "kios_id", "INTEGER")
-    add_col_if_missing("komoditas", "varian_keterangan", "VARCHAR(100)")
-    add_col_if_missing("komoditas", "stok_fisik", "VARCHAR(50) DEFAULT 'Tersedia'")
-    add_col_if_missing("komoditas", "status_label", "VARCHAR(50) DEFAULT 'Stabil'")
-    add_col_if_missing("komoditas", "updated_at", "DATETIME")
+        # Kolom untuk tabel komoditas
+        add_col_if_missing("komoditas", "kualitas_mutu", "VARCHAR(100)")
+        add_col_if_missing("komoditas", "het", "FLOAT")
+        add_col_if_missing("komoditas", "toleransi_fluktuasi", "FLOAT DEFAULT 5.0")
+        add_col_if_missing("komoditas", "is_active", "BOOLEAN DEFAULT 1")
+        add_col_if_missing("komoditas", "kios_id", "INTEGER")
+        add_col_if_missing("komoditas", "varian_keterangan", "VARCHAR(100)")
+        add_col_if_missing("komoditas", "stok_fisik", "VARCHAR(50) DEFAULT 'Tersedia'")
+        add_col_if_missing("komoditas", "status_label", "VARCHAR(50) DEFAULT 'Stabil'")
+        add_col_if_missing("komoditas", "updated_at", "DATETIME")
 
-    # Kolom untuk tabel pasar
-    add_col_if_missing("pasar", "radius_gps_aktif", "BOOLEAN DEFAULT 1")
+        # Kolom untuk tabel pasar
+        add_col_if_missing("pasar", "radius_gps_aktif", "BOOLEAN DEFAULT 1")
 
-    # Kolom untuk tabel kios
-    add_col_if_missing("kios", "blok_stan", "VARCHAR(50)")
-    add_col_if_missing("kios", "alamat_lengkap", "VARCHAR(255)")
-    add_col_if_missing("kios", "jam_buka", "VARCHAR(50) DEFAULT '06:00 - 16:00 WIB'")
-    add_col_if_missing("kios", "latitude", "FLOAT")
-    add_col_if_missing("kios", "longitude", "FLOAT")
-    add_col_if_missing("kios", "status_izin", "VARCHAR(50) DEFAULT '100% Berizin Pemkab'")
-    add_col_if_missing("kios", "is_active", "BOOLEAN DEFAULT 1")
-    add_col_if_missing("kios", "created_at", "DATETIME")
-    add_col_if_missing("kios", "updated_at", "DATETIME")
+        # Kolom untuk tabel kios
+        add_col_if_missing("kios", "blok_stan", "VARCHAR(50)")
+        add_col_if_missing("kios", "alamat_lengkap", "VARCHAR(255)")
+        add_col_if_missing("kios", "jam_buka", "VARCHAR(50) DEFAULT '06:00 - 16:00 WIB'")
+        add_col_if_missing("kios", "latitude", "FLOAT")
+        add_col_if_missing("kios", "longitude", "FLOAT")
+        add_col_if_missing("kios", "status_izin", "VARCHAR(50) DEFAULT '100% Berizin Pemkab'")
+        add_col_if_missing("kios", "is_active", "BOOLEAN DEFAULT 1")
+        add_col_if_missing("kios", "created_at", "DATETIME")
+        add_col_if_missing("kios", "updated_at", "DATETIME")
 
-    conn.commit()
-    conn.close()
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"[MIGRATION NOTICE] {e}")
 
 
 def hash_pw(pw: str) -> str:
