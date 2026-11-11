@@ -1,0 +1,348 @@
+/* =========================================================
+   AdminDashboard.css
+   Style dasar halaman Admin Dashboard E-Pangan.
+   Navbar atas (.admin-topbar) dibuat sticky, jadi tetap di atas
+   saat konten di-scroll.
+   ========================================================= */
+
+.admin-dashboard-container,
+.admin-dashboard-container * {
+  box-sizing: border-box;
+}
+
+/* ---------- Wrapper konten utama (area yang di-scroll) ---------- */
+.admin-main-wrapper {
+  scroll-behavior: smooth;
+}
+
+/* ---------- NAVBAR ATAS (STICKY) ---------- */
+.admin-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 68px;
+  padding: 12px 32px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid #d2ded7;
+  box-shadow: 0 2px 12px rgba(27, 67, 50, 0.04);
+}
+
+.admin-hamburger-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid #d2ded7;
+  background: #ffffff;
+  color: #1b4332;
+  cursor: pointer;
+}
+
+.admin-mobile-brand {
+  display: none;
+  cursor: pointer;
+}
+
+.admin-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 99px;
+  background: #eef8f2;
+  border: 1px solid #cfe8d8;
+  color: #1b4332;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.admin-refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 99px;
+  border: 1px solid #d2ded7;
+  background: #ffffff;
+  color: #1b4332;
+  font-size: 12.5px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.admin-refresh-btn:hover {
+  background: #eef8f2;
+}
+
+.admin-refresh-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.admin-sync-time {
+  font-weight: 600;
+}
+
+.spin {
+  animation: adminSpin 1s linear infinite;
+}
+
+@keyframes adminSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* ---------- Notifikasi ---------- */
+.admin-notif-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid #d2ded7;
+  background: #ffffff;
+  color: #1b4332;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.admin-notif-btn:hover {
+  background: #eef8f2;
+}
+
+.admin-notif-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 99px;
+  border: 2px solid #ffffff;
+  background: #d97706;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+/* ---------- Profil user di topbar ---------- */
+.admin-user-pill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 16px 5px 5px;
+  border-radius: 99px;
+  border: 1px solid #d2ded7;
+  background: #f2f7f4;
+}
+
+.admin-user-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #1b4332;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.admin-user-text {
+  line-height: 1.25;
+}
+
+.admin-user-name {
+  font-size: 13px;
+  font-weight: 800;
+  color: #0f1d14;
+}
+
+.admin-user-role {
+  font-size: 11px;
+  font-weight: 600;
+  color: #4e6754;
+}
+
+/* ---------- Area konten ---------- */
+.admin-content-area {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 28px 32px 40px;
+}
+
+/* ---------- Banner profil ---------- */
+.admin-profile-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 22px 26px;
+  background: #ffffff;
+  border: 1px solid #d2ded7;
+  border-radius: 24px;
+  box-shadow: 0 4px 18px rgba(27, 67, 50, 0.04);
+}
+
+.admin-banner-avatar {
+  flex-shrink: 0;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #eef8f2;
+  border: 1px solid #cfe8d8;
+}
+
+.admin-banner-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 800;
+  color: #0f1d14;
+}
+
+.admin-export-btn {
+  transition: background 0.2s ease;
+}
+
+.admin-export-btn:hover {
+  background-color: #eef8f2 !important;
+}
+
+/* ---------- Kartu ringkasan ---------- */
+.admin-ringkasan-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.admin-stat-card {
+  padding: 20px 22px;
+  background: #ffffff;
+  border: 1px solid #d2ded7;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.admin-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(27, 67, 50, 0.08);
+}
+
+.admin-stat-label {
+  margin-bottom: 8px;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.admin-stat-value {
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.1;
+  color: #0f1d14;
+}
+
+/* ---------- Kartu section + tabel ---------- */
+.admin-card-section {
+  padding: 24px 26px;
+  background: #ffffff;
+  border: 1px solid #d2ded7;
+  border-radius: 24px;
+  box-shadow: 0 4px 18px rgba(27, 67, 50, 0.04);
+}
+
+.admin-section-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 800;
+  color: #0f1d14;
+}
+
+.admin-tabel-wrap {
+  overflow-x: auto;
+  border: 1px solid #d2ded7;
+  border-radius: 16px;
+}
+
+.admin-tabel-wrap table {
+  font-size: 13px;
+}
+
+/* ---------- Manajemen kios ---------- */
+.admin-kios-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.admin-kios-card {
+  padding: 20px;
+  border-radius: 20px;
+}
+
+.admin-kios-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(27, 67, 50, 0.08) !important;
+}
+
+/* ---------- Modal ---------- */
+.admin-modal-overlay {
+  animation: adminFadeIn 0.2s ease;
+}
+
+.admin-modal-card {
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+@keyframes adminFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ---------- Responsif ---------- */
+@media (max-width: 1024px) {
+  .admin-topbar {
+    padding: 12px 20px;
+  }
+  .admin-content-area {
+    padding: 20px 20px 32px;
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-mobile-brand {
+    display: block;
+  }
+  .admin-ringkasan-grid {
+    grid-template-columns: 1fr;
+  }
+  .admin-banner-title {
+    font-size: 20px;
+  }
+}
