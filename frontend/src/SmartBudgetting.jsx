@@ -89,6 +89,20 @@ function QtyControl({ qty, onMinus, onPlus, small }) {
 }
 
 export default function SmartBudgeting({ onBack, onNavigate }) {
+  const [budget, setBudget] = useState(300000);
+  const [budgetInput, setBudgetInput] = useState("300.000");
+  const [familyMembers, setFamilyMembers] = useState(4);
+  const [familyInput, setFamilyInput] = useState("4");
+  const [period, setPeriod] = useState("mingguan");
+  const [selectedPasarId, setSelectedPasarId] = useState("1");
+  const [items, setItems] = useState([]);
+  const [searchKatalog, setSearchKatalog] = useState("");
+  const [pasarList, setPasarList] = useState([]);
+  const [katalogList, setKatalogList] = useState([]);
+  const [isOptimizing, setIsOptimizing] = useState(false);
+  const [loadingData, setLoadingData] = useState(true);
+  const [allKomoditasData, setAllKomoditasData] = useState([]);
+
   const handleBudgetChange = (valStr) => {
     // Biarkan pengguna menghapus kosong atau mengetik angka baru secara bebas
     const rawDigits = valStr.replace(/\D/g, "");
@@ -140,11 +154,6 @@ export default function SmartBudgeting({ onBack, onNavigate }) {
     setFamilyMembers(nextVal);
     setFamilyInput(String(nextVal));
   };
-  const [pasarList, setPasarList] = useState([]);
-  const [katalogList, setKatalogList] = useState([]);
-  const [isOptimizing, setIsOptimizing] = useState(false);
-  const [loadingData, setLoadingData] = useState(true);
-  const [allKomoditasData, setAllKomoditasData] = useState([]);
 
   useEffect(() => {
     let isMounted = true;
