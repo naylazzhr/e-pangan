@@ -1395,13 +1395,15 @@
 /* ---- Hero Section mobile ---- */
 @media (max-width: 768px) {
   .grocery-hero-section {
-    padding: 1.2rem 1rem 2.4rem 1rem !important;
+    padding: 16px 14px 14px 14px !important;
+    min-height: unset !important;
+    height: auto !important;
   }
   .grocery-hero-container {
     flex-direction: column !important;
     align-items: center !important;
     text-align: center !important;
-    gap: 14px !important;
+    gap: 8px !important;
   }
   .grocery-hero-left {
     flex: none !important;
@@ -1415,70 +1417,55 @@
     justify-content: center !important;
   }
   .grocery-hero-right {
-    flex: none !important;
-    width: 100% !important;
-    max-width: 290px !important;
-    margin: 0 auto !important;
+    display: none !important;
+    height: 0 !important;
+    overflow: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
   .grocery-hero-title {
-    font-size: 1.45rem !important;
+    font-size: 1.25rem !important;
     line-height: 1.25 !important;
-    margin-bottom: 8px !important;
+    margin: 0 0 6px 0 !important;
     letter-spacing: -0.02em !important;
     text-align: center !important;
   }
   .grocery-hero-desc {
-    font-size: 12px !important;
-    line-height: 1.55 !important;
-    margin-bottom: 14px !important;
-    max-width: 340px !important;
+    font-size: 11px !important;
+    line-height: 1.45 !important;
+    margin: 0 0 10px 0 !important;
+    max-width: 320px !important;
     text-align: center !important;
   }
   .grocery-hero-badge {
-    font-size: 10px !important;
-    padding: 3px 9px !important;
-    margin-bottom: 8px !important;
+    font-size: 8.5px !important;
+    padding: 3px 8px !important;
+    margin-bottom: 6px !important;
   }
   .grocery-hero-actions {
     display: flex !important;
     justify-content: center !important;
     align-items: center !important;
     width: 100% !important;
-    margin-bottom: 6px !important;
+    margin-bottom: 0 !important;
   }
   .grocery-subscribe-btn {
     width: auto !important;
-    min-width: 200px !important;
-    max-width: 280px !important;
+    min-width: 180px !important;
+    max-width: 260px !important;
     justify-content: center !important;
-    padding: 10px 22px !important;
-    font-size: 13px !important;
+    padding: 9px 18px !important;
+    font-size: 11.5px !important;
     margin: 0 auto !important;
   }
   .grocery-hero-card {
-    padding: 8px !important;
-    border-radius: 20px !important;
-    margin: 0 auto !important;
-    max-width: 290px !important;
+    display: none !important;
   }
   .grocery-hero-img {
-    height: 160px !important;
-    object-fit: cover !important;
+    display: none !important;
   }
   .grocery-hero-float-card {
-    width: 90% !important;
-    bottom: -12px !important;
-    padding: 6px 12px !important;
-    border-radius: 14px !important;
-  }
-  .float-card-sub {
-    font-size: 9px !important;
-  }
-  .float-card-title {
-    font-size: 11.5px !important;
-  }
-  .float-card-meta {
-    font-size: 10px !important;
+    display: none !important;
   }
 }
 
@@ -1688,9 +1675,40 @@
   }
   .chart-metrics-strip {
     grid-template-columns: repeat(2, 1fr) !important;
-    gap: 8px !important;
-    padding: 8px 10px !important;
-    border-radius: 14px !important;
+    gap: 6px !important;
+    padding: 8px !important;
+    border-radius: 12px !important;
+    overflow: hidden !important;
+  }
+  .chart-metric-item {
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+  .chart-metric-value {
+    font-size: 11px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+  .chart-metric-value.text-het,
+  .chart-metric-value.text-market {
+    font-size: 10px !important;
+  }
+  .chart-metric-label {
+    font-size: 7.5px !important;
+  }
+  .chart-metric-sub {
+    font-size: 7.5px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+  .chart-metric-unit {
+    font-size: 8px !important;
+  }
+  .chart-metric-value-row {
+    overflow: hidden !important;
+    white-space: nowrap !important;
   }
   .aesthetic-chart-scroll-wrap {
     width: 100% !important;
@@ -1716,7 +1734,9 @@
     clear: both !important;
     position: relative !important;
     z-index: 1 !important;
-    margin-top: 14px !important;
+    margin-top: 0 !important;
+    padding-top: 0.5rem !important;
+    overflow: hidden !important;
   }
   .grocery-deals-grid {
     grid-template-columns: 1fr !important;
@@ -1759,49 +1779,97 @@
 /* ---- Komparasi Pasar table mobile (FIX OVERLAP & RESPONSIVE) ---- */
 @media (max-width: 768px) {
   .kp-table {
-    min-width: 750px !important;
-    font-size: 12px !important;
-    white-space: nowrap !important;
+    min-width: 600px !important;
+    font-size: 11px !important;
+    table-layout: fixed !important;
   }
   .kp-table th, .kp-table td {
-    font-size: 11.5px !important;
-    padding: 10px 12px !important;
+    font-size: 10.5px !important;
+    padding: 8px 6px !important;
     white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
   }
   .kp-sticky {
     position: sticky !important;
     left: 0 !important;
     z-index: 5 !important;
     background: #ffffff !important;
-    min-width: 220px !important;
-    max-width: 260px !important;
-    white-space: nowrap !important;
-    box-shadow: 4px 0 10px rgba(0, 0, 0, 0.08) !important;
+    min-width: 120px !important;
+    max-width: 140px !important;
+    width: 130px !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    box-shadow: 3px 0 8px rgba(0, 0, 0, 0.08) !important;
+    border-right: 2px solid #d8e2dc !important;
   }
   th.kp-sticky {
     background: #f4f8f5 !important;
     z-index: 6 !important;
   }
+  .kp-col-pasar {
+    min-width: 80px !important;
+    width: 90px !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+    font-size: 10px !important;
+  }
+  .kp-col-rekomendasi {
+    min-width: 100px !important;
+    width: 110px !important;
+    white-space: nowrap !important;
+    font-size: 10px !important;
+  }
   .kp-toolbar {
-    padding: 12px !important;
+    padding: 10px !important;
     flex-direction: column !important;
     align-items: stretch !important;
-    gap: 10px !important;
+    gap: 8px !important;
   }
   .kp-summary-grid {
     grid-template-columns: repeat(2, 1fr) !important;
-    gap: 10px !important;
+    gap: 8px !important;
   }
   .kp-card {
-    padding: 14px !important;
-    border-radius: 18px !important;
+    padding: 12px !important;
+    border-radius: 16px !important;
   }
   .kp-card h3 {
-    font-size: 1.1rem !important;
+    font-size: 1rem !important;
   }
   .kp-sage-box {
-    padding: 12px 10px !important;
-    border-radius: 16px !important;
+    padding: 10px 8px !important;
+    border-radius: 14px !important;
+  }
+  .kp-head {
+    padding: 14px 0 10px !important;
+    gap: 6px !important;
+  }
+  .kp-head h1 {
+    font-size: 1.2rem !important;
+    line-height: 1.25 !important;
+  }
+  .kp-head p {
+    font-size: 11px !important;
+  }
+  .kp-filter-row {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 6px !important;
+  }
+  .kp-chips {
+    gap: 5px !important;
+  }
+  .kp-chip {
+    padding: 5px 10px !important;
+    font-size: 10.5px !important;
+  }
+  .kp-scroll-hint {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+    padding: 8px 12px !important;
+    font-size: 10.5px !important;
   }
 }
 
@@ -1857,15 +1925,15 @@
     display: flex !important;
   }
   .admin-content-area {
-    padding: 14px !important;
-    gap: 14px !important;
+    padding: 10px !important;
+    gap: 10px !important;
   }
   .admin-topbar {
-    padding: 8px 12px !important;
+    padding: 6px 10px !important;
     height: auto !important;
-    min-height: 56px !important;
+    min-height: 48px !important;
     flex-wrap: wrap !important;
-    gap: 8px !important;
+    gap: 6px !important;
   }
   .admin-status-badge,
   .admin-sync-time {
@@ -1874,37 +1942,80 @@
   .admin-topbar > div:last-child > div:last-child > div:last-child {
     display: none !important;
   }
+  .admin-refresh-btn {
+    padding: 4px 8px !important;
+    font-size: 11px !important;
+  }
+  .admin-refresh-text {
+    display: none !important;
+  }
   .admin-notif-panel {
     position: fixed !important;
-    top: 56px !important;
+    top: 48px !important;
     right: 0 !important;
     left: 0 !important;
     width: 100vw !important;
-    border-radius: 0 0 20px 20px !important;
-    max-height: 80vh !important;
+    max-width: 100vw !important;
+    border-radius: 0 0 18px 18px !important;
+    max-height: 75vh !important;
     overflow-y: auto !important;
     z-index: 9999 !important;
+    box-shadow: 0 12px 32px rgba(15,29,20,0.22) !important;
+  }
+  .admin-notif-panel > div {
+    font-size: 12px !important;
   }
   .admin-profile-banner {
-    padding: 18px !important;
-    border-radius: 18px !important;
+    padding: 14px !important;
+    border-radius: 16px !important;
     flex-direction: column !important;
     align-items: flex-start !important;
+    gap: 10px !important;
+  }
+  .admin-profile-banner img,
+  .admin-profile-banner .admin-profile-avatar {
+    width: 44px !important;
+    height: 44px !important;
   }
   .admin-ringkasan-grid {
-    grid-template-columns: 1fr !important;
-    gap: 10px !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+  .admin-ringkasan-grid > div {
+    padding: 10px !important;
+    border-radius: 12px !important;
+  }
+  .admin-stat-value {
+    font-size: 18px !important;
+  }
+  .admin-stat-label {
+    font-size: 10px !important;
   }
   .admin-tabel-wrap {
     overflow-x: auto !important;
     -webkit-overflow-scrolling: touch !important;
+    border-radius: 12px !important;
   }
   .admin-tabel-wrap table {
     min-width: 500px !important;
   }
   .admin-tabel-wrap th,
   .admin-tabel-wrap td {
-    padding: 8px 10px !important;
-    font-size: 11.5px !important;
+    padding: 6px 8px !important;
+    font-size: 10.5px !important;
+  }
+  .admin-modal-card {
+    max-width: 96vw !important;
+    padding: 14px !important;
+    border-radius: 16px !important;
+  }
+  /* Perbaikan kios management cards di admin */
+  .admin-kios-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+  .admin-kios-card {
+    padding: 12px !important;
+    border-radius: 14px !important;
   }
 }

@@ -732,7 +732,7 @@ export default function CariHarga({ setActivePage, setSelectedKios }) {
                         </div>
                       </div>
 
-                      <div style={{ borderTop: "1px solid #d8e2dc", paddingTop: "16px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px" }}>
+                      <div style={{ borderTop: "1px solid #d8e2dc", paddingTop: "14px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
                         <div>
                           <div style={{ fontSize: "10.5px", color: "#4a6550", fontWeight: "800", letterSpacing: "0.04em" }}>
                             {kios.harga_terkini || kios.harga ? "HARGA TERKINI" : "KATALOG"}
@@ -751,6 +751,10 @@ export default function CariHarga({ setActivePage, setSelectedKios }) {
                                 <span style={{ fontSize: "12px", color: "#4a6550", fontWeight: "600" }}>Item</span>
                               </>
                             )}
+                          </div>
+                          <div style={{ fontSize: "10.5px", color: "#2d6a4f", fontWeight: "700", marginTop: "3px", display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                            <span>● {kios.stok || "Stok Tersedia"}</span>
+                            <span>• Update: {kios.updated_at ? new Date(kios.updated_at).toLocaleDateString("id-ID", { day: "numeric", month: "short" }) : "Hari ini"}</span>
                           </div>
                         </div>
                         <button

@@ -322,13 +322,17 @@ export default function App() {
             }));
 
             const namaBahan = item.komoditas || item.nama_bahan;
+            const satuanRaw = item.satuan || "kg";
             return {
               id: item.id || idx + 1,
               name: namaBahan,
               category: (item.kategori || "KEBUTUHAN POKOK").toUpperCase(),
               market: item.termurah ? `${item.termurah}` : "Semua Pasar Pantau",
               price: item.minPrice || item.harga || 0,
-              unit: `/${item.satuan || "kg"}`,
+              unit: `/${satuanRaw}`,
+              satuanClean: satuanRaw,
+              stok: item.stok || item.status_stok || "Tersedia",
+              lastUpdate: item.updated_at ? new Date(item.updated_at).toLocaleDateString("id-ID", { day: "numeric", month: "short" }) : "Hari ini",
               deltaText: item.status_label || "Stabil",
               deltaType: "flat",
               originalImage: item.image,
@@ -714,13 +718,28 @@ export default function App() {
                         <SlidersHorizontal size={14} />
                       </button>
 
-                      <div className="grocery-card-img-wrap">
+                      <div className="grocery-card-img-wrap" style={{ position: "relative" }}>
                         <img
                           src={product.image}
                           alt={product.name}
                           className="grocery-card-img"
                           loading="lazy"
                         />
+                        <span style={{
+                          position: "absolute",
+                          bottom: "6px",
+                          left: "6px",
+                          backgroundColor: "rgba(27, 67, 50, 0.88)",
+                          color: "#ffffff",
+                          fontSize: "8.5px",
+                          fontWeight: "700",
+                          padding: "2px 6px",
+                          borderRadius: "6px",
+                          backdropFilter: "blur(4px)",
+                          letterSpacing: "0.02em"
+                        }}>
+                          ● {product.stok || "Stok Tersedia"}
+                        </span>
                       </div>
 
                       <div className="grocery-card-body">
@@ -734,6 +753,19 @@ export default function App() {
                         <div className="grocery-card-price-row">
                           <span className="grocery-price-val">{formatRupiah(product.price)}</span>
                           <span className="grocery-price-unit">{product.unit}</span>
+                        </div>
+
+                        <div style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          fontSize: "9px",
+                          color: "#4e6754",
+                          margin: "2px 0 6px 0",
+                          fontWeight: "600"
+                        }}>
+                          <span>Satuan: 1 {product.satuanClean || "kg"}</span>
+                          <span>🕒 {product.lastUpdate || "Hari ini"}</span>
                         </div>
 
                         <button
@@ -1080,6 +1112,11 @@ export default function App() {
                   <span className="compare-cat-pill">{compareProduct.category}</span>
                   <h2 className="compare-product-title">{compareProduct.name}</h2>
                   <p className="compare-product-sub">Perbandingan harga komoditas ini di berbagai pasar daerah Lamongan</p>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", marginTop: "4px", fontSize: "11px", color: "#2d6a4f", fontWeight: "700" }}>
+                    <span>● Status: {compareProduct.stok || "Stok Tersedia"}</span>
+                    <span>• Pembaruan: {compareProduct.lastUpdate || "Hari ini"}</span>
+                    <span>• Satuan: 1 {compareProduct.satuanClean || "kg"}</span>
+                  </div>
                 </div>
               </div>
               <button className="btn-close-modal" onClick={() => setCompareProduct(null)} aria-label="Tutup Modal">
@@ -1234,6 +1271,9 @@ function AestheticSvgChart({ dataPoints, liveData }) {
       <div className="aesthetic-chart-scroll-wrap">
         <svg
           viewBox={`0 0 ${width} ${height}`}
+          width="100%"
+          height={height}
+          style={{ width: "100%", height: "auto", minHeight: "180px", display: "block" }}
           className="aesthetic-svg-element"
         >
           <defs>

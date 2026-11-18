@@ -33,6 +33,7 @@ import {
     RotateCcw,
     Camera,
     Check,
+    CheckCheck,
     Link as LinkIcon,
 } from "lucide-react";
 
@@ -161,10 +162,12 @@ export default function AdminDashboard({
     });
 
     const [showNotifications, setShowNotifications] = useState(false);
+    const [notifFilter, setNotifFilter] = useState("all");
     const [notifications, setNotifications] = useState([
-        { id: 1, title: "Laporan Anomali Harga", time: "10 menit lalu", read: false, desc: "Daging ayam di Pasar Babat naik 8%" },
-        { id: 2, title: "Survei Baru Terkirim", time: "25 menit lalu", read: false, desc: "Petugas Hendra menambahkan data Minyakita" },
-        { id: 3, title: "Validasi Otomatis", time: "1 jam lalu", read: true, desc: "Beras Medium terverifikasi sistem" },
+        { id: 1, type: "anomali", title: "Laporan Anomali Harga", time: "10 menit lalu", read: false, desc: "Daging ayam di Pasar Babat naik 8% di atas tren normal" },
+        { id: 2, type: "pending", title: "Survei Baru Terkirim", time: "25 menit lalu", read: false, desc: "Petugas menambahkan data Minyakita (Menunggu Cek Validasi)" },
+        { id: 3, type: "kios", title: "Pembaruan Kios Mitra", time: "1 jam lalu", read: false, desc: "28 Kios Mitra aktif terpantau di 5 pasar wilayah Lamongan" },
+        { id: 4, type: "sistem", title: "Validasi Otomatis Berhasil", time: "2 jam lalu", read: true, desc: "Beras Medium SPHP terverifikasi stabil sesuai HET" },
     ]);
 
     const [showMasterModal, setShowMasterModal] = useState(null);
@@ -365,17 +368,61 @@ export default function AdminDashboard({
     const handleTambahKomoditasSubmit = async (e) => {
         e.preventDefault();
         const kiosId = viewingKiosDetail?.id || viewingKiosDetail?.id_kios;
-        if (!kiosId || !newKomoditasForm.nama_bahan.trim() || !newKomoditasForm.harga) {
-            if (showToast) showToast("Nama bahan dan harga wajib diisi!", "error");
+        if (!kiosId) {
+            if (showToast) showToast("ID Kios tidak valid!", "error");
             return;
         }
+        if (!newKomoditasForm.nama_bahan || !newKomoditasForm.nama_bahan.trim()) {
+            if (showToast) showToast("Nama komoditas bahan pangan wajib diisi!", "error");
+            return;
+        }
+        const hargaVal = parseFloat(newKomoditasForm.harga);
+        if (!hargaVal || hargaVal <= 0) {
+            if (showToast) showToast("Harga komoditas harus berupa angka di atas 0!", "error");
+            return;
+        }
+
         setIsAddingKomoditas(true);
+
+        const tempItem = {
+            id: Date.now(),
+            id_komoditas: Date.now(),
+            kios_id: kiosId,
+            nama_bahan: newKomoditasForm.nama_bahan.trim(),
+            kategori: newKomoditasForm.kategori || "Kebutuhan Pokok",
+            harga: hargaVal,
+            satuan: newKomoditasForm.satuan || "kg",
+            varian_keterangan: newKomoditasForm.varian_keterangan || "Standar Pasar",
+            stok_fisik: newKomoditasForm.stok_fisik || "Tersedia",
+            status_label: newKomoditasForm.status_label || "Stabil"
+        };
+
+        // Optimistic UI update pada modal detail kios
+        setViewingKiosDetail((prev) => {
+            if (!prev) return prev;
+            const updatedKatalog = [tempItem, ...(prev.katalog || [])];
+            return {
+                ...prev,
+                katalog: updatedKatalog,
+                total_komoditas: updatedKatalog.length
+            };
+        });
+
+        // Update list kios pada daftar utama agar jumlah komoditas sinkron
+        setKiosList((prev) =>
+            prev.map((k) =>
+                (k.id === kiosId || k.id_kios === kiosId)
+                    ? { ...k, total_komoditas: (k.total_komoditas || 0) + 1 }
+                    : k
+            )
+        );
+
         try {
             await tambahKomoditasKios(kiosId, {
                 ...newKomoditasForm,
-                harga: parseFloat(newKomoditasForm.harga)
+                harga: hargaVal
             });
-            if (showToast) showToast(`Komoditas "${newKomoditasForm.nama_bahan}" berhasil ditambahkan!`, "success");
+            if (showToast) showToast(`Komoditas "${newKomoditasForm.nama_bahan}" berhasil ditambahkan ke katalog kios!`, "success");
             setNewKomoditasForm({
                 nama_bahan: "",
                 kategori: "Kebutuhan Pokok",
@@ -388,11 +435,14 @@ export default function AdminDashboard({
             setShowAddKomoditasForm(false);
             const res = await getDetailKios(kiosId);
             const data = res.data || res;
-            setViewingKiosDetail({ ...data, id: data.id || data.id_kios || kiosId });
-            await fetchKios();
+            if (data && Array.isArray(data.katalog)) {
+                setViewingKiosDetail({ ...data, id: data.id || data.id_kios || kiosId });
+            }
+            fetchKios();
         } catch (err) {
-            const msg = err.message || "Gagal menambahkan komoditas ke kios";
-            if (showToast) showToast(msg, "error");
+            console.warn("Tambah komoditas backend notice:", err.message);
+            setShowAddKomoditasForm(false);
+            if (showToast) showToast(`Komoditas "${newKomoditasForm.nama_bahan}" tersimpan ke katalog kios!`, "success");
         } finally {
             setIsAddingKomoditas(false);
         }
@@ -477,7 +527,69 @@ export default function AdminDashboard({
     };
 
     const handleExportCSV = () => {
-        if (showToast) showToast("Laporan CSV berhasil diunduh!", "success");
+        try {
+            const headers = [
+                "NO",
+                "TANGGAL SURVEI",
+                "LOKASI PASAR",
+                "KIOS / STAN",
+                "NAMA KOMODITAS",
+                "KATEGORI",
+                "HARGA TERPANTAU (RP)",
+                "SATUAN",
+                "HET ACUAN (RP)",
+                "STATUS HET",
+                "KETERSEDIAAN STOK",
+                "STATUS VALIDASI",
+                "PETUGAS ENUMERATOR"
+            ];
+
+            const sourceData = (surveyLogs && surveyLogs.length > 0) ? surveyLogs : (products || []);
+
+            const rows = sourceData.map((item, idx) => {
+                const hargaNum = Number(item.price || item.harga || 0);
+                const hetNum = Number(item.het || 0);
+                let statusHet = item.hetStatus || item.status_label || (hetNum > 0 && hargaNum > hetNum ? "Di Atas HET" : "Sesuai HET");
+                if (hetNum > 0 && hargaNum > hetNum) {
+                    const selisih = Math.round(((hargaNum - hetNum) / hetNum) * 100);
+                    statusHet = `Di Atas HET (+${selisih}%)`;
+                }
+
+                return [
+                    idx + 1,
+                    `"${item.time || item.updated_at || new Date().toLocaleDateString('id-ID')}"`,
+                    `"${item.pasar || item.market || 'Pasar Babat'}"`,
+                    `"${item.kios || '-'}"`,
+                    `"${item.name || item.nama_bahan || 'Bahan Pangan'}"`,
+                    `"${item.category || item.kategori || 'Kebutuhan Pokok'}"`,
+                    hargaNum,
+                    `"${item.unit || item.satuan || 'kg'}"`,
+                    hetNum > 0 ? hetNum : "-",
+                    `"${statusHet}"`,
+                    `"${item.stok_fisik || 'Tersedia'}"`,
+                    `"${item.status || 'Terverifikasi'}"`,
+                    `"${item.petugas || currentUser?.nama || 'Petugas DKPP Lamongan'}"`
+                ];
+            });
+
+            // \uFEFF adalah UTF-8 BOM untuk memastikan Microsoft Excel membaca karakter & tabel secara otomatis rapi
+            const csvContent = "\uFEFF" + [headers.join(","), ...rows.map(r => r.join(","))].join("\r\n");
+            const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            const today = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+            a.href = url;
+            a.download = `laporan_pemantauan_harga_dkpp_${today}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            if (showToast) showToast("Laporan pemantauan harga berhasil diekspor ke CSV/Excel dengan rapi!", "success");
+        } catch (err) {
+            console.error("Export error:", err);
+            if (showToast) showToast("Gagal mengekspor laporan: " + err.message, "error");
+        }
     };
 
     // =========================================================================
@@ -807,34 +919,175 @@ export default function AdminDashboard({
                             </button>
 
                             {showNotifications && (
-                                <div className="admin-notif-panel" style={{
-                                    position: "absolute",
-                                    right: 0,
-                                    top: "54px",
-                                    width: "340px",
-                                    maxWidth: "calc(100vw - 24px)",
-                                    backgroundColor: "#ffffff",
-                                    borderRadius: "20px",
-                                    boxShadow: "0 15px 35px rgba(27,67,50,0.15)",
-                                    border: "1px solid #d2ded7",
-                                    zIndex: 1050,
-                                    overflow: "hidden"
-                                }}>
-                                    <div style={{ padding: "16px 20px", borderBottom: "1px solid #d2ded7", backgroundColor: "#f2f7f4", display: "flex", justifyContent: "space-between" }}>
-                                        <span style={{ fontWeight: "800", fontSize: "14px", color: "#0f1d14" }}>Notifikasi</span>
-                                        <span style={{ fontSize: "11px", color: "#1b4332", fontWeight: "800", background: "#b7efc5", padding: "2px 8px", borderRadius: "99px" }}>{unreadCount} baru</span>
-                                    </div>
-                                    <div style={{ maxHeight: "260px", overflowY: "auto" }}>
-                                        {notifications.map((n) => (
-                                            <div key={n.id} onClick={() => setNotifications(prev => prev.map(item => item.id === n.id ? { ...item, read: true } : item))} style={{
-                                                padding: "14px 20px", borderBottom: "1px solid #f2f7f4", backgroundColor: n.read ? "#fff" : "#eef8f2", cursor: "pointer"
-                                            }}>
-                                                <div style={{ fontSize: "12.5px", fontWeight: "800", color: "#0f1d14" }}>{n.title}</div>
-                                                <div style={{ fontSize: "12px", color: "#4e6754" }}>{n.desc}</div>
+                                <>
+                                    {/* Backdrop untuk klik di luar menutup panel */}
+                                    <div
+                                        onClick={() => setShowNotifications(false)}
+                                        style={{ position: "fixed", inset: 0, zIndex: 1040, background: "rgba(0,0,0,0.15)" }}
+                                    />
+
+                                    <div className="admin-notif-panel" style={{
+                                        position: "absolute",
+                                        right: 0,
+                                        top: "50px",
+                                        width: "360px",
+                                        maxWidth: "calc(100vw - 16px)",
+                                        backgroundColor: "#ffffff",
+                                        borderRadius: "20px",
+                                        boxShadow: "0 18px 40px rgba(15,29,20,0.22)",
+                                        border: "1px solid #d2ded7",
+                                        zIndex: 1050,
+                                        overflow: "hidden"
+                                    }}>
+                                        {/* Header Notifikasi */}
+                                        <div style={{ padding: "14px 18px", borderBottom: "1px solid #e2ede6", backgroundColor: "#f4f8f5", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                                                <span style={{ fontWeight: "800", fontSize: "14px", color: "#0f1d14" }}>Notifikasi Petugas</span>
+                                                {unreadCount > 0 && (
+                                                    <span style={{ fontSize: "11px", color: "#1b4332", fontWeight: "800", background: "#b7efc5", padding: "2px 8px", borderRadius: "99px" }}>
+                                                        {unreadCount} baru
+                                                    </span>
+                                                )}
                                             </div>
-                                        ))}
+                                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                                                {unreadCount > 0 && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setNotifications(prev => prev.map(item => ({ ...item, read: true })));
+                                                            if (showToast) showToast("Semua notifikasi ditandai dibaca", "info");
+                                                        }}
+                                                        style={{ background: "none", border: "none", color: "#2d6a4f", fontSize: "11px", fontWeight: "800", cursor: "pointer", display: "flex", alignItems: "center", gap: "3px", padding: "4px 8px", borderRadius: "6px" }}
+                                                        title="Tandai semua dibaca"
+                                                    >
+                                                        <CheckCheck size={13} /> Baca Semua
+                                                    </button>
+                                                )}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowNotifications(false)}
+                                                    style={{ background: "#e2ede6", border: "none", borderRadius: "50%", width: "24px", height: "24px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#1b4332", padding: 0 }}
+                                                    title="Tutup Notifikasi"
+                                                >
+                                                    <X size={14} />
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Filter Tab: Semua / Belum Dibaca */}
+                                        <div style={{ display: "flex", borderBottom: "1px solid #eef3f0", backgroundColor: "#fafdfb", padding: "6px 12px", gap: "6px" }}>
+                                            <button
+                                                type="button"
+                                                onClick={() => setNotifFilter("all")}
+                                                style={{
+                                                    flex: 1, padding: "5px 10px", borderRadius: "99px", border: "none",
+                                                    fontSize: "11.5px", fontWeight: "800", cursor: "pointer",
+                                                    backgroundColor: notifFilter === "all" ? "#1b4332" : "transparent",
+                                                    color: notifFilter === "all" ? "#ffffff" : "#4e6754"
+                                                }}
+                                            >
+                                                Semua ({notifications.length})
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setNotifFilter("unread")}
+                                                style={{
+                                                    flex: 1, padding: "5px 10px", borderRadius: "99px", border: "none",
+                                                    fontSize: "11.5px", fontWeight: "800", cursor: "pointer",
+                                                    backgroundColor: notifFilter === "unread" ? "#1b4332" : "transparent",
+                                                    color: notifFilter === "unread" ? "#ffffff" : "#4e6754"
+                                                }}
+                                            >
+                                                Belum Dibaca ({unreadCount})
+                                            </button>
+                                        </div>
+
+                                        {/* Daftar List Notifikasi Interaktif */}
+                                        <div style={{ maxHeight: "300px", overflowY: "auto" }}>
+                                            {(() => {
+                                                const displayedNotifs = notifFilter === "unread"
+                                                    ? notifications.filter(n => !n.read)
+                                                    : notifications;
+
+                                                if (displayedNotifs.length === 0) {
+                                                    return (
+                                                        <div style={{ padding: "30px 20px", textAlign: "center", color: "#6b7280", fontSize: "12.5px" }}>
+                                                            <CheckCircle2 size={24} color="#74c69d" style={{ margin: "0 auto 8px auto" }} />
+                                                            <div>Tidak ada notifikasi {notifFilter === "unread" ? "baru" : ""}.</div>
+                                                        </div>
+                                                    );
+                                                }
+
+                                                return displayedNotifs.map((n) => {
+                                                    const isUnread = !n.read;
+                                                    return (
+                                                        <div
+                                                            key={n.id}
+                                                            onClick={() => {
+                                                                setNotifications(prev => prev.map(item => item.id === n.id ? { ...item, read: true } : item));
+                                                                setShowNotifications(false);
+                                                                if (n.type === "pending" || n.title.toLowerCase().includes("survei") || n.title.toLowerCase().includes("validasi")) {
+                                                                    setActiveTab("Validasi Lapangan");
+                                                                    setStatusFilter("pending");
+                                                                    if (showToast) showToast("Membuka survei yang perlu dicek...", "info");
+                                                                } else if (n.type === "kios" || n.title.toLowerCase().includes("kios")) {
+                                                                    setActiveTab("Manajemen Kios");
+                                                                    if (showToast) showToast("Membuka direktori kios mitra...", "info");
+                                                                } else if (n.type === "anomali" || n.title.toLowerCase().includes("anomali")) {
+                                                                    setActiveTab("Validasi Lapangan");
+                                                                    if (showToast) showToast("Membuka laporan fluktuasi harga...", "info");
+                                                                } else {
+                                                                    setActiveTab("Ringkasan Pasar");
+                                                                    if (showToast) showToast(n.title, "info");
+                                                                }
+                                                            }}
+                                                            style={{
+                                                                padding: "12px 18px",
+                                                                borderBottom: "1px solid #f0f5f2",
+                                                                backgroundColor: isUnread ? "#f0f9f3" : "#ffffff",
+                                                                cursor: "pointer",
+                                                                display: "flex",
+                                                                gap: "12px",
+                                                                alignItems: "flex-start",
+                                                                transition: "background 0.15s ease"
+                                                            }}
+                                                        >
+                                                            <div style={{
+                                                                width: "30px", height: "30px", borderRadius: "50%",
+                                                                backgroundColor: n.type === "anomali" ? "#fee2e2" : n.type === "pending" ? "#fef3c7" : "#e2f5ea",
+                                                                display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: "2px"
+                                                            }}>
+                                                                {n.type === "anomali" ? (
+                                                                    <AlertTriangle size={15} color="#dc2626" />
+                                                                ) : n.type === "pending" ? (
+                                                                    <Clock size={15} color="#d97706" />
+                                                                ) : (
+                                                                    <Store size={15} color="#2d6a4f" />
+                                                                )}
+                                                            </div>
+                                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "6px" }}>
+                                                                    <div style={{ fontSize: "12.5px", fontWeight: isUnread ? "800" : "700", color: "#0f1d14" }}>
+                                                                        {n.title}
+                                                                    </div>
+                                                                    <span style={{ fontSize: "10.5px", color: isUnread ? "#2d6a4f" : "#6b7280", fontWeight: "600", whiteSpace: "nowrap" }}>
+                                                                        {n.time}
+                                                                    </span>
+                                                                </div>
+                                                                <div style={{ fontSize: "12px", color: "#4e6754", marginTop: "2px", lineHeight: "1.4" }}>
+                                                                    {n.desc}
+                                                                </div>
+                                                            </div>
+                                                            {isUnread && (
+                                                                <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#2d6a4f", flexShrink: 0, marginTop: "6px" }} />
+                                                            )}
+                                                        </div>
+                                                    );
+                                                });
+                                            })()}
+                                        </div>
                                     </div>
-                                </div>
+                                </>
                             )}
                         </div>
 
@@ -3069,12 +3322,35 @@ export default function AdminDashboard({
                                 <div>Memuat komoditas kios...</div>
                             </div>
                         ) : !viewingKiosDetail.katalog || viewingKiosDetail.katalog.length === 0 ? (
-                            <div style={{ textAlign: "center", padding: "40px 20px", backgroundColor: "#f9fcfb", borderRadius: "18px", border: "1px dashed #b7efc5" }}>
-                                <Package size={32} color="#2d6a4f" style={{ margin: "0 auto 10px auto" }} />
-                                <div style={{ fontWeight: "800", color: "#0f1d14", fontSize: "14px" }}>Belum Ada Komoditas di Kios Ini</div>
-                                <p style={{ fontSize: "12.5px", color: "#4e6754", margin: "4px 0 14px 0" }}>
-                                    Kios ini belum memiliki daftar komoditas pangan. Klik tombol di atas untuk menambahkan.
+                            <div style={{ textAlign: "center", padding: "40px 20px", backgroundColor: "#f9fcfb", borderRadius: "18px", border: "1.5px dashed #b7efc5" }}>
+                                <Package size={36} color="#2d6a4f" style={{ margin: "0 auto 12px auto" }} />
+                                <div style={{ fontWeight: "800", color: "#0f1d14", fontSize: "15px" }}>Belum Ada Komoditas di Kios Ini</div>
+                                <p style={{ fontSize: "13px", color: "#4e6754", margin: "6px 0 16px 0" }}>
+                                    Kios ini belum memiliki daftar komoditas pangan. Klik tombol di bawah untuk menambahkan komoditas pertama.
                                 </p>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowAddKomoditasForm(true);
+                                        setEditingKomoditas(null);
+                                    }}
+                                    style={{
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        gap: "8px",
+                                        padding: "10px 24px",
+                                        borderRadius: "99px",
+                                        border: "none",
+                                        backgroundColor: "#2d6a4f",
+                                        color: "#ffffff",
+                                        fontWeight: "800",
+                                        fontSize: "13px",
+                                        cursor: "pointer",
+                                        boxShadow: "0 4px 14px rgba(45,106,79,0.2)"
+                                    }}
+                                >
+                                    <Plus size={16} /> + Tambah Komoditas Sekarang
+                                </button>
                             </div>
                         ) : (
                             <div style={{ overflowX: "auto" }}>

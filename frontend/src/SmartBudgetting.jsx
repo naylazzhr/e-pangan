@@ -89,12 +89,57 @@ function QtyControl({ qty, onMinus, onPlus, small }) {
 }
 
 export default function SmartBudgeting({ onBack, onNavigate }) {
-  const [budget, setBudget] = useState(600000);
-  const [period, setPeriod] = useState("bulanan");
-  const [familyMembers, setFamilyMembers] = useState(4);
-  const [selectedPasarId, setSelectedPasarId] = useState("");
-  const [items, setItems] = useState([]);
-  const [searchKatalog, setSearchKatalog] = useState("");
+  const handleBudgetChange = (valStr) => {
+    // Biarkan pengguna menghapus kosong atau mengetik angka baru secara bebas
+    const rawDigits = valStr.replace(/\D/g, "");
+    if (rawDigits === "") {
+      setBudgetInput("");
+      setBudget(0);
+    } else {
+      const num = parseInt(rawDigits, 10);
+      setBudget(num);
+      setBudgetInput(num.toLocaleString("id-ID"));
+    }
+  };
+
+  const handleBudgetBlur = () => {
+    if (budget === 0 || budgetInput.trim() === "") {
+      setBudget(300000);
+      setBudgetInput("300.000");
+    }
+  };
+
+  const handleFamilyChange = (valStr) => {
+    // Mengizinkan user mengosongkan input sepenuhnya saat menekan backspace
+    if (valStr === "") {
+      setFamilyInput("");
+      return;
+    }
+    const cleanDigits = valStr.replace(/\D/g, "");
+    if (cleanDigits !== "") {
+      const val = parseInt(cleanDigits, 10);
+      setFamilyInput(cleanDigits);
+      setFamilyMembers(Math.max(1, Math.min(20, val)));
+    }
+  };
+
+  const handleFamilyBlur = () => {
+    if (!familyInput || parseInt(familyInput, 10) < 1) {
+      setFamilyInput("1");
+      setFamilyMembers(1);
+    } else {
+      const parsed = Math.min(20, Math.max(1, parseInt(familyInput, 10)));
+      setFamilyInput(String(parsed));
+      setFamilyMembers(parsed);
+    }
+  };
+
+  const stepFamily = (delta) => {
+    const current = familyMembers || 1;
+    const nextVal = Math.min(20, Math.max(1, current + delta));
+    setFamilyMembers(nextVal);
+    setFamilyInput(String(nextVal));
+  };
   const [pasarList, setPasarList] = useState([]);
   const [katalogList, setKatalogList] = useState([]);
   const [isOptimizing, setIsOptimizing] = useState(false);
@@ -594,8 +639,10 @@ export default function SmartBudgeting({ onBack, onNavigate }) {
                   <button
                     onClick={() => {
                       setBudget(600000);
+                      setBudgetInput("600.000");
                       setPeriod("bulanan");
                       setFamilyMembers(4);
+                      setFamilyInput("4");
                     }}
                     style={{ background: "none", border: "none", color: "#4a6550", fontSize: "13px", cursor: "pointer", fontWeight: "700", display: "flex", alignItems: "center", gap: "4px", fontFamily: "inherit" }}
                   >
@@ -608,28 +655,44 @@ export default function SmartBudgeting({ onBack, onNavigate }) {
                 Pagu Anggaran Belanja {period === "harian" ? "Harian" : period === "mingguan" ? "Mingguan" : "Bulanan"}
               </h3>
 
-              <div style={{ display: "flex", alignItems: "center", background: "#f4f8f5", borderRadius: "16px", border: "1px solid #d8e2dc", padding: "0 18px", marginBottom: "14px" }}>
+              <div style={{ display: "flex", alignItems: "center", background: "#f4f8f5", borderRadius: "16px", border: "1.5px solid #cfe3d6", padding: "0 18px", marginBottom: "14px" }}>
                 <span style={{ fontSize: "18px", fontWeight: "800", color: "#2d6a4f" }}>Rp</span>
                 <input
                   type="text"
-                  value={budget === 0 ? "" : budget.toLocaleString("id-ID")}
-                  onChange={(e) => {
-                    const rawVal = e.target.value.replace(/\D/g, "");
-                    setBudget(rawVal === "" ? 0 : Number(rawVal));
-                  }}
-                  style={{ width: "100%", border: "none", outline: "none", background: "transparent", padding: "15px", fontSize: "20px", fontWeight: "800", fontFamily: "inherit", color: "#112216" }}
+                  inputMode="numeric"
+                  placeholder="0"
+                  value={budgetInput}
+                  onChange={(e) => handleBudgetChange(e.target.value)}
+                  onBlur={handleBudgetBlur}
+                  style={{ width: "100%", border: "none", outline: "none", background: "transparent", padding: "14px", fontSize: "19px", fontWeight: "800", fontFamily: "inherit", color: "#112216" }}
                 />
               </div>
 
               <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "22px" }}>
                 {[200000, 400000, 600000, 850000, 1200000].map((val) => (
-                  <button key={val} onClick={() => setBudget(val)} className={`sb-chip ${budget === val ? "active" : ""}`}>
+                  <button
+                    key={val}
+                    type="button"
+                    onClick={() => {
+                      setBudget(val);
+                      setBudgetInput(val.toLocaleString("id-ID"));
+                    }}
+                    className={`sb-chip ${budget === val ? "active" : ""}`}
+                    style={{
+                      cursor: "pointer",
+                      padding: "8px 14px",
+                      borderRadius: "99px",
+                      fontSize: "12px",
+                      fontWeight: "700",
+                      transition: "all 0.15s ease",
+                    }}
+                  >
                     {formatRp(val)}
                   </button>
                 ))}
               </div>
 
-              <div className="sb-two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px", paddingTop: "20px", borderTop: "1px solid #d8e2dc" }}>
+              <div className="sb-two-col" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", paddingTop: "20px", borderTop: "1px solid #d8e2dc" }}>
                 <div>
                   <label className="sb-field-label">PERIODE BELANJA</label>
                   <select value={period} onChange={(e) => setPeriod(e.target.value)} className="sb-input" style={{ cursor: "pointer" }}>
@@ -640,13 +703,66 @@ export default function SmartBudgeting({ onBack, onNavigate }) {
                 </div>
                 <div>
                   <label className="sb-field-label">JUMLAH ANGGOTA KELUARGA</label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={familyMembers}
-                    onChange={(e) => setFamilyMembers(Math.max(1, Number(e.target.value)))}
-                    className="sb-input"
-                  />
+                  <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <button
+                      type="button"
+                      onClick={() => stepFamily(-1)}
+                      style={{
+                        width: "38px",
+                        height: "42px",
+                        borderRadius: "10px",
+                        border: "1.5px solid #cfe3d6",
+                        background: "#f4f8f5",
+                        color: "#1b4332",
+                        fontWeight: "800",
+                        fontSize: "18px",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                      title="Kurangi Anggota"
+                    >
+                      −
+                    </button>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={familyInput}
+                      onChange={(e) => handleFamilyChange(e.target.value)}
+                      onBlur={handleFamilyBlur}
+                      className="sb-input"
+                      style={{
+                        textAlign: "center",
+                        fontWeight: "800",
+                        fontSize: "15px",
+                        padding: "10px 8px",
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => stepFamily(1)}
+                      style={{
+                        width: "38px",
+                        height: "42px",
+                        borderRadius: "10px",
+                        border: "1.5px solid #cfe3d6",
+                        background: "#f4f8f5",
+                        color: "#1b4332",
+                        fontWeight: "800",
+                        fontSize: "18px",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        flexShrink: 0,
+                      }}
+                      title="Tambah Anggota"
+                    >
+                      +
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

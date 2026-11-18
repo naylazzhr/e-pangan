@@ -269,7 +269,7 @@ export default function KomparasiPasar() {
           position: static;
           background: transparent !important;
           border-right: 1px solid #e6eee9;
-          min-width: 260px;
+          min-width: 180px;
           max-width: none;
           white-space: nowrap !important;
           box-shadow: none;
@@ -303,68 +303,93 @@ export default function KomparasiPasar() {
           }
         }
         @media (max-width: 768px) {
-          .kp-container { padding: 0 1rem; }
+          .kp-container { padding: 0 10px; }
           .kp-sticky {
             position: sticky !important;
             left: 0 !important;
             z-index: 5 !important;
             background: #ffffff !important;
             border-right: 2px solid #d8e2dc !important;
-            min-width: 160px !important;
-            max-width: 180px !important;
+            min-width: 110px !important;
+            max-width: 130px !important;
+            width: 120px !important;
             white-space: normal !important;
-            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.06) !important;
+            word-break: break-word !important;
+            box-shadow: 3px 0 8px rgba(0, 0, 0, 0.08) !important;
           }
           .kp-table th.kp-sticky {
             background: #f4f8f5 !important;
             z-index: 6 !important;
           }
+          .kp-col-pasar {
+            min-width: 75px !important;
+            width: 85px !important;
+            font-size: 10.5px !important;
+            white-space: nowrap !important;
+          }
+          .kp-col-rekomendasi {
+            min-width: 95px !important;
+            width: 105px !important;
+            font-size: 10.5px !important;
+            white-space: nowrap !important;
+          }
           .kp-head {
             flex-direction: column;
             align-items: flex-start;
-            padding: 16px 0 12px;
+            padding: 14px 0 10px;
             gap: 6px;
           }
           .kp-head h1 {
-            font-size: 1.35rem !important;
+            font-size: 1.2rem !important;
             line-height: 1.25 !important;
           }
           .kp-head p {
-            font-size: 12px !important;
+            font-size: 11px !important;
             margin-top: 4px !important;
           }
           .kp-summary-grid {
             grid-template-columns: repeat(2, 1fr) !important;
-            gap: 10px !important;
-            margin-bottom: 16px !important;
+            gap: 8px !important;
+            margin-bottom: 14px !important;
           }
           .kp-card {
-            padding: 14px !important;
-            border-radius: 18px !important;
+            padding: 12px !important;
+            border-radius: 16px !important;
           }
           .kp-card h3 {
-            font-size: 1.1rem !important;
+            font-size: 1rem !important;
           }
           .kp-filter-row {
             flex-direction: column;
             align-items: flex-start;
-            gap: 8px;
+            gap: 6px;
+          }
+          .kp-chips {
+            gap: 5px;
+          }
+          .kp-chip {
+            padding: 5px 10px;
+            font-size: 10.5px;
           }
           .kp-table th,
           .kp-table td {
-            padding: 10px 12px !important;
-            font-size: 12px !important;
+            padding: 8px 6px !important;
+            font-size: 10.5px !important;
           }
           .kp-scroll-hint {
             display: flex;
             align-items: center;
             gap: 6px;
-            padding: 10px 14px;
-            font-size: 11.5px;
+            padding: 8px 12px;
+            font-size: 10.5px;
             font-weight: 700;
             color: #1b4332;
             background: #e2f5ea;
             border-bottom: 1px solid #c2e3cd;
+          }
+          .kp-icon-bubble {
+            width: 32px;
+            height: 32px;
           }
         }
         @media (max-width: 480px) {
@@ -472,22 +497,23 @@ export default function KomparasiPasar() {
         </div>
 
         {/* FILTER */}
-        <div className="kp-card" style={{ marginBottom: 24, display: "flex", flexDirection: "column", gap: 18 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        <div className="kp-card" style={{ marginBottom: 24, display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <div
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 12,
+                gap: 8,
                 background: "#f4f8f5",
                 border: "1px solid #d8e2dc",
-                padding: "0 18px",
-                height: 44,
+                padding: "0 12px",
+                height: 38,
                 borderRadius: 99,
-                flex: "1 1 280px",
+                flex: "1 1 200px",
+                minWidth: 0,
               }}
             >
-              <Search size={16} color="#4a6550" />
+              <Search size={14} color="#4a6550" />
               <input
                 type="text"
                 placeholder="Cari komoditas (misal: Cabai, Beras)..."
@@ -498,14 +524,15 @@ export default function KomparasiPasar() {
                   background: "transparent",
                   outline: "none",
                   width: "100%",
-                  fontSize: "14px",
+                  fontSize: "12px",
                   fontWeight: "500",
                   fontFamily: "inherit",
                   color: "#112216",
+                  minWidth: 0,
                 }}
               />
               {searchQuery && (
-                <X size={16} color="#4a6550" style={{ cursor: "pointer", flexShrink: 0 }} onClick={() => setSearchQuery("")} />
+                <X size={14} color="#4a6550" style={{ cursor: "pointer", flexShrink: 0 }} onClick={() => setSearchQuery("")} />
               )}
             </div>
 
@@ -513,8 +540,8 @@ export default function KomparasiPasar() {
               onClick={fetchData}
               title="Muat ulang data"
               style={{
-                width: 44,
-                height: 44,
+                width: 38,
+                height: 38,
                 border: "1px solid #d8e2dc",
                 borderRadius: "50%",
                 background: "#ffffff",
@@ -522,9 +549,10 @@ export default function KomparasiPasar() {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
+                flexShrink: 0,
               }}
             >
-              <RefreshCw size={16} color="#4a6550" />
+              <RefreshCw size={14} color="#4a6550" />
             </button>
 
             <button
@@ -610,10 +638,10 @@ export default function KomparasiPasar() {
                   className="kp-table"
                   style={{
                     width: "100%",
-                    minWidth: Math.max(840, 165 + activePasarList.length * 115 + 135),
+                    minWidth: Math.max(500, 130 + activePasarList.length * 90 + 110),
                     borderCollapse: "collapse",
                     textAlign: "left",
-                    whiteSpace: "nowrap",
+                    tableLayout: "fixed",
                   }}
                 >
                   <thead>
@@ -661,8 +689,8 @@ export default function KomparasiPasar() {
                           <tr key={row.id} className="kp-row">
                             <td className="kp-sticky">
                               <div>
-                                <div style={{ fontWeight: "800", fontSize: "13px", lineHeight: "1.25" }}>{row.komoditas}</div>
-                                <div style={{ fontSize: "11px", color: "#4a6550", fontWeight: "600", marginTop: 2 }}>
+                                <div style={{ fontWeight: "800", fontSize: "11.5px", lineHeight: "1.3" }}>{row.komoditas}</div>
+                                <div style={{ fontSize: "9.5px", color: "#4a6550", fontWeight: "600", marginTop: 2 }}>
                                   {row.kategori} · per {row.satuan}
                                 </div>
                               </div>
@@ -703,13 +731,14 @@ export default function KomparasiPasar() {
                                 style={{
                                   display: "inline-flex",
                                   alignItems: "center",
-                                  gap: 6,
+                                  gap: 4,
                                   background: "#e2f5ea",
                                   color: "#1b4332",
-                                  padding: "6px 12px",
+                                  padding: "4px 8px",
                                   borderRadius: 99,
-                                  fontSize: "12px",
+                                  fontSize: "10.5px",
                                   fontWeight: "800",
+                                  whiteSpace: "nowrap",
                                 }}
                               >
                                 <CheckCircle2 size={13} color="#2d6a4f" /> {row.termurah || "—"}

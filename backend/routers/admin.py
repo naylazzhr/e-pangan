@@ -2,9 +2,12 @@ import os
 import uuid
 import json
 import re
+import csv
+import io
+from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status, File, UploadFile, Form
+from fastapi import APIRouter, Depends, HTTPException, Query, status, File, UploadFile, Form, Response
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -626,4 +629,71 @@ def reset_foto_komoditas(
         "message": f"Foto untuk '{clean_nama}' berhasil direset ke foto bawaan!",
         "nama_komoditas": clean_nama
     }
+
+
+# ==============================================================================
+# ENDPOINT EKSPOR LAPORAN RESMI DKPP (CSV / EXCEL COMPATIBLE)
+# ==============================================================================
+
+@router.get("/admin/export-laporan", tags=["Laporan & Ekspor"])
+def export_laporan_harga(
+    pasar: Optional[str] = Query(None, description="Filter pasar tertentu"),
+    db: Session = Depends(get_db)
+):
+    """
+    Ekspor data pemantauan harga pangan daerah Kabupaten Lamongan ke format CSV/Excel.
+    Dilengkapi UTF-8 BOM agar rapi dan tidak berantakan saat dibuka di Microsoft Excel.
+    """
+    query = db.query(models.Komoditas)
+    if pasar and pasar != "Semua Pasar":
+        query = query.filter(models.Komoditas.lokasi.ilike(f"%{pasar}%"))
+    
+    komoditas_list = query.order_by(models.Komoditas.kategori, models.Komoditas.nama_bahan).all()
+    
+    output = io.StringIO()
+    # Tulis UTF-8 BOM agar Excel di Windows membaca encoding dengan benar
+    output.write('\ufeff')
+    writer = csv.writer(output, delimiter=',', quoting=csv.QUOTE_MINIMAL)
+    
+    # Header Laporan Profesional
+    writer.writerow(["NO", "TANGGAL PANTAU", "LOKASI PASAR", "NAMA KOMODITAS", "KATEGORI", "HARGA (RP)", "SATUAN", "HET (RP)", "STATUS HET", "INFO STOK", "MUTU / VARIAN", "SUMBER DATA"])
+    
+    today_str = datetime.now().strftime("%d-%m-%Y")
+    for idx, item in enumerate(komoditas_list, start=1):
+        status_het = "Sesuai HET"
+        if item.het and item.het > 0:
+            if item.harga > item.het:
+                selisih_pct = round(((item.harga - item.het) / item.het) * 100, 1)
+                status_het = f"Di Atas HET (+{selisih_pct}%)"
+            elif item.harga < item.het:
+                selisih_pct = round(((item.het - item.harga) / item.het) * 100, 1)
+                status_het = f"Di Bawah HET (-{selisih_pct}%)"
+            else:
+                status_het = "Sesuai HET"
+        
+        stok = item.stok_fisik or "Tersedia"
+        writer.writerow([
+            idx,
+            (item.updated_at or item.created_at or datetime.now()).strftime("%d-%m-%Y %H:%M"),
+            item.lokasi or "Kabupaten Lamongan",
+            item.nama_bahan,
+            item.kategori or "Kebutuhan Pokok",
+            int(item.harga) if item.harga else 0,
+            item.satuan or "kg",
+            int(item.het) if item.het else "-",
+            status_het,
+            stok,
+            item.varian_keterangan or item.kualitas_mutu or "Standar Pasar",
+            "Dinas Ketahanan Pangan & Pertanian Kab. Lamongan"
+        ])
+    
+    filename = f"laporan_harga_pangan_lamongan_{datetime.now().strftime('%Y%m%d_%H%M')}.csv"
+    return Response(
+        content=output.getvalue(),
+        media_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": f"attachment; filename={filename}"
+        }
+    )
+
 
