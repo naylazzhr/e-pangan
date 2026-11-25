@@ -284,7 +284,7 @@ export default function SmartBudgeting({ onBack, onNavigate }) {
 
   const handleApplySubstitution = (oldName, newName) => {
     let subItem = katalogList.find((m) => m.name && m.name.toLowerCase().includes(newName.toLowerCase()));
-    
+
     if (!subItem && allKomoditasData.length > 0) {
       const globalMatch = allKomoditasData.find((m) => (m.nama_bahan || m.komoditas || "").toLowerCase().includes(newName.toLowerCase()));
       if (globalMatch) {
@@ -312,14 +312,14 @@ export default function SmartBudgeting({ onBack, onNavigate }) {
       prev.map((item) =>
         item.name && item.name.toLowerCase().trim() === oldName.toLowerCase().trim()
           ? {
-              ...item,
-              id: subItem.id,
-              name: subItem.name,
-              price: subItem.price,
-              unit: subItem.unit,
-              category: subItem.category || item.category,
-              auto: false,
-            }
+            ...item,
+            id: subItem.id,
+            name: subItem.name,
+            price: subItem.price,
+            unit: subItem.unit,
+            category: subItem.category || item.category,
+            auto: false,
+          }
           : item
       )
     );
@@ -360,14 +360,14 @@ export default function SmartBudgeting({ onBack, onNavigate }) {
 
   const activePasar = pasarList.find((p) => p.id === selectedPasarId) ||
     pasarList[0] || {
-      name: "Memuat Pasar...",
-      alamat: "Kabupaten Lamongan",
-      info: "Titik Pantau Resmi DKPP",
-      lat: -7.1126,
-      lon: 112.1634,
-      maps: "#",
-      rute: "#",
-    };
+    name: "Memuat Pasar...",
+    alamat: "Kabupaten Lamongan",
+    info: "Titik Pantau Resmi DKPP",
+    lat: -7.1126,
+    lon: 112.1634,
+    maps: "#",
+    rute: "#",
+  };
 
   const expensiveItem = items.find((i) => SUBSTITUSI_MAP[i.name]);
 
@@ -409,6 +409,20 @@ export default function SmartBudgeting({ onBack, onNavigate }) {
           margin-bottom: 28px;
           border-bottom: 1px solid #d8e2dc;
         }
+        .sb-title {
+          font-size: 2.2rem;
+          font-weight: 800;
+          margin: 0;
+          letter-spacing: -0.03em;
+          line-height: 1.15;
+        }
+        .sb-desc {
+          color: #4a6550;
+          margin: 0;
+          font-size: 1rem;
+          max-width: 460px;
+          line-height: 1.6;
+        }
         .sb-main-grid {
           display: grid;
           grid-template-columns: 1fr 380px;
@@ -425,7 +439,7 @@ export default function SmartBudgeting({ onBack, onNavigate }) {
           background: #ffffff;
           border: 1px solid #d8e2dc;
           border-radius: 24px;
-          padding: 28px;
+          padding: 32px;
         }
         .sb-label {
           font-size: 11px;
@@ -438,6 +452,37 @@ export default function SmartBudgeting({ onBack, onNavigate }) {
           font-size: 1.25rem;
           font-weight: 800;
           margin: 0;
+        }
+        .sb-market-banner {
+          background: #e2f5ea;
+          border-radius: 20px;
+          padding: 20px;
+          margin-bottom: 18px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 16px;
+          flex-wrap: wrap;
+        }
+        .sb-market-name {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-weight: 800;
+          font-size: 16px;
+          color: #112216;
+        }
+        .sb-market-address {
+          color: #4a6550;
+          font-size: 13px;
+          font-weight: 600;
+          margin-top: 6px;
+        }
+        .sb-market-info {
+          color: #1b4332;
+          font-size: 12.5px;
+          font-weight: 700;
+          margin-top: 4px;
         }
         .sb-field-label {
           display: block;
@@ -487,11 +532,89 @@ export default function SmartBudgeting({ onBack, onNavigate }) {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 16px;
-          padding: 14px 18px;
-          border-radius: 18px;
+          gap: 12px;
+          padding: 12px 14px;
+          border-radius: 16px;
           background: #f4f8f5;
           border: 1px solid #e6eee9;
+          width: 100%;
+          box-sizing: border-box;
+        }
+        .sb-item-info {
+          flex: 1;
+          min-width: 0;
+        }
+        .sb-item-title {
+          font-weight: 800;
+          font-size: 13.5px;
+          color: #112216;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .sb-item-unit-price {
+          color: #4a6550;
+          font-size: 11.5px;
+          font-weight: 600;
+        }
+        .sb-item-actions {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-shrink: 0;
+        }
+        .sb-item-subtotal {
+          font-weight: 800;
+          text-align: right;
+          font-size: 13px;
+          color: #1b4332;
+          white-space: nowrap;
+        }
+        .sb-item-del-btn {
+          border: none;
+          background: transparent;
+          color: #e11d48;
+          cursor: pointer;
+          padding: 4px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 6px;
+          transition: background 0.15s;
+        }
+        .sb-item-del-btn:hover {
+          background: #fee2e2;
+        }
+        .sb-search-wrap {
+          width: 260px;
+          max-width: 100%;
+          position: relative;
+        }
+        .sb-search-icon {
+          position: absolute;
+          left: 14px;
+          top: 50%;
+          transform: translateY(-50%);
+          pointer-events: none;
+          color: #4a6550;
+          z-index: 2;
+        }
+        .sb-search-input {
+          width: 100%;
+          box-sizing: border-box;
+          padding: 10px 14px 10px 38px !important;
+          border-radius: 999px !important;
+          border: 1px solid #d8e2dc;
+          background: #f4f8f5;
+          font-size: 13px !important;
+          font-weight: 600;
+          font-family: inherit;
+          color: #112216;
+          outline: none;
+        }
+        .sb-search-input:focus {
+          border-color: #2d6a4f;
+          background: #ffffff;
         }
         .sb-katalog-grid {
           display: grid;
@@ -532,68 +655,147 @@ export default function SmartBudgeting({ onBack, onNavigate }) {
           .sb-side { position: static; }
         }
         @media (max-width: 768px) {
-          .sb-container { padding: 0 1rem; }
+          .sb-container { padding: 0 clamp(8px, 2.5vw, 16px); }
           .sb-head {
             flex-direction: column;
             align-items: flex-start;
-            padding: 16px 0 12px;
+            padding: 14px 0 10px;
             gap: 6px;
+            margin-bottom: 14px;
           }
-          .sb-head h1 {
-            font-size: 1.35rem !important;
+          .sb-title {
+            font-size: 1.4rem !important;
             line-height: 1.25 !important;
+            font-weight: 800 !important;
           }
-          .sb-head p {
-            font-size: 12px !important;
-            margin-top: 4px !important;
+          .sb-head p, .sb-desc {
+            font-size: 11.5px !important;
+            margin-top: 3px !important;
+            line-height: 1.5 !important;
           }
-          .sb-card { padding: 14px; border-radius: 18px; }
-          .sb-card-title { font-size: 1.05rem !important; }
-          .sb-label { font-size: 10px !important; }
-          .sb-item-row { flex-wrap: wrap; padding: 10px 12px; gap: 8px; }
+          .sb-card {
+            padding: clamp(10px, 3vw, 14px) !important;
+            border-radius: 14px !important;
+          }
+          .sb-card-title { font-size: 0.88rem !important; }
+          .sb-label { font-size: 9px !important; letter-spacing: 0.03em !important; }
+          .sb-item-row {
+            padding: 7px 8px !important;
+            gap: 5px !important;
+            border-radius: 10px !important;
+            margin-bottom: 5px;
+          }
+          .sb-item-title { font-size: 11.5px !important; }
+          .sb-item-unit-price { font-size: 10px !important; }
+          .sb-item-actions { gap: 5px !important; }
+          .sb-item-subtotal { font-size: 11.5px !important; min-width: auto !important; }
           .sb-two-col { grid-template-columns: 1fr !important; }
           .sb-katalog-grid {
             grid-template-columns: 1fr !important;
-            max-height: 320px !important;
+            max-height: 280px !important;
+            gap: 7px !important;
           }
-          .sb-katalog-card { padding: 12px !important; }
-          .sb-kasir-list { max-height: 220px !important; }
-          .sb-chip {
+          .sb-katalog-card {
+            padding: 8px 10px !important;
+            border-radius: 12px !important;
+          }
+          .sb-katalog-tag { font-size: 9px !important; padding: 2px 7px !important; }
+          .sb-katalog-title { font-size: 12px !important; margin: 4px 0 2px !important; }
+          .sb-katalog-price { font-size: 13px !important; }
+          .sb-katalog-btn {
             font-size: 11px !important;
             padding: 6px 12px !important;
           }
+          .sb-kasir-list { max-height: 200px !important; }
+          .sb-chip {
+            font-size: 10px !important;
+            padding: 4px 9px !important;
+          }
+          .sb-search-wrap { width: 100% !important; position: relative !important; }
+          .sb-search-icon {
+            left: 14px !important;
+            width: 14px !important;
+            height: 14px !important;
+            top: 50% !important;
+            transform: translateY(-50%) !important;
+            pointer-events: none !important;
+            position: absolute !important;
+          }
+          .sb-search-input {
+            padding-left: 38px !important;
+            font-size: 12px !important;
+            height: 36px !important;
+          }
           .sb-input {
-            font-size: 16px !important;
-            padding: 10px 12px !important;
+            font-size: 12px !important;
+            padding: 7px 10px !important;
           }
           .sb-side { position: static !important; }
-          .sb-main-grid { grid-template-columns: 1fr !important; }
+          .sb-main-grid { grid-template-columns: 1fr !important; gap: 14px !important; }
+          /* Tombol Optimasi & Pasar */
+          .sb-optim-btn {
+            font-size: 10.5px !important;
+            padding: 6px 12px !important;
+          }
+          .sb-pasar-btn {
+            font-size: 10px !important;
+            padding: 5px 10px !important;
+          }
+          /* Rincian Kasir samakan ukuran */
+          .sb-kasir-title { font-size: 0.88rem !important; }
+          .sb-kasir-item-row {
+            padding: 7px 8px !important;
+            border-radius: 10px !important;
+          }
+          .sb-kasir-item-title { font-size: 11.5px !important; }
+          .sb-kasir-item-price { font-size: 10px !important; }
+          .sb-total-label { font-size: 11.5px !important; }
+          .sb-total-value { font-size: 13.5px !important; }
+          /* Tombol Petunjuk Rute & Buka di Maps */
+          .sb-route-btn, .sb-maps-btn {
+            font-size: 10.5px !important;
+            padding: 6px 12px !important;
+          }
+          /* Banner Informasi Pasar di Mobile - Diperkecil seperti sb-card-title */
+          .sb-market-banner {
+            padding: 12px 14px !important;
+            border-radius: 14px !important;
+            gap: 10px !important;
+            margin-bottom: 14px !important;
+          }
+          .sb-market-name {
+            font-size: 0.88rem !important; /* Sama dengan teks Pilih Pasar Rakyat Tujuan di Lamongan */
+            gap: 6px !important;
+          }
+          .sb-market-name svg {
+            width: 14px !important;
+            height: 14px !important;
+          }
+          .sb-market-address {
+            font-size: 10px !important;
+            margin-top: 2px !important;
+            line-height: 1.35 !important;
+          }
+          .sb-market-info {
+            font-size: 9.5px !important;
+            margin-top: 2px !important;
+          }
+        }
+        @media (max-width: 480px) {
+          .sb-container { padding: 0 6px !important; }
+          .sb-card { padding: 10px 8px !important; }
+          .sb-item-row { padding: 7px 6px !important; gap: 4px !important; }
+          .sb-item-title { font-size: 11px !important; }
+          .sb-item-unit-price { font-size: 9.5px !important; }
+          .sb-item-actions { gap: 4px !important; }
+          .sb-item-subtotal { font-size: 11px !important; }
+          .sb-title { font-size: 1.3rem !important; }
         }
       `}</style>
 
       <div className="sb-container">
         <div className="sb-head">
           <div>
-            <button
-              onClick={goBack}
-              style={{
-                background: "none",
-                border: "none",
-                color: "#2d6a4f",
-                fontWeight: "700",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                fontSize: "13.5px",
-                padding: 0,
-                marginBottom: "18px",
-                fontFamily: "inherit",
-              }}
-            >
-              <ArrowLeft size={16} /> Kembali ke Beranda
-            </button>
-
             <div
               style={{
                 display: "inline-flex",
@@ -610,13 +812,10 @@ export default function SmartBudgeting({ onBack, onNavigate }) {
                 INOVASI DKPP KABUPATEN LAMONGAN
               </span>
             </div>
-            <h1 style={{ fontSize: "2.5rem", fontWeight: "800", margin: 0, letterSpacing: "-0.03em", lineHeight: 1.15 }}>
+            <h1 className="sb-title">
               Smart Budgeting: <span style={{ color: "#2d6a4f" }}>Kalkulator &amp; Optimasi Dapur</span>
             </h1>
           </div>
-          <p style={{ color: "#4a6550", margin: 0, fontSize: "1rem", maxWidth: "460px", lineHeight: "1.6" }}>
-            Hitung kebutuhan dapur keluarga dan temukan pasar rakyat dengan kombinasi harga paling hemat di Kabupaten Lamongan.
-          </p>
         </div>
 
         <div className="sb-main-grid">
@@ -628,6 +827,7 @@ export default function SmartBudgeting({ onBack, onNavigate }) {
                   <button
                     onClick={handleOptimasiOtomatis}
                     disabled={isOptimizing}
+                    className="sb-optim-btn"
                     style={{
                       background: "#1b4332",
                       color: "#ffffff",
@@ -785,7 +985,6 @@ export default function SmartBudgeting({ onBack, onNavigate }) {
               </div>
               <h3 className="sb-card-title" style={{ marginBottom: "6px" }}>Pilih Pasar Rakyat Tujuan di Lamongan</h3>
               <p style={{ color: "#4a6550", fontSize: "13.5px", margin: "0 0 18px 0", lineHeight: "1.5" }}>
-                Pilih pasar untuk melihat alamat lengkap dan navigasi langsung ke titik pasar.
               </p>
 
               <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginBottom: "18px" }}>
@@ -804,19 +1003,20 @@ export default function SmartBudgeting({ onBack, onNavigate }) {
                 )}
               </div>
 
-              <div style={{ background: "#e2f5ea", borderRadius: "20px", padding: "20px", marginBottom: "18px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
+              <div className="sb-market-banner">
                 <div>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", fontWeight: "800", fontSize: "16px" }}>
+                  <div className="sb-market-name">
                     <MapPin size={17} color="#2d6a4f" /> {activePasar.name}
                   </div>
-                  <div style={{ color: "#4a6550", fontSize: "13px", fontWeight: "600", marginTop: "6px" }}>{activePasar.alamat}</div>
-                  <div style={{ color: "#1b4332", fontSize: "12.5px", fontWeight: "700", marginTop: "4px" }}>{activePasar.info}</div>
+                  <div className="sb-market-address">{activePasar.alamat}</div>
+                  <div className="sb-market-info">{activePasar.info}</div>
                 </div>
                 <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
                   <a
                     href={activePasar.rute}
                     target="_blank"
                     rel="noreferrer"
+                    className="sb-route-btn"
                     style={{ background: "#1b4332", color: "#ffffff", padding: "10px 18px", borderRadius: "999px", fontSize: "12.5px", fontWeight: "700", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "6px" }}
                   >
                     <Navigation size={14} /> Petunjuk Rute
@@ -825,6 +1025,7 @@ export default function SmartBudgeting({ onBack, onNavigate }) {
                     href={activePasar.maps}
                     target="_blank"
                     rel="noreferrer"
+                    className="sb-maps-btn"
                     style={{ background: "#ffffff", color: "#1b4332", border: "1px solid #2d6a4f", padding: "10px 18px", borderRadius: "999px", fontSize: "12.5px", fontWeight: "700", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "6px" }}
                   >
                     <ExternalLink size={14} /> Buka di Maps
@@ -832,14 +1033,14 @@ export default function SmartBudgeting({ onBack, onNavigate }) {
                 </div>
               </div>
 
-              <div style={{ borderRadius: "20px", overflow: "hidden", border: "1px solid #d8e2dc", height: "250px" }}>
+              <div className="sb-map-container" style={{ borderRadius: "20px", overflow: "hidden", border: "1px solid #d8e2dc", height: "250px", marginTop: "12px", marginBottom: "12px" }}>
                 <iframe
                   title={`Peta Lokasi ${activePasar.name}`}
                   src={`https://maps.google.com/maps?q=${activePasar.lat},${activePasar.lon}&z=15&output=embed`}
                   width="100%"
                   height="100%"
                   style={{ border: 0 }}
-                  allowFullScreen=""
+                  allowFullScreen
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
                 ></iframe>
@@ -848,7 +1049,7 @@ export default function SmartBudgeting({ onBack, onNavigate }) {
 
             <div className="sb-card">
               <div style={{ marginBottom: "18px" }}>
-                <h3 className="sb-card-title">Rencana Belanja Pangan</h3>
+                <h3 className="sb-card-title">Rekomendasi Rencana Belanja Pangan</h3>
                 <span style={{ fontSize: "13px", color: "#4a6550", fontWeight: "600" }}>
                   {items.length} komoditas terpilih
                 </span>
@@ -862,24 +1063,24 @@ export default function SmartBudgeting({ onBack, onNavigate }) {
                 ) : (
                   items.map((item) => (
                     <div key={item.id} className="sb-item-row">
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontWeight: "800", fontSize: "14.5px" }}>{item.name}</div>
-                        <div style={{ color: "#4a6550", fontSize: "12.5px", fontWeight: "600" }}>
+                      <div className="sb-item-info">
+                        <div className="sb-item-title">{item.name}</div>
+                        <div className="sb-item-unit-price">
                           {formatRp(item.price)} /{item.unit}
                         </div>
                       </div>
 
-                      <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-                        <QtyControl qty={item.qty} onMinus={() => updateQty(item.id, -1)} onPlus={() => updateQty(item.id, 1)} />
-                        <span style={{ fontWeight: "800", textAlign: "right", minWidth: "110px", fontSize: "15px" }}>
+                      <div className="sb-item-actions">
+                        <QtyControl qty={item.qty} onMinus={() => updateQty(item.id, -1)} onPlus={() => updateQty(item.id, 1)} small />
+                        <span className="sb-item-subtotal">
                           {formatRp(item.qty * item.price)}
                         </span>
                         <button
                           onClick={() => removeItem(item.id)}
-                          style={{ border: "none", background: "transparent", color: "#e11d48", cursor: "pointer", padding: "4px", display: "flex" }}
+                          className="sb-item-del-btn"
                           title="Hapus"
                         >
-                          <Trash2 size={16} />
+                          <Trash2 size={15} />
                         </button>
                       </div>
                     </div>
@@ -897,15 +1098,14 @@ export default function SmartBudgeting({ onBack, onNavigate }) {
                     Daftar harga dari pasar yang dipilih
                   </span>
                 </div>
-                <div style={{ width: "260px", maxWidth: "100%", position: "relative" }}>
-                  <Search size={15} color="#4a6550" style={{ position: "absolute", left: "16px", top: "50%", transform: "translateY(-50%)" }} />
+                <div className="sb-search-wrap">
+                  <Search size={15} className="sb-search-icon" />
                   <input
                     type="text"
                     placeholder="Cari komoditas..."
                     value={searchKatalog}
                     onChange={(e) => setSearchKatalog(e.target.value)}
-                    className="sb-input"
-                    style={{ padding: "11px 16px 11px 40px", borderRadius: "999px" }}
+                    className="sb-search-input"
                   />
                 </div>
               </div>
@@ -925,17 +1125,18 @@ export default function SmartBudgeting({ onBack, onNavigate }) {
                     return (
                       <div key={katalog.id} className="sb-katalog-card">
                         <div style={{ minWidth: 0 }}>
-                          <span style={{ background: "#e2f5ea", color: "#1b4332", padding: "3px 10px", borderRadius: "999px", fontSize: "10px", fontWeight: "800", letterSpacing: "0.04em" }}>
+                          <span className="sb-katalog-tag" style={{ background: "#e2f5ea", color: "#1b4332", padding: "3px 10px", borderRadius: "999px", fontSize: "10px", fontWeight: "800", letterSpacing: "0.04em" }}>
                             {katalog.category}
                           </span>
-                          <div style={{ fontWeight: "800", fontSize: "15px", margin: "8px 0 4px" }}>{katalog.name}</div>
-                          <div style={{ color: "#1b4332", fontWeight: "800", fontSize: "16px" }}>
+                          <div className="sb-katalog-title" style={{ fontWeight: "800", fontSize: "15px", margin: "8px 0 4px" }}>{katalog.name}</div>
+                          <div className="sb-katalog-price" style={{ color: "#1b4332", fontWeight: "800", fontSize: "16px" }}>
                             {formatRp(katalog.price)}{" "}
                             <span style={{ fontSize: "12px", color: "#4a6550", fontWeight: "600" }}>/{katalog.unit}</span>
                           </div>
                         </div>
                         <button
                           onClick={() => addFromKatalog(katalog)}
+                          className="sb-katalog-btn"
                           style={{
                             background: isAdded ? "#e2f5ea" : "#1b4332",
                             color: isAdded ? "#1b4332" : "#ffffff",
@@ -1051,13 +1252,14 @@ export default function SmartBudgeting({ onBack, onNavigate }) {
                   items.map((item) => (
                     <div
                       key={item.id}
+                      className="sb-kasir-item-row"
                       style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#f4f8f5", padding: "10px 12px", borderRadius: "14px", border: "1px solid #e6eee9", gap: "8px" }}
                     >
                       <div style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0 }}>
-                        <span style={{ fontWeight: "700", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "13px" }}>
+                        <span className="sb-kasir-item-title" style={{ fontWeight: "700", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontSize: "13px" }}>
                           {item.name}
                         </span>
-                        <span style={{ fontSize: "11px", color: "#4a6550", fontWeight: "600" }}>
+                        <span className="sb-kasir-item-price" style={{ fontSize: "11px", color: "#4a6550", fontWeight: "600" }}>
                           {formatRp(item.price)} /{item.unit}
                         </span>
                       </div>
@@ -1078,8 +1280,8 @@ export default function SmartBudgeting({ onBack, onNavigate }) {
               </div>
 
               <div style={{ borderTop: "1px solid #d8e2dc", paddingTop: "16px", display: "flex", justifyContent: "space-between", fontWeight: "800", fontSize: "16px" }}>
-                <span>Total Belanja:</span>
-                <span style={{ color: "#2d6a4f" }}>{formatRp(totalCost)}</span>
+                <span className="sb-total-label">Total Belanja:</span>
+                <span className="sb-total-value" style={{ color: "#2d6a4f" }}>{formatRp(totalCost)}</span>
               </div>
             </div>
           </div>

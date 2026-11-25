@@ -40,6 +40,20 @@ const labelStyle = {
   margin: "0 0 6px",
 };
 
+const formatCategoryName = (c) => {
+  if (!c) return "";
+  const lower = c.trim().toLowerCase();
+  if (lower === "semua") return "Semua";
+  if (lower === "kebutuhan pokok" || lower === "sembako") return "Kebutuhan Pokok";
+  if (lower === "bahan baku") return "Bahan Baku";
+  if (lower === "bumbu dapur") return "Bumbu Dapur";
+  if (lower === "minyak goreng") return "Minyak Goreng";
+  if (lower === "protein hewani") return "Protein Hewani";
+  if (lower === "produksi daerah") return "Produksi Daerah";
+  if (lower.includes("sayur") || lower.includes("jamur")) return "Sayuran";
+  return c.trim().split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(" ");
+};
+
 export default function KomparasiPasar() {
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -66,13 +80,40 @@ export default function KomparasiPasar() {
     try {
       const res = await getKomparasiPasar({ search: debouncedSearch, kategori: selectedKat });
       const rawData = Array.isArray(res) ? res : (res?.data || res?.komoditas || []);
-      const rawPasar = res?.daftar_pasar || (rawData.length > 0 && rawData[0]?.prices ? Object.keys(rawData[0].prices) : []);
-      const rawKategori = res?.kategori_list || Array.from(new Set(rawData.map((i) => i.kategori).filter(Boolean)));
+      const filteredData = rawData.filter(item => {
+        const n = (item.komoditas || item.nama_bahan || "").toLowerCase();
+        return !n.includes("kulat") && !n.includes("jamur");
+      });
+      const rawPasar = res?.daftar_pasar || (filteredData.length > 0 && filteredData[0]?.prices ? Object.keys(filteredData[0].prices) : []);
+      const rawKategori = res?.kategori_list || Array.from(new Set(filteredData.map((i) => i.kategori).filter(Boolean)));
 
-      setData(rawData);
+      setData(filteredData);
       setPasarList(rawPasar);
       if (selectedPasar.length === 0 && rawPasar.length > 0) setSelectedPasar(rawPasar);
-      setKategoriList(["Semua", ...rawKategori]);
+
+      const cleanCatsMap = new Map();
+      rawKategori.forEach(c => {
+        const titleName = formatCategoryName(c);
+        if (titleName && !cleanCatsMap.has(titleName.toLowerCase())) {
+          cleanCatsMap.set(titleName.toLowerCase(), titleName);
+        }
+      });
+      const uniqueCats = Array.from(cleanCatsMap.values());
+
+      setKategoriList(prev => {
+        if (prev && prev.length > 3 && uniqueCats.length < 3) {
+          return prev;
+        }
+        const merged = new Map();
+        ["Semua", ...prev.filter(x => x !== "Semua"), ...uniqueCats].forEach(c => {
+          const formatted = formatCategoryName(c);
+          if (formatted && !merged.has(formatted.toLowerCase())) {
+            merged.set(formatted.toLowerCase(), formatted);
+          }
+        });
+        return Array.from(merged.values());
+      });
+
       setSummary(res?.summary || null);
     } catch (e) {
       console.error("Fetch Komparasi Error:", e);
@@ -159,6 +200,20 @@ export default function KomparasiPasar() {
           padding: 40px 0 28px;
           margin-bottom: 28px;
           border-bottom: 1px solid #d8e2dc;
+        }
+        .kp-title {
+          font-size: 2.3rem;
+          font-weight: 800;
+          margin: 0;
+          letter-spacing: -0.03em;
+          line-height: 1.15;
+        }
+        .kp-desc {
+          color: #4a6550;
+          margin: 0;
+          font-size: 1rem;
+          max-width: 460px;
+          line-height: 1.6;
         }
         .kp-summary-grid {
           display: grid;
@@ -266,19 +321,22 @@ export default function KomparasiPasar() {
           background: #fef2f2;
         }
         .kp-sticky {
-          position: static;
-          background: transparent !important;
-          border-right: 1px solid #e6eee9;
-          min-width: 180px;
-          max-width: none;
-          white-space: nowrap !important;
-          box-shadow: none;
+          position: sticky;
+          left: 0;
+          z-index: 2;
+          background: #ffffff !important;
+          border-right: 2px solid #d8e2dc;
+          min-width: 190px;
+          max-width: 190px;
+          white-space: normal !important;
+          overflow-wrap: break-word;
+          box-shadow: 2px 0 6px -2px rgba(27,67,50,0.10);
         }
         .kp-table th.kp-sticky {
           background: #f4f8f5 !important;
-          border-right: 1px solid #d8e2dc;
-          box-shadow: none;
-          z-index: 1;
+          border-right: 2px solid #d8e2dc;
+          z-index: 3;
+          box-shadow: 2px 0 6px -2px rgba(27,67,50,0.10);
         }
         .kp-row:hover td.kp-sticky {
           background: #f4f8f5 !important;
@@ -296,6 +354,10 @@ export default function KomparasiPasar() {
         .kp-scroll-hint {
           display: none;
         }
+        .kp-table-scroll {
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+        }
 
         @media (max-width: 1100px) {
           .kp-summary-grid {
@@ -307,30 +369,48 @@ export default function KomparasiPasar() {
           .kp-sticky {
             position: sticky !important;
             left: 0 !important;
-            z-index: 5 !important;
+            z-index: 2 !important;
             background: #ffffff !important;
             border-right: 2px solid #d8e2dc !important;
-            min-width: 110px !important;
-            max-width: 130px !important;
-            width: 120px !important;
+            min-width: 158px !important;
+            max-width: 158px !important;
             white-space: normal !important;
-            word-break: break-word !important;
-            box-shadow: 3px 0 8px rgba(0, 0, 0, 0.08) !important;
+            overflow-wrap: break-word !important;
+            box-shadow: 2px 0 6px -2px rgba(27,67,50,0.12) !important;
           }
           .kp-table th.kp-sticky {
             background: #f4f8f5 !important;
-            z-index: 6 !important;
+            z-index: 3 !important;
+          }
+          .kp-row:hover td.kp-sticky {
+            background: #f4f8f5 !important;
+          }
+          .kp-row td.kp-low.kp-sticky {
+            background: #e2f5ea !important;
+          }
+          .kp-row td.kp-high.kp-sticky {
+            background: #fef2f2 !important;
+          }
+          .kp-export-btn {
+            height: 34px !important;
+            padding: 0 12px !important;
+            font-size: 11.5px !important;
+            gap: 5px !important;
+          }
+          .kp-export-btn svg {
+            width: 13px !important;
+            height: 13px !important;
           }
           .kp-col-pasar {
-            min-width: 75px !important;
-            width: 85px !important;
-            font-size: 10.5px !important;
+            min-width: 115px !important;
+            width: auto !important;
+            font-size: 11px !important;
             white-space: nowrap !important;
           }
           .kp-col-rekomendasi {
-            min-width: 95px !important;
-            width: 105px !important;
-            font-size: 10.5px !important;
+            min-width: 125px !important;
+            width: auto !important;
+            font-size: 11px !important;
             white-space: nowrap !important;
           }
           .kp-head {
@@ -339,8 +419,8 @@ export default function KomparasiPasar() {
             padding: 14px 0 10px;
             gap: 6px;
           }
-          .kp-head h1 {
-            font-size: 1.2rem !important;
+          .kp-title {
+            font-size: 1.35rem !important;
             line-height: 1.25 !important;
           }
           .kp-head p {
@@ -373,8 +453,8 @@ export default function KomparasiPasar() {
           }
           .kp-table th,
           .kp-table td {
-            padding: 8px 6px !important;
-            font-size: 10.5px !important;
+            padding: 10px 12px !important;
+            font-size: 11px !important;
           }
           .kp-scroll-hint {
             display: flex;
@@ -426,13 +506,10 @@ export default function KomparasiPasar() {
                 MONITORING HARGA PANGAN LAMONGAN
               </span>
             </div>
-            <h1 style={{ fontSize: "2.5rem", fontWeight: "800", margin: 0, letterSpacing: "-0.03em", lineHeight: 1.15 }}>
+            <h1 className="kp-title">
               Perbandingan Harga <span style={{ color: "#2d6a4f" }}>Antar Pasar</span>
             </h1>
           </div>
-          <p style={{ color: "#4a6550", margin: 0, fontSize: "1rem", maxWidth: "460px", lineHeight: "1.6" }}>
-            Bandingkan harga komoditas pokok di seluruh pasar rakyat Lamongan untuk menemukan lokasi belanja yang paling hemat.
-          </p>
         </div>
 
         {/* RINGKASAN */}
@@ -558,6 +635,7 @@ export default function KomparasiPasar() {
             <button
               onClick={handleExport}
               disabled={!data.length}
+              className="kp-export-btn"
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -582,15 +660,19 @@ export default function KomparasiPasar() {
           <div className="kp-filter-row">
             <span className="kp-filter-label">KATEGORI</span>
             <div className="kp-chips">
-              {kategoriList.map((cat) => (
-                <button
-                  key={cat}
-                  className={`kp-chip ${selectedKat === cat ? "active-dark" : ""}`}
-                  onClick={() => setSelectedKat(cat)}
-                >
-                  {cat}
-                </button>
-              ))}
+              {kategoriList.map((cat) => {
+                const isActive = (selectedKat || "Semua").trim().toLowerCase() === cat.trim().toLowerCase();
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    className={`kp-chip ${isActive ? "active-dark" : ""}`}
+                    onClick={() => setSelectedKat(cat)}
+                  >
+                    {cat}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -630,18 +712,27 @@ export default function KomparasiPasar() {
             <>
               <div className="kp-scroll-hint">
                 <Info size={14} />
-                <span>Geser tabel ke samping untuk melihat harga tiap pasar</span>
+                <span>Geser tabel ke samping untuk melihat semua komoditas &amp; harga tiap pasar</span>
               </div>
 
-              <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch", width: "100%" }}>
+              <div
+                className="kp-table-scroll"
+                style={{
+                  overflowX: "auto",
+                  overflowY: "visible",
+                  WebkitOverflowScrolling: "touch",
+                  width: "100%",
+                  touchAction: "pan-x pan-y",
+                }}
+              >
                 <table
                   className="kp-table"
                   style={{
-                    width: "100%",
-                    minWidth: Math.max(500, 130 + activePasarList.length * 90 + 110),
+                    width: "max-content",
+                    minWidth: "100%",
                     borderCollapse: "collapse",
                     textAlign: "left",
-                    tableLayout: "fixed",
+                    tableLayout: "auto",
                   }}
                 >
                   <thead>

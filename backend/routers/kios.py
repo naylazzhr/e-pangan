@@ -353,6 +353,20 @@ def update_komoditas_katalog(
     if item.kategori is not None:
         komoditas.kategori = item.kategori.strip()
 
+    # Sinkronisasi update ke tabel KiosHarga untuk tampilan publik
+    try:
+        kios_harga_row = db.query(models.KiosHarga).filter(
+            models.KiosHarga.nama_kios == kios.nama_kios,
+            models.KiosHarga.nama_komoditas == komoditas.nama_bahan
+        ).first()
+        if kios_harga_row:
+            if item.harga is not None:
+                kios_harga_row.harga_terkini = item.harga
+            if item.nama_bahan is not None:
+                kios_harga_row.nama_komoditas = item.nama_bahan.strip()
+    except Exception:
+        pass
+
     komoditas.updated_at = datetime.now()
     kios.updated_at = datetime.now()
     db.commit()
@@ -396,6 +410,16 @@ def hapus_komoditas_katalog(
 
     nama = komoditas.nama_bahan
     db.delete(komoditas)
+
+    # Sinkronisasi: hapus juga dari KiosHarga agar langsung terhapus dari tampilan pengguna
+    try:
+        db.query(models.KiosHarga).filter(
+            models.KiosHarga.nama_kios == kios.nama_kios,
+            models.KiosHarga.nama_komoditas.ilike(f"%{nama}%")
+        ).delete(synchronize_session=False)
+    except Exception:
+        pass
+
     kios.updated_at = datetime.now()
     db.commit()
 

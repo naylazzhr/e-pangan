@@ -48,13 +48,13 @@ import {
 } from "lucide-react";
 
 const CATEGORIES = [
-  { label: "Semua Komoditas", icon: "🌱", color: "#2d6a4f", bg: "#e2f5ea" },
-  { label: "Beras & Padi", categoryKey: "KEBUTUHAN POKOK", icon: "🌾", color: "#b7791f", bg: "#fef3d6" },
-  { label: "Bumbu Dapur & Cabai", categoryKey: "BUMBU DAPUR", icon: "🌶️", color: "#dc2626", bg: "#fee2e2" },
-  { label: "Minyak & Mentega", categoryKey: "MINYAK GORENG", icon: "🫒", color: "#ca8a04", bg: "#fef9c3" },
-  { label: "Daging, Unggas & Ikan", categoryKey: "PROTEIN HEWANI", icon: "🥩", color: "#c2410c", bg: "#ffedd5" },
-  { label: "Bawang & Sayuran", categoryKey: "PRODUKSI DAERAH", icon: "🧅", color: "#0284c7", bg: "#e0f2fe" },
-  { label: "Gula & Bahan Baku", categoryKey: "BAHAN BAKU", icon: "🧂", color: "#7e22ce", bg: "#f3e8ff" },
+  { label: "Semua Komoditas", icon: "🌱", color: "#2d6a4f", bg: "#e2f5ea", img: "/cat-semua.jpg" },
+  { label: "Beras & Padi", categoryKey: "KEBUTUHAN POKOK", icon: "🌾", color: "#b7791f", bg: "#fef3d6", img: "/cat-beras.jpg" },
+  { label: "Bumbu & Rempah", categoryKey: "BUMBU DAPUR", icon: "🌶️", color: "#dc2626", bg: "#fee2e2", img: "/cat-rempah.jpg" },
+  { label: "Minyak & Mentega", categoryKey: "MINYAK GORENG", icon: "🫒", color: "#ca8a04", bg: "#fef9c3", img: "/cat-minyak.jpg" },
+  { label: "Daging, Unggas & Ikan", categoryKey: "PROTEIN HEWANI", icon: "🥩", color: "#c2410c", bg: "#ffedd5", img: "/cat-daging.jpg" },
+  { label: "Bawang & Sayuran", categoryKey: "PRODUKSI DAERAH", icon: "🧅", color: "#0284c7", bg: "#e0f2fe", img: "/cat-bawang.jpg" },
+  { label: "Gula & Bahan Baku", categoryKey: "BAHAN BAKU", icon: "🧂", color: "#7e22ce", bg: "#f3e8ff", img: "/cat-gula.jpg" },
 ];
 
 // Fungsi pemetaan gambar terpisah untuk tiap jenis komoditas
@@ -128,14 +128,14 @@ function generateFallbackTrend(commodityName = "Bawang Merah Allium", timeframe 
   const basePrice = commodityName.toLowerCase().includes("cabai")
     ? 38000
     : commodityName.toLowerCase().includes("bawang")
-    ? 30000
-    : commodityName.toLowerCase().includes("beras")
-    ? 13500
-    : commodityName.toLowerCase().includes("daging")
-    ? 33000
-    : commodityName.toLowerCase().includes("telur")
-    ? 27000
-    : 16000;
+      ? 30000
+      : commodityName.toLowerCase().includes("beras")
+        ? 13500
+        : commodityName.toLowerCase().includes("daging")
+          ? 33000
+          : commodityName.toLowerCase().includes("telur")
+            ? 27000
+            : 16000;
 
   const points = [];
   const now = new Date();
@@ -204,12 +204,12 @@ export default function App() {
             const merged = { ...prev, ...res.data };
             try {
               localStorage.setItem("epangan_custom_photos", JSON.stringify(merged));
-            } catch {}
+            } catch { }
             return merged;
           });
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const greetingData = useMemo(() => {
@@ -311,8 +311,15 @@ export default function App() {
           ]);
         }
 
-        const komparasiItems = komparasiRes?.data || komparasiRes?.komoditas || komoditasRes?.data || [];
-        if (Array.isArray(komparasiItems) && komparasiItems.length > 0) {
+        const rawKomparasi = komparasiRes?.data || komparasiRes?.komoditas || komoditasRes?.data || [];
+        const komparasiItems = Array.isArray(rawKomparasi)
+          ? rawKomparasi.filter((item) => {
+            const nameLow = (item.komoditas || item.nama_bahan || "").toLowerCase();
+            return !nameLow.includes("bulog");
+          })
+          : [];
+
+        if (komparasiItems.length > 0) {
           const formattedProducts = komparasiItems.map((item, idx) => {
             const pricesMap = item.prices || {};
             const marketEntries = Object.entries(pricesMap).map(([mName, mPrice]) => ({
@@ -321,7 +328,12 @@ export default function App() {
               note: mPrice === item.minPrice ? "Paling Hemat" : "Normal",
             }));
 
-            const namaBahan = item.komoditas || item.nama_bahan;
+            let namaBahan = item.komoditas || item.nama_bahan || "";
+            const namaLow = namaBahan.toLowerCase();
+            if (namaLow.includes("beras medium") || namaLow === "beras medium" || namaLow.includes("ir-64") || namaLow.includes("ir 64")) {
+              namaBahan = "Beras Medium IR 64";
+            }
+
             const satuanRaw = item.satuan || "kg";
             return {
               id: item.id || idx + 1,
@@ -341,9 +353,17 @@ export default function App() {
             };
           });
 
-          setProducts(formattedProducts);
-          if (formattedProducts.length > 0) {
-            setTrendCommodityName(formattedProducts[0].name);
+          // Deduplikasi agar variasi nama yang sama tidak muncul ganda
+          const seenNames = new Set();
+          const uniqueProducts = formattedProducts.filter((p) => {
+            if (seenNames.has(p.name)) return false;
+            seenNames.add(p.name);
+            return true;
+          });
+
+          setProducts(uniqueProducts);
+          if (uniqueProducts.length > 0) {
+            setTrendCommodityName(uniqueProducts[0].name);
           }
         }
       })
@@ -393,7 +413,7 @@ export default function App() {
           const prodCat = (product.category || "").toUpperCase();
           const prodName = (product.name || "").toLowerCase();
           const targetKey = (activeCatObj.categoryKey || "").toUpperCase();
-          
+
           let matchesCat = prodCat.includes(targetKey);
           if (!matchesCat) {
             if (activeCatObj.label.includes("Beras") && (prodName.includes("beras") || prodCat.includes("BERAS") || prodCat.includes("POKOK"))) matchesCat = true;
@@ -436,34 +456,87 @@ export default function App() {
     return filteredProducts.slice(start, start + itemsPerPage);
   }, [filteredProducts, currentPage]);
 
+  const renderToast = () => {
+    if (!toast) return null;
+    return (
+      <div
+        className="toast-container"
+        role="status"
+        aria-live="polite"
+        style={{
+          position: "fixed",
+          bottom: "78px",
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 9999999,
+          pointerEvents: "none",
+          maxWidth: "calc(100vw - 32px)",
+          width: "max-content",
+        }}
+      >
+        <div
+          className="toast-box"
+          style={{
+            backgroundColor: "#1b4332",
+            color: "#ffffff",
+            padding: "10px 20px",
+            borderRadius: "9999px",
+            boxShadow: "0 10px 30px rgba(10, 33, 22, 0.35), 0 2px 8px rgba(0, 0, 0, 0.12)",
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
+            fontSize: "13px",
+            fontWeight: "700",
+            border: "1px solid rgba(255, 255, 255, 0.22)",
+            backdropFilter: "blur(8px)",
+          }}
+        >
+          <span
+            className="toast-dot"
+            style={{
+              width: "8px",
+              height: "8px",
+              borderRadius: "50%",
+              backgroundColor: "#52b788",
+              flexShrink: 0,
+              boxShadow: "0 0 8px #52b788",
+            }}
+          />
+          <span className="toast-message">{toast.message}</span>
+        </div>
+      </div>
+    );
+  };
+
   if (activePage === "login" || activePage === "admin-login") {
-    return <AdminLogin setActivePage={setActivePage} showToast={showToast} />;
+    return (
+      <>
+        {renderToast()}
+        <AdminLogin setActivePage={setActivePage} showToast={showToast} />
+      </>
+    );
   }
 
   if (activePage === "admin-dashboard") {
     return (
-      <AdminDashboard
-        setActivePage={setActivePage}
-        showToast={showToast}
-        products={products}
-        setProducts={setProducts}
-        customPhotos={customPhotos}
-        setCustomPhotos={setCustomPhotos}
-        getKomoditasImage={getKomoditasImage}
-      />
+      <>
+        {renderToast()}
+        <AdminDashboard
+          setActivePage={setActivePage}
+          showToast={showToast}
+          products={products}
+          setProducts={setProducts}
+          customPhotos={customPhotos}
+          setCustomPhotos={setCustomPhotos}
+          getKomoditasImage={getKomoditasImage}
+        />
+      </>
     );
   }
 
   return (
     <div className="app-container grocery-app-container">
-      {toast && (
-        <div className="toast-container">
-          <div className="toast-box">
-            <span className="toast-dot"></span>
-            <span>{toast.message}</span>
-          </div>
-        </div>
-      )}
+      {renderToast()}
 
       <Navbar activePage={activePage} setActivePage={setActivePage} showToast={showToast} />
 
@@ -497,7 +570,7 @@ export default function App() {
                 </h1>
 
                 <p className="grocery-hero-desc">
-                  Siap belanja bijak hari ini? Pantau fluktuasi harga komoditas pangan harian dari enumerator resmi Dinas Ketahanan Pangan dan Pertanian (DKPP) di berbagai pasar rakyat se-Kabupaten Lamongan secara transparan.
+                  Siap belanja bijak hari ini? Pantau fluktuasi harga komoditas pangan harian dari enumerator resmi DKPP di berbagai pasar rakyat se-Kabupaten Lamongan.
                 </p>
 
                 <div className="grocery-hero-actions">
@@ -631,7 +704,6 @@ export default function App() {
             <div className="grocery-section-header">
               <div className="section-title-wrap">
                 <h2 className="grocery-section-title">Kategori Pilihan</h2>
-                <p className="grocery-section-sub">Kategori komoditas pangan segar pilihan masyarakat Kabupaten Lamongan</p>
               </div>
               <button
                 className="grocery-view-all-btn"
@@ -660,8 +732,16 @@ export default function App() {
                       if (el) el.scrollIntoView({ behavior: "smooth" });
                     }}
                   >
-                    <div className="circle-icon-wrap" style={{ backgroundColor: cat.bg }}>
-                      <span className="circle-emoji">{cat.icon}</span>
+                    <div className="circle-icon-wrap" style={cat.img ? {} : { backgroundColor: cat.bg }}>
+                      {cat.img ? (
+                        <img
+                          src={cat.img}
+                          alt={cat.label}
+                          className="circle-category-img"
+                        />
+                      ) : (
+                        <span className="circle-emoji">{cat.icon}</span>
+                      )}
                     </div>
                     <span className="category-label">{cat.label}</span>
                   </button>
@@ -674,9 +754,6 @@ export default function App() {
             <div className="grocery-section-header">
               <div className="section-title-wrap">
                 <h2 className="grocery-section-title">Komoditas Populer</h2>
-                <p className="grocery-section-sub">
-                  Menampilkan <strong>{filteredProducts.length}</strong> komoditas pangan segar terverifikasi enumerator resmi
-                </p>
               </div>
               <div className="header-filter-indicator">
                 <span className="current-category-pill">{selectedCategory}</span>
@@ -781,82 +858,43 @@ export default function App() {
                 </div>
 
                 {totalPages > 1 && (
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: "8px",
-                      marginTop: "36px",
-                      flexWrap: "wrap",
-                    }}
-                  >
+                  <div className="grocery-pagination-wrap">
                     <button
+                      className="grocery-pagination-nav-btn"
                       onClick={() => {
                         setCurrentPage((p) => Math.max(p - 1, 1));
                         document.getElementById("katalog-komoditas")?.scrollIntoView({ behavior: "smooth" });
                       }}
                       disabled={currentPage === 1}
-                      style={{
-                        padding: "8px 16px",
-                        borderRadius: "99px",
-                        border: "1px solid #d2ded7",
-                        background: currentPage === 1 ? "#f5f9f6" : "#ffffff",
-                        color: currentPage === 1 ? "#9ca3af" : "#1b4332",
-                        fontWeight: "700",
-                        fontSize: "13px",
-                        cursor: currentPage === 1 ? "not-allowed" : "pointer",
-                      }}
                     >
                       Sebelumnya
                     </button>
 
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => {
-                      const isActive = pageNum === currentPage;
-                      return (
-                        <button
-                          key={pageNum}
-                          onClick={() => {
-                            setCurrentPage(pageNum);
-                            document.getElementById("katalog-komoditas")?.scrollIntoView({ behavior: "smooth" });
-                          }}
-                          style={{
-                            width: "38px",
-                            height: "38px",
-                            borderRadius: "50%",
-                            border: isActive ? "2px solid #1b4332" : "1px solid #d2ded7",
-                            background: isActive ? "#1b4332" : "#ffffff",
-                            color: isActive ? "#ffffff" : "#1b4332",
-                            fontWeight: "800",
-                            fontSize: "13px",
-                            cursor: "pointer",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            boxShadow: isActive ? "0 4px 12px rgba(27,67,50,0.2)" : "none",
-                          }}
-                        >
-                          {pageNum}
-                        </button>
-                      );
-                    })}
+                    <div className="grocery-pagination-numbers">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => {
+                        const isActive = pageNum === currentPage;
+                        return (
+                          <button
+                            key={pageNum}
+                            className={`grocery-pagination-num-btn ${isActive ? "active" : ""}`}
+                            onClick={() => {
+                              setCurrentPage(pageNum);
+                              document.getElementById("katalog-komoditas")?.scrollIntoView({ behavior: "smooth" });
+                            }}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      })}
+                    </div>
 
                     <button
+                      className="grocery-pagination-nav-btn"
                       onClick={() => {
                         setCurrentPage((p) => Math.min(p + 1, totalPages));
                         document.getElementById("katalog-komoditas")?.scrollIntoView({ behavior: "smooth" });
                       }}
                       disabled={currentPage === totalPages}
-                      style={{
-                        padding: "8px 16px",
-                        borderRadius: "99px",
-                        border: "1px solid #d2ded7",
-                        background: currentPage === totalPages ? "#f5f9f6" : "#ffffff",
-                        color: currentPage === totalPages ? "#9ca3af" : "#1b4332",
-                        fontWeight: "700",
-                        fontSize: "13px",
-                        cursor: currentPage === totalPages ? "not-allowed" : "pointer",
-                      }}
                     >
                       Selanjutnya
                     </button>
@@ -871,16 +909,8 @@ export default function App() {
               <div className="grocery-section-header">
                 <div className="section-title-wrap">
                   <h2 className="grocery-section-title">Pantauan Harian</h2>
-                  <p className="grocery-section-sub">Analisis fluktuasi harga pasar &amp; simulasi perencanaan belanja cerdas</p>
                 </div>
 
-                <button
-                  className="grocery-view-all-btn"
-                  onClick={() => setActivePage("smart-budgeting")}
-                >
-                  <span>Buka Smart Budgeting</span>
-                  <ChevronRight size={16} />
-                </button>
               </div>
 
               <div className="grocery-bestsells-grid">
@@ -978,7 +1008,6 @@ export default function App() {
             <div className="grocery-section-header">
               <div className="section-title-wrap">
                 <h2 className="grocery-section-title">Pasar Rekomendasi Hari Ini</h2>
-                <p className="grocery-section-sub">Pasar rakyat dengan harga paling hemat &amp; pasokan terlengkap hari ini</p>
               </div>
               <button
                 className="grocery-view-all-btn"
@@ -1174,9 +1203,19 @@ export default function App() {
 }
 
 function AestheticSvgChart({ dataPoints, liveData }) {
-  const width = 900;
-  const height = 260;
-  const padding = 50;
+  const [isMobileChart, setIsMobileChart] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth <= 768 : false
+  );
+
+  useEffect(() => {
+    const handleResize = () => setIsMobileChart(window.innerWidth <= 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const width = isMobileChart ? 500 : 900;
+  const height = isMobileChart ? 300 : 260;
+  const padding = isMobileChart ? 40 : 50;
 
   const [activeIdx, setActiveIdx] = useState(dataPoints ? dataPoints.length - 1 : 0);
 
@@ -1271,10 +1310,8 @@ function AestheticSvgChart({ dataPoints, liveData }) {
       <div className="aesthetic-chart-scroll-wrap">
         <svg
           viewBox={`0 0 ${width} ${height}`}
-          width="100%"
-          height={height}
-          style={{ width: "100%", height: "auto", minHeight: "180px", display: "block" }}
           className="aesthetic-svg-element"
+          style={{ width: "100%", height: isMobileChart ? "220px" : "auto", display: "block" }}
         >
           <defs>
             <linearGradient id="aestheticGrad" x1="0" y1="0" x2="0" y2="1">
@@ -1292,7 +1329,7 @@ function AestheticSvgChart({ dataPoints, liveData }) {
             return (
               <g key={idx}>
                 <line x1={padding} y1={yPos} x2={width - padding} y2={yPos} stroke="#d2ded7" strokeDasharray="4 4" strokeWidth="1" />
-                <text x={padding - 10} y={yPos + 4} textAnchor="end" fill="#4e6754" fontSize="10.5" fontWeight="700">
+                <text x={padding - 6} y={yPos + 4} textAnchor="end" fill="#4e6754" fontSize={isMobileChart ? "9" : "10.5"} fontWeight="700">
                   Rp {valLabel > 1000 ? `${Math.round(valLabel / 1000)}k` : valLabel}
                 </text>
               </g>
@@ -1348,10 +1385,10 @@ function AestheticSvgChart({ dataPoints, liveData }) {
 
                 <text
                   x={pt.x}
-                  y={height - 15}
+                  y={height - 12}
                   textAnchor="middle"
                   fill={isActive ? "#1b4332" : "#4e6754"}
-                  fontSize={isActive ? "12" : "11.5"}
+                  fontSize={isMobileChart ? (isActive ? "10.5" : "9.5") : (isActive ? "12" : "11.5")}
                   fontWeight={isActive ? "800" : "600"}
                 >
                   {pt.day || pt.date}
@@ -1362,25 +1399,25 @@ function AestheticSvgChart({ dataPoints, liveData }) {
 
           {activePoint && (
             <g
-              transform={`translate(${Math.min(Math.max(activePoint.x - 75, padding), width - padding - 150)}, ${Math.max(activePoint.y - 70, 10)})`}
+              transform={`translate(${Math.min(Math.max(activePoint.x - (isMobileChart ? 58 : 75), padding), width - padding - (isMobileChart ? 116 : 150))}, ${Math.max(activePoint.y - (isMobileChart ? 56 : 70), 8)})`}
               filter="url(#shadowFilter)"
               style={{ pointerEvents: "none" }}
             >
               <rect
-                width="150"
-                height="56"
-                rx="12"
+                width={isMobileChart ? "116" : "150"}
+                height={isMobileChart ? "48" : "56"}
+                rx={isMobileChart ? "8" : "12"}
                 fill="#112216"
                 stroke="#2d6a4f"
                 strokeWidth="1.5"
               />
-              <text x="75" y="18" textAnchor="middle" fill="#d2ded7" fontSize="10" fontWeight="700">
+              <text x={isMobileChart ? "58" : "75"} y={isMobileChart ? "14" : "18"} textAnchor="middle" fill="#d2ded7" fontSize={isMobileChart ? "8" : "10"} fontWeight="700">
                 {activePoint.fullDay || activePoint.date}
               </text>
-              <text x="75" y="36" textAnchor="middle" fill="#74c69d" fontSize="13.5" fontWeight="800">
+              <text x={isMobileChart ? "58" : "75"} y={isMobileChart ? "29" : "36"} textAnchor="middle" fill="#74c69d" fontSize={isMobileChart ? "11" : "13.5"} fontWeight="800">
                 Rp {activePoint.price.toLocaleString("id-ID")}
               </text>
-              <text x="75" y="48" textAnchor="middle" fill="#b7efc5" fontSize="9.5" fontWeight="700">
+              <text x={isMobileChart ? "58" : "75"} y={isMobileChart ? "41" : "48"} textAnchor="middle" fill={activePoint.deltaType === "up" ? "#fca5a5" : "#86efac"} fontSize={isMobileChart ? "7.5" : "9.5"} fontWeight="700">
                 {activePoint.deltaText || "Stabil"}
               </text>
             </g>
@@ -1389,7 +1426,7 @@ function AestheticSvgChart({ dataPoints, liveData }) {
       </div>
 
       {liveData?.insight && (
-        <div className="chart-insight-box">
+        <div className="chart-insight-box" style={{ display: "none" }}>
           <div className="chart-insight-icon">
             <Sparkles size={14} />
           </div>

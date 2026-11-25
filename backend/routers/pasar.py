@@ -199,15 +199,63 @@ def get_komparasi_pasar(
     het_rows = db.query(models.HETNasional).filter(models.HETNasional.is_aktif == True).all()
     het_map = {h.nama_komoditas.lower(): h.harga_het for h in het_rows}
 
+    def _normalize_name(raw: str) -> Optional[str]:
+        if not raw:
+            return None
+        clean = raw.strip()
+        low = clean.lower()
+        if "bulog" in low:
+            return None
+        if "kulat" in low or "jamur" in low:
+            return None
+        if "beras medium" in low or low in ["beras medium", "beras medium (ir 64)", "beras medium ir 64", "beras medium ir-64"]:
+            return "Beras Medium IR 64"
+        return clean
+
+    def _normalize_kategori(raw: Optional[str]) -> str:
+        if not raw:
+            return "Kebutuhan Pokok"
+        k = raw.strip().lower()
+        if k in ["kebutuhan pokok", "sembako"]:
+            return "Kebutuhan Pokok"
+        elif k in ["bahan baku"]:
+            return "Bahan Baku"
+        elif k in ["bumbu dapur"]:
+            return "Bumbu Dapur"
+        elif k in ["minyak goreng"]:
+            return "Minyak Goreng"
+        elif k in ["protein hewani"]:
+            return "Protein Hewani"
+        elif k in ["produksi daerah"]:
+            return "Produksi Daerah"
+        elif "sayur" in k or "jamur" in k:
+            return "Sayuran"
+        return " ".join(w.capitalize() for w in raw.strip().split())
+
+    # Ambil master list seluruh kategori (sebelum difilter) agar tombol kategori di frontend tidak hilang
+    master_kat_rows = db.query(models.Komoditas.kategori).filter(
+        models.Komoditas.is_active == True,
+        models.Komoditas.status_label != "Menunggu Validasi"
+    ).all()
+    all_known_categories = set()
+    for mk in master_kat_rows:
+        if mk[0]:
+            all_known_categories.add(_normalize_kategori(mk[0]))
+    if not all_known_categories:
+        all_known_categories = {"Kebutuhan Pokok", "Bahan Baku", "Bumbu Dapur", "Minyak Goreng", "Protein Hewani", "Produksi Daerah"}
+
     groups = {}
 
     for k in all_komoditas:
-        nama = k.nama_bahan
+        nama = _normalize_name(k.nama_bahan)
+        if not nama:
+            continue
+        kat_norm = _normalize_kategori(k.kategori)
         if nama not in groups:
             groups[nama] = {
                 "id": k.id,
                 "komoditas": nama,
-                "kategori": k.kategori or "Kebutuhan Pokok",
+                "kategori": kat_norm,
                 "satuan": k.satuan or "kg",
                 "het": k.het or het_map.get(nama.lower()),
                 "prices": {},
@@ -224,12 +272,14 @@ def get_komparasi_pasar(
             groups[nama]["price_counts"][loc] += 1
 
     for s in all_survei:
-        nama = s.nama_komoditas
+        nama = _normalize_name(s.nama_komoditas)
+        if not nama:
+            continue
         if nama not in groups:
             groups[nama] = {
                 "id": s.id + 1000,
                 "komoditas": nama,
-                "kategori": s.kategori or "Kebutuhan Pokok",
+                "kategori": _normalize_kategori(s.kategori),
                 "satuan": s.satuan or "kg",
                 "het": het_map.get(nama.lower()),
                 "prices": {},
@@ -241,7 +291,9 @@ def get_komparasi_pasar(
             groups[nama]["price_counts"][loc] = 1
 
     for kh in all_kios_harga:
-        nama = kh.nama_komoditas
+        nama = _normalize_name(kh.nama_komoditas)
+        if not nama:
+            continue
         if nama not in groups:
             groups[nama] = {
                 "id": kh.id + 2000,
@@ -261,7 +313,7 @@ def get_komparasi_pasar(
     if not groups:
         default_master = [
             {"id": 1, "komoditas": "Beras Premium Pandan Wangi", "kategori": "Kebutuhan Pokok", "satuan": "kg", "het": 14900, "base": 15500},
-            {"id": 2, "komoditas": "Beras Medium (IR 64)", "kategori": "Kebutuhan Pokok", "satuan": "kg", "het": 12500, "base": 13000},
+            {"id": 2, "komoditas": "Beras Medium IR 64", "kategori": "Kebutuhan Pokok", "satuan": "kg", "het": 12500, "base": 13000},
             {"id": 3, "komoditas": "Gula Pasir Kristal", "kategori": "Bahan Baku", "satuan": "kg", "het": 17500, "base": 17500},
             {"id": 4, "komoditas": "Gula Aren", "kategori": "Bahan Baku", "satuan": "kg", "het": 22000, "base": 21000},
             {"id": 5, "komoditas": "Minyak Goreng Sawit", "kategori": "Minyak Goreng", "satuan": "liter", "het": 15700, "base": 17500},
@@ -272,9 +324,9 @@ def get_komparasi_pasar(
             {"id": 10, "komoditas": "Cabai Merah Keriting", "kategori": "Bumbu Dapur", "satuan": "kg", "het": 40000, "base": 38000},
             {"id": 11, "komoditas": "Bawang Merah Allium", "kategori": "Bumbu Dapur", "satuan": "kg", "het": 32000, "base": 30000},
             {"id": 12, "komoditas": "Bawang Putih Honan", "kategori": "Bumbu Dapur", "satuan": "kg", "het": 36000, "base": 35000},
-            {"id": 13, "komoditas": "Jagung Pipilan", "kategori": "Tumbuhan & Sayur", "satuan": "kg", "het": 8000, "base": 8500},
-            {"id": 14, "komoditas": "Kedelai Lokal", "kategori": "Tumbuhan & Sayur", "satuan": "kg", "het": 13000, "base": 12500},
-            {"id": 15, "komoditas": "Jamur Tiram", "kategori": "Tumbuhan & Sayur", "satuan": "kg", "het": 16000, "base": 15000},
+            {"id": 13, "komoditas": "Jagung Pipilan", "kategori": "Kebutuhan Pokok", "satuan": "kg", "het": 8000, "base": 8500},
+            {"id": 14, "komoditas": "Kedelai Lokal", "kategori": "Bahan Baku", "satuan": "kg", "het": 13000, "base": 12500},
+            {"id": 15, "komoditas": "Wortel Segar", "kategori": "Produksi Daerah", "satuan": "kg", "het": 14000, "base": 13500},
             {"id": 16, "komoditas": "Ikan Segar (Bandeng/Tongkol)", "kategori": "Protein Hewani", "satuan": "kg", "het": 30000, "base": 32000},
             {"id": 17, "komoditas": "Tepung Terigu Segitiga", "kategori": "Bahan Baku", "satuan": "kg", "het": 12000, "base": 11500},
         ]
@@ -361,7 +413,9 @@ def get_komparasi_pasar(
         "total_komoditas": total_items
     }
 
-    kategori_set = sorted(list({i["kategori"] for i in items_result if i.get("kategori")}))
+    # Pastikan kategori_list selalu mengembalikan master kategori lengkap, tidak terpotong saat difilter
+    all_known_categories.update({i["kategori"] for i in items_result if i.get("kategori")})
+    kategori_set = sorted(list(all_known_categories))
 
     return {
         "status": "success",
@@ -439,7 +493,7 @@ def get_tren_harga(
 
     sample_market_str = " & ".join(list(markets_found)[:2]) if markets_found else "Pasar Babat & Sidoharjo"
 
-    day_names = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"]
+    day_names = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"]
     month_names = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"]
 
     now = datetime.now()

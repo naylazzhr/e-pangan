@@ -1,10 +1,28 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { CloudUpload, Music, CheckCircle2, Loader2, AlertCircle, Volume2, Sparkles, SlidersHorizontal, Mic, MicOff, Send } from "lucide-react";
 
-export default function NlpAudioUpload({ onSuccessSave, showToast, onNavigateTab }) {
+export default function NlpAudioUpload({ onSuccessSave, showToast, onNavigateTab, kiosList = [] }) {
     const [selectedFile, setSelectedFile] = useState(null);
     const [selectedPasar, setSelectedPasar] = useState("Pasar Babat");
+    const [selectedKios, setSelectedKios] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+
+    const filteredKiosList = useMemo(() => {
+        return (kiosList || []).filter((k) =>
+            (k.lokasi_pasar || "").toLowerCase().includes(selectedPasar.toLowerCase())
+        );
+    }, [kiosList, selectedPasar]);
+
+    useEffect(() => {
+        if (filteredKiosList.length > 0) {
+            const exists = filteredKiosList.some((k) => k.nama_kios === selectedKios);
+            if (!exists) {
+                setSelectedKios(filteredKiosList[0].nama_kios);
+            }
+        } else {
+            setSelectedKios(`Kios Umum ${selectedPasar}`);
+        }
+    }, [filteredKiosList, selectedKios, selectedPasar]);
     const [isSaving, setIsSaving] = useState(false);
     const [isSaved, setIsSaved] = useState(false);
     const [nlpResult, setNlpResult] = useState(null);
@@ -183,6 +201,9 @@ export default function NlpAudioUpload({ onSuccessSave, showToast, onNavigateTab
         const formData = new FormData();
         formData.append("file", selectedFile);
         formData.append("default_pasar", selectedPasar);
+        if (selectedKios) {
+            formData.append("default_kios", selectedKios);
+        }
 
         try {
             const token = localStorage.getItem("epangan_token");
@@ -216,8 +237,8 @@ export default function NlpAudioUpload({ onSuccessSave, showToast, onNavigateTab
         try {
             const token = localStorage.getItem("epangan_token");
             const transcriptText = nlpResult.transkrip_terproses || nlpResult.transcript || nlpResult.transkrip || "";
-            const targetPasar = nlpResult.pasar || selectedPasar;
-            const targetKios = nlpResult.kios || "Kios Bu Siti";
+            const targetPasar = selectedPasar || nlpResult.pasar || "Pasar Babat";
+            const targetKios = selectedKios || nlpResult.kios || "Kios Bu Siti";
 
             const response = await fetch(BACKEND_SAVE_URL, {
                 method: "POST",
@@ -258,10 +279,10 @@ export default function NlpAudioUpload({ onSuccessSave, showToast, onNavigateTab
     };
 
     return (
-        <div className="nlp-upload-card" style={{ backgroundColor: "#ffffff", border: "1px solid #d2ded7", boxShadow: "0 4px 20px rgba(27,67,50,0.05)" }}>
+        <div className="nlp-upload-card" style={{ backgroundColor: "#ffffff", border: "1px solid #d2ded7", boxShadow: "0 4px 20px rgba(27,67,50,0.05)", borderRadius: "24px", padding: "32px 36px" }}>
 
             {/* Label Badge Header */}
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "16px", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "20px", flexWrap: "wrap" }}>
                 <span style={{ backgroundColor: "#1b4332", color: "#ffffff", fontSize: "11px", fontWeight: "800", padding: "5px 14px", borderRadius: "99px", letterSpacing: "0.04em" }}>
                     MODUL UNGGAH AUDIO NLP
                 </span>
@@ -276,195 +297,133 @@ export default function NlpAudioUpload({ onSuccessSave, showToast, onNavigateTab
                 </span>
             </div>
 
-            <div style={{ marginBottom: "24px" }}>
-                <h3 style={{ fontSize: "20px", fontWeight: "800", color: "#0f1d14", margin: "0 0 6px 0" }}>
+            <div style={{ marginBottom: "28px" }}>
+                <h3 style={{ fontSize: "20px", fontWeight: "800", color: "#0f1d14", margin: "0 0 10px 0" }}>
                     Unggah Berkas Rekaman Suara Pasar
                 </h3>
-                <p style={{ fontSize: "13.5px", color: "#4e6754", margin: 0, fontWeight: "600", lineHeight: "1.5" }}>
+                <p style={{ fontSize: "13.5px", color: "#4e6754", margin: 0, fontWeight: "600", lineHeight: "1.7" }}>
                     Unggah file rekaman percakapan (.mp3, .wav, .m4a). Dilengkapi fitur <strong>Noise Reduction</strong> untuk menyaring derau keramaian pasar serta <strong>Pre-processing Teks</strong> otomatis untuk mendeteksi harga dan komoditas secara akurat.
                 </p>
             </div>
 
-            {/* Pilihan Titik Pasar Rujukan Pemantauan */}
+            {/* Pilihan Titik Pasar & Kios Rujukan Pemantauan */}
             <div style={{
                 backgroundColor: "#f4f8f5",
                 border: "1px solid #b7efc5",
                 borderRadius: "20px",
-                padding: "16px 22px",
-                marginBottom: "20px",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                flexWrap: "wrap",
-                gap: "14px"
-            }}>
-                <div>
-                    <label style={{ display: "block", fontSize: "13px", fontWeight: "800", color: "#1b4332", marginBottom: "4px" }}>
-                        📍 Titik Pasar Pemantauan (Pilihan Awal):
-                    </label>
-                    <span style={{ fontSize: "12px", color: "#4e6754", fontWeight: "600" }}>
-                        Pilih pasar tempat Anda menyurvei agar sistem tidak salah menebak jika rekaman suara tidak menyebutkan nama pasarnya.
-                    </span>
-                </div>
-                <select
-                    value={selectedPasar}
-                    onChange={(e) => {
-                        const val = e.target.value;
-                        setSelectedPasar(val);
-                        if (nlpResult) {
-                            setNlpResult(prev => ({
-                                ...prev,
-                                pasar: val,
-                                items: (prev.items || []).map(it => ({ ...it, pasar: val }))
-                            }));
-                        }
-                    }}
-                    style={{
-                        padding: "10px 18px",
-                        borderRadius: "99px",
-                        border: "1.5px solid #2d6a4f",
-                        backgroundColor: "#ffffff",
-                        color: "#1b4332",
-                        fontSize: "13px",
-                        fontWeight: "800",
-                        outline: "none",
-                        cursor: "pointer",
-                        boxShadow: "0 2px 8px rgba(45,106,79,0.1)"
-                    }}
-                >
-                    {PASAR_OPTIONS.map((p) => (
-                        <option key={p} value={p}>{p}</option>
-                    ))}
-                </select>
-            </div>
-
-            {/* Rekam Suara Langsung (Web Speech API) & Live Speech-to-Text Preview */}
-            <div style={{
+                padding: "20px 24px",
                 marginBottom: "24px",
-                padding: "20px",
-                borderRadius: "20px",
-                backgroundColor: isRecording ? "#fef2f2" : "#f4f8f5",
-                border: isRecording ? "1.5px solid #f87171" : "1.5px solid #cfe3d6",
-                transition: "all 0.25s ease",
+                display: "flex",
+                flexDirection: "column",
+                gap: "16px"
             }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px", marginBottom: "14px" }}>
-                    <div>
-                        <h4 style={{ margin: "0 0 4px 0", fontSize: "14px", fontWeight: "800", color: "#1b4332", display: "flex", alignItems: "center", gap: "6px" }}>
-                            <Mic size={16} color={isRecording ? "#ef4444" : "#2d6a4f"} />
-                            Input Suara Cerdas (AI Speech Recognition)
-                        </h4>
-                        <p style={{ margin: 0, fontSize: "12px", color: "#4e6754", fontWeight: "600" }}>
-                            Tekan tombol mikrofon untuk berbicara langsung, atau unggah file rekaman di bawah.
-                        </p>
+                {/* Pilihan 1: Pasar */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
+                    <div style={{ flex: "1 1 240px" }}>
+                        <label style={{ display: "block", fontSize: "13px", fontWeight: "800", color: "#1b4332", marginBottom: "4px" }}>
+                            Titik Pasar Pemantauan (Pilihan Awal):
+                        </label>
+                        <span style={{ fontSize: "12px", color: "#4e6754", fontWeight: "600" }}>
+                            Pilih pasar tempat Anda menyurvei agar hasil transkrip langsung tertuju ke pasar yang benar.
+                        </span>
                     </div>
-
-                    <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                        <button
-                            type="button"
-                            onClick={toggleLiveRecording}
-                            style={{
-                                display: "inline-flex",
-                                alignItems: "center",
-                                gap: "8px",
-                                padding: "10px 20px",
-                                borderRadius: "99px",
-                                border: "none",
-                                backgroundColor: isRecording ? "#dc2626" : "#1b4332",
-                                color: "#ffffff",
-                                fontWeight: "800",
-                                fontSize: "13px",
-                                cursor: "pointer",
-                                boxShadow: isRecording ? "0 4px 14px rgba(220,38,38,0.35)" : "0 4px 14px rgba(27,67,50,0.2)",
-                                transition: "all 0.2s ease",
-                            }}
-                        >
-                            {isRecording ? (
-                                <>
-                                    <MicOff size={16} /> Berhenti Merekam
-                                </>
-                            ) : (
-                                <>
-                                    <Mic size={16} /> Mulai Rekam Suara
-                                </>
-                            )}
-                        </button>
-
-                        {liveTranscript && !isRecording && (
-                            <button
-                                type="button"
-                                onClick={handleProcessLiveTranscript}
-                                disabled={isLoading}
-                                style={{
-                                    display: "inline-flex",
-                                    alignItems: "center",
-                                    gap: "6px",
-                                    padding: "10px 18px",
-                                    borderRadius: "99px",
-                                    border: "none",
-                                    backgroundColor: "#2d6a4f",
-                                    color: "#ffffff",
-                                    fontWeight: "800",
-                                    fontSize: "13px",
-                                    cursor: isLoading ? "wait" : "pointer",
-                                    boxShadow: "0 4px 12px rgba(45,106,79,0.2)",
-                                }}
-                            >
-                                {isLoading ? <Loader2 size={15} className="spin" /> : <Send size={15} />}
-                                Proses Transkrip Suara
-                            </button>
-                        )}
-                    </div>
+                    <select
+                        value={selectedPasar}
+                        onChange={(e) => {
+                            const val = e.target.value;
+                            setSelectedPasar(val);
+                            const matchingKios = (kiosList || []).filter((k) =>
+                                (k.lokasi_pasar || "").toLowerCase().includes(val.toLowerCase())
+                            );
+                            const nextKios = matchingKios.length > 0 ? matchingKios[0].nama_kios : "";
+                            setSelectedKios(nextKios);
+                            if (nlpResult) {
+                                setNlpResult(prev => ({
+                                    ...prev,
+                                    pasar: val,
+                                    kios: nextKios || prev.kios,
+                                    items: (prev.items || []).map(it => ({ ...it, pasar: val, kios: nextKios || it.kios }))
+                                }));
+                            }
+                        }}
+                        style={{
+                            padding: "10px 18px",
+                            borderRadius: "14px",
+                            border: "1.5px solid #2d6a4f",
+                            backgroundColor: "#ffffff",
+                            color: "#1b4332",
+                            fontSize: "13px",
+                            fontWeight: "800",
+                            outline: "none",
+                            cursor: "pointer",
+                            minWidth: "210px",
+                            boxShadow: "0 2px 8px rgba(45,106,79,0.08)"
+                        }}
+                    >
+                        {PASAR_OPTIONS.map((p) => (
+                            <option key={p} value={p}>{p}</option>
+                        ))}
+                    </select>
                 </div>
 
-                {/* Tampilan Transkrip Teks (Speech-to-Text Preview) Real-Time */}
-                <div style={{
-                    backgroundColor: "#ffffff",
-                    borderRadius: "14px",
-                    padding: "14px 16px",
-                    border: "1px solid #d2ded7",
-                    boxShadow: "inset 0 1px 3px rgba(0,0,0,0.03)",
-                }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-                        <span style={{ fontSize: "11px", fontWeight: "800", color: "#2d6a4f", letterSpacing: "0.04em", textTransform: "uppercase" }}>
-                            Transkrip Suara Real-Time (Live STT Preview)
+                <div style={{ height: "1px", backgroundColor: "#dcebe0" }} />
+
+                {/* Pilihan 2: Kios di Pasar Terpilih */}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "12px" }}>
+                    <div style={{ flex: "1 1 240px" }}>
+                        <label style={{ display: "block", fontSize: "13px", fontWeight: "800", color: "#1b4332", marginBottom: "4px" }}>
+                            Target Kios Pemantauan:
+                        </label>
+                        <span style={{ fontSize: "12px", color: "#4e6754", fontWeight: "600" }}>
+                            Pilih kios tujuan pada {selectedPasar} agar data survei masuk ke kios yang sesuai di database.
                         </span>
-                        {isRecording && (
-                            <span style={{ fontSize: "11px", fontWeight: "800", color: "#dc2626", display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                                <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#ef4444" }}></span>
-                                Mendengarkan ucapan...
-                            </span>
+                    </div>
+                    <select
+                        value={selectedKios}
+                        onChange={(e) => {
+                            const val = e.target.value;
+                            setSelectedKios(val);
+                            if (nlpResult) {
+                                setNlpResult(prev => ({
+                                    ...prev,
+                                    kios: val,
+                                    items: (prev.items || []).map(it => ({ ...it, kios: val }))
+                                }));
+                            }
+                        }}
+                        style={{
+                            padding: "10px 18px",
+                            borderRadius: "14px",
+                            border: "1.5px solid #2d6a4f",
+                            backgroundColor: "#ffffff",
+                            color: "#1b4332",
+                            fontSize: "13px",
+                            fontWeight: "800",
+                            outline: "none",
+                            cursor: "pointer",
+                            minWidth: "210px",
+                            boxShadow: "0 2px 8px rgba(45,106,79,0.08)"
+                        }}
+                    >
+                        {filteredKiosList.length > 0 ? (
+                            filteredKiosList.map((k) => (
+                                <option key={k.id || k.id_kios || k.nama_kios} value={k.nama_kios}>
+                                    {k.nama_kios}
+                                </option>
+                            ))
+                        ) : (
+                            <option value={`Kios Umum ${selectedPasar}`}>
+                                Kios Umum {selectedPasar}
+                            </option>
                         )}
-                    </div>
-
-                    <div style={{
-                        minHeight: "44px",
-                        fontSize: "13.5px",
-                        fontWeight: "600",
-                        color: liveTranscript ? "#112216" : "#839589",
-                        fontStyle: liveTranscript ? "normal" : "italic",
-                        lineHeight: "1.5",
-                    }}>
-                        {liveTranscript || (isRecording ? "Mendengarkan... Silakan sebutkan komoditas dan harganya (misal: 'Beras Medium tiga belas ribu rupiah per kilo')..." : "Hasil terjemahan suara akan muncul otomatis di sini secara real-time saat Anda berbicara.")}
-                    </div>
-
-                    {liveTranscript && (
-                        <div style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "10px", borderTop: "1px solid #f0f4f1", paddingTop: "8px" }}>
-                            <button
-                                type="button"
-                                onClick={() => setLiveTranscript("")}
-                                style={{ background: "none", border: "none", color: "#718096", fontSize: "11.5px", fontWeight: "700", cursor: "pointer" }}
-                            >
-                                Hapus Transkrip
-                            </button>
-                        </div>
-                    )}
+                    </select>
                 </div>
             </div>
 
             <div style={{ display: "flex", alignItems: "center", gap: "10px", margin: "16px 0 12px 0" }}>
                 <div style={{ flex: 1, height: "1px", backgroundColor: "#e2ede6" }}></div>
                 <span style={{ fontSize: "11.5px", fontWeight: "800", color: "#4e6754", textTransform: "uppercase", letterSpacing: "0.04em" }}>
-                    Atau Unggah File Berkas Audio (.MP3 / .WAV)
+                    Unggah File Berkas Audio (.MP3 / .WAV)
                 </span>
                 <div style={{ flex: 1, height: "1px", backgroundColor: "#e2ede6" }}></div>
             </div>
@@ -646,38 +605,11 @@ export default function NlpAudioUpload({ onSuccessSave, showToast, onNavigateTab
                                                         Rp {Number(item.harga).toLocaleString("id-ID")}
                                                     </td>
                                                     <td style={{ padding: "10px 14px", fontWeight: "600", color: "#4e6754" }}>{item.satuan}</td>
-                                                    <td style={{ padding: "10px 14px", color: "#4e6754", fontWeight: "600" }}>
-                                                        <select
-                                                            value={item.pasar || nlpResult.pasar || selectedPasar}
-                                                            onChange={(e) => {
-                                                                const newP = e.target.value;
-                                                                setNlpResult(prev => ({
-                                                                    ...prev,
-                                                                    pasar: newP,
-                                                                    items: (prev.items || []).map((it, i) => i === idx ? { ...it, pasar: newP } : it)
-                                                                }));
-                                                            }}
-                                                            style={{
-                                                                padding: "4px 8px",
-                                                                borderRadius: "8px",
-                                                                border: "1px solid #b7efc5",
-                                                                backgroundColor: "#f4f8f5",
-                                                                fontSize: "12px",
-                                                                fontWeight: "700",
-                                                                color: "#1b4332",
-                                                                cursor: "pointer",
-                                                                outline: "none",
-                                                                display: "block",
-                                                                marginBottom: "4px"
-                                                            }}
-                                                        >
-                                                            {PASAR_OPTIONS.map((p) => (
-                                                                <option key={p} value={p}>{p}</option>
-                                                            ))}
-                                                        </select>
-                                                        {(item.kios || nlpResult.kios) && (
-                                                            <div style={{ fontSize: "11px", color: "#0f1d14", fontWeight: "700" }}>
-                                                                🏪 {item.kios || nlpResult.kios}
+                                                    <td style={{ padding: "10px 14px", color: "#1b4332", fontWeight: "700" }}>
+                                                        <div>{selectedPasar || item.pasar || nlpResult.pasar}</div>
+                                                        {(selectedKios || item.kios || nlpResult.kios) && (
+                                                            <div style={{ fontSize: "11.5px", color: "#4e6754", fontWeight: "600", marginTop: "2px" }}>
+                                                                {selectedKios || item.kios || nlpResult.kios}
                                                             </div>
                                                         )}
                                                     </td>

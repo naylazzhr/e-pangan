@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState } from "react"; 
 import { User, Lock, Eye, EyeOff, ArrowLeft, ShieldCheck, Check } from "lucide-react";
 import { loginPetugas } from "./api";
 
@@ -392,47 +392,119 @@ export default function AdminLogin({ setActivePage, showToast }) {
 
                 @media (max-width: 768px) {
                     .epangan-login-page {
-                        padding: 32px 16px;
+                        padding: 16px 10px;
                     }
                     .epangan-stepped-card-container {
-                        max-width: 100%;
-                        margin-top: 20px;
+                        max-width: 270px;
+                        margin-top: 12px;
+                    }
+                    .epangan-floating-avatar {
+                        width: 48px;
+                        height: 48px;
+                        top: -24px;
+                        border-width: 2.5px;
+                    }
+                    .epangan-floating-avatar svg {
+                        width: 20px !important;
+                        height: 20px !important;
                     }
                     .epangan-form-card {
-                        border-radius: 28px;
-                        padding: 54px 20px 24px 20px;
+                        border-radius: 18px;
+                        padding: 28px 14px 12px 14px;
+                    }
+                    .epangan-card-title {
+                        font-size: 13.5px !important;
+                        margin-bottom: 2px;
+                    }
+                    .epangan-card-subtitle {
+                        font-size: 9.5px !important;
+                        margin-bottom: 10px;
                     }
                     .epangan-input-box {
-                        height: 48px;
+                        height: 36px;
+                        border-radius: 8px;
+                        margin-bottom: 8px;
+                    }
+                    .epangan-input-icon-slot {
+                        width: 34px;
+                    }
+                    .epangan-input-icon-slot svg {
+                        width: 13px !important;
+                        height: 13px !important;
                     }
                     .epangan-input-field {
-                        font-size: 16px !important;
+                        font-size: 11px !important;
+                        padding: 0 8px;
+                    }
+                    .epangan-eye-btn {
+                        padding: 0 8px;
+                    }
+                    .epangan-eye-btn svg {
+                        width: 13px !important;
+                        height: 13px !important;
+                    }
+                    .epangan-meta-row {
+                        margin: 2px 0 8px 0;
+                        font-size: 9.5px;
+                    }
+                    .epangan-custom-checkbox {
+                        width: 13px;
+                        height: 13px;
+                    }
+                    .epangan-card-footer-badge {
+                        margin-top: 8px;
+                        padding: 4px 7px;
+                        font-size: 8.5px;
+                        line-height: 1.25;
+                    }
+                    .epangan-card-footer-badge svg {
+                        width: 12px !important;
+                        height: 12px !important;
                     }
                     .epangan-stepped-btn {
-                        width: 80%;
-                        height: 48px;
-                        font-size: 13px;
+                        width: 70%;
+                        height: 34px;
+                        font-size: 10.5px !important;
+                        letter-spacing: 0.08em;
+                        border-bottom-left-radius: 14px;
+                        border-bottom-right-radius: 14px;
+                    }
+                    .epangan-back-btn {
+                        top: 12px;
+                        left: 12px;
+                        width: 32px;
+                        height: 32px;
+                        border-radius: 10px;
+                    }
+                    .epangan-back-btn svg {
+                        width: 15px !important;
+                        height: 15px !important;
+                    }
+                    .epangan-bottom-credit {
+                        margin-top: 14px;
+                        font-size: 9.5px;
                     }
                     .epangan-glow-1 {
-                        width: 300px;
-                        height: 300px;
+                        width: 180px;
+                        height: 180px;
                     }
                     .epangan-glow-2 {
-                        width: 320px;
-                        height: 320px;
+                        width: 200px;
+                        height: 200px;
                     }
                 }
                 @media (max-width: 480px) {
                     .epangan-stepped-card-container {
-                        max-width: 96vw;
+                        max-width: 250px;
                     }
                     .epangan-form-card {
-                        padding: 50px 18px 20px 18px;
-                        border-radius: 24px;
+                        padding: 26px 12px 10px 12px;
+                        border-radius: 16px;
                     }
                     .epangan-stepped-btn {
-                        width: 84%;
-                        height: 46px;
+                        width: 72%;
+                        height: 32px;
+                        font-size: 10px !important;
                     }
                 }
             `}</style>

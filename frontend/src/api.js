@@ -380,5 +380,42 @@ export async function resetKomoditasFoto(namaKomoditas) {
   return handleResponse(res);
 }
 
+// ----------------------------------------------------------------
+// MANAJEMEN KATALOG KOMODITAS (CRUD DATABASE LENGKAP)
+// ----------------------------------------------------------------
+
+export async function getMasterKatalog() {
+  const res = await fetch(`${BASE_URL}/admin/manajemen-katalog`, {
+    headers: authHeaders(),
+  });
+  return handleResponse(res);
+}
+
+export async function tambahMasterKatalog(data) {
+  const res = await fetch(`${BASE_URL}/admin/manajemen-katalog`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify(data),
+  });
+  return handleResponse(res);
+}
+
+export async function updateMasterKatalog(oldName, data) {
+  const res = await fetch(`${BASE_URL}/admin/manajemen-katalog/${encodeURIComponent(oldName)}`, {
+    method: "PUT",
+    headers: authHeaders(),
+    body: JSON.stringify(data),
+  });
+  return handleResponse(res);
+}
+
+export async function deleteMasterKatalog(name) {
+  const res = await fetch(`${BASE_URL}/admin/manajemen-katalog/${encodeURIComponent(name)}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  return handleResponse(res);
+}
+
 
 

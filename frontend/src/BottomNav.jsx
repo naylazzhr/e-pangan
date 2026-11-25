@@ -1,13 +1,10 @@
 import React from "react";
-import { Home, Store, BarChart2, Calculator, Shield } from "lucide-react";
+import { Home, Store, BarChart2, Calculator } from "lucide-react";
 
 export default function BottomNav({ activePage, setActivePage, showToast }) {
   const handleNav = (page) => {
     setActivePage(page);
     window.scrollTo({ top: 0, behavior: "smooth" });
-    if (page === "login" && showToast) {
-      showToast("Mengarahkan ke Portal Login Petugas...");
-    }
   };
 
   return (
@@ -54,17 +51,6 @@ export default function BottomNav({ activePage, setActivePage, showToast }) {
           <Calculator size={19} />
         </div>
         <span>Budget</span>
-      </button>
-
-      <button
-        type="button"
-        className={`mobile-bottom-nav-item ${activePage === "login" || activePage === "admin-dashboard" ? "active" : ""}`}
-        onClick={() => handleNav("login")}
-      >
-        <div className="nav-icon-wrap">
-          <Shield size={19} />
-        </div>
-        <span>Petugas</span>
       </button>
     </nav>
   );

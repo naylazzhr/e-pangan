@@ -632,6 +632,237 @@ def reset_foto_komoditas(
 
 
 # ==============================================================================
+# MANAJEMEN MASTER KATALOG KOMODITAS (CRUD LENGKAP KE DATABASE & SINKRON USER)
+# ==============================================================================
+
+class MasterKatalogCreate(BaseModel):
+    nama_komoditas: str
+    kategori: str = "Kebutuhan Pokok"
+    satuan: str = "kg"
+    harga_acuan: float = 15000.0
+    het: Optional[float] = None
+    foto_url: Optional[str] = None
+    kualitas_mutu: Optional[str] = "Kualitas Standar"
+
+
+class MasterKatalogUpdate(BaseModel):
+    nama_baru: Optional[str] = None
+    name: Optional[str] = None
+    kategori: Optional[str] = None
+    satuan: Optional[str] = None
+    harga_acuan: Optional[float] = None
+    het: Optional[float] = None
+    foto_url: Optional[str] = None
+    kualitas_mutu: Optional[str] = None
+
+
+@router.get("/admin/manajemen-katalog", tags=["Manajemen Katalog"])
+def get_master_katalog(db: Session = Depends(get_db)):
+    """Mengambil seluruh daftar komoditas dari database master untuk panel Manajemen Katalog."""
+    kom_rows = db.query(models.Komoditas).filter(models.Komoditas.is_active == True).all()
+    photos_data = _load_json_photos()
+
+    db_photos = {}
+    try:
+        photo_rows = db.query(models.KatalogFoto).all()
+        for pr in photo_rows:
+            if pr.nama_komoditas and pr.foto_url:
+                db_photos[pr.nama_komoditas.strip().lower()] = pr.foto_url
+    except Exception:
+        pass
+
+    groups = {}
+    for k in kom_rows:
+        if not k.nama_bahan:
+            continue
+        clean_nama = k.nama_bahan.strip()
+        low = clean_nama.lower()
+        if "kulat" in low or "jamur" in low:
+            continue
+        if low not in groups:
+            foto = db_photos.get(low) or photos_data.get(low)
+            groups[low] = {
+                "id": k.id,
+                "nama_komoditas": clean_nama,
+                "kategori": k.kategori or "Kebutuhan Pokok",
+                "satuan": k.satuan or "kg",
+                "harga_acuan": k.harga,
+                "het": k.het or k.harga,
+                "foto_url": foto,
+                "is_custom_foto": bool(foto),
+                "kualitas_mutu": k.kualitas_mutu or "Kualitas Standar",
+                "total_titik": 0,
+                "daftar_pasar": []
+            }
+        groups[low]["total_titik"] += 1
+        if k.lokasi and k.lokasi not in groups[low]["daftar_pasar"]:
+            groups[low]["daftar_pasar"].append(k.lokasi)
+
+    result_list = sorted(list(groups.values()), key=lambda x: x["nama_komoditas"])
+    return {"status": "success", "data": result_list, "total": len(result_list)}
+
+
+@router.post("/admin/manajemen-katalog", tags=["Manajemen Katalog"])
+def tambah_master_katalog(
+    item: MasterKatalogCreate,
+    current_admin: models.Admin = Depends(get_admin_sekarang),
+    db: Session = Depends(get_db)
+):
+    """Menambahkan komoditas baru ke dalam database master (tersimpan ke seluruh pasar)."""
+    clean_nama = item.nama_komoditas.strip()
+    if not clean_nama:
+        raise HTTPException(status_code=400, detail="Nama komoditas wajib diisi")
+
+    pasar_list = ["Pasar Babat", "Pasar Sidoharjo", "Pasar Mantup", "Pasar Blimbing", "Pasar Sukodadi", "Pasar Sendangrejo"]
+
+    existing = db.query(models.Komoditas).filter(
+        models.Komoditas.nama_bahan.ilike(clean_nama),
+        models.Komoditas.is_active == True
+    ).first()
+    if existing:
+        raise HTTPException(status_code=400, detail=f"Komoditas '{clean_nama}' sudah terdaftar dalam katalog!")
+
+    for p in pasar_list:
+        new_k = models.Komoditas(
+            nama_bahan=clean_nama,
+            kategori=item.kategori,
+            harga=item.harga_acuan,
+            satuan=item.satuan,
+            lokasi=p,
+            het=item.het or item.harga_acuan,
+            kualitas_mutu=item.kualitas_mutu,
+            is_active=True,
+            status_label="Stabil"
+        )
+        db.add(new_k)
+
+    if item.foto_url:
+        foto_row = models.KatalogFoto(nama_komoditas=clean_nama, foto_url=item.foto_url)
+        db.add(foto_row)
+        photos_data = _load_json_photos()
+        photos_data[clean_nama.lower()] = item.foto_url
+        _save_json_photos(photos_data)
+
+    db.commit()
+    return {"status": "success", "message": f"Komoditas '{clean_nama}' berhasil ditambahkan ke database katalog!", "nama_komoditas": clean_nama}
+
+
+@router.put("/admin/manajemen-katalog/{old_name}", tags=["Manajemen Katalog"])
+def update_master_katalog(
+    old_name: str,
+    item: MasterKatalogUpdate,
+    current_admin: models.Admin = Depends(get_admin_sekarang),
+    db: Session = Depends(get_db)
+):
+    """Mengupdate data komoditas di seluruh database (Komoditas, KiosHarga, KatalogFoto, dll)."""
+    clean_old = old_name.strip()
+    komoditas_rows = db.query(models.Komoditas).filter(
+        models.Komoditas.nama_bahan.ilike(clean_old)
+    ).all()
+
+    if not komoditas_rows:
+        raise HTTPException(status_code=404, detail=f"Komoditas '{clean_old}' tidak ditemukan di database")
+
+    new_name_input = (item.nama_baru or item.name or "").strip()
+    target_name = new_name_input if new_name_input else clean_old
+
+    for k in komoditas_rows:
+        if new_name_input:
+            k.nama_bahan = target_name
+        if item.kategori is not None:
+            k.kategori = item.kategori.strip()
+        if item.satuan is not None:
+            k.satuan = item.satuan.strip()
+        if item.harga_acuan is not None:
+            k.harga = item.harga_acuan
+        if item.het is not None:
+            k.het = item.het
+        if item.kualitas_mutu is not None:
+            k.kualitas_mutu = item.kualitas_mutu.strip()
+        k.updated_at = datetime.now()
+
+    try:
+        kios_rows = db.query(models.KiosHarga).filter(models.KiosHarga.nama_komoditas.ilike(clean_old)).all()
+        for kh in kios_rows:
+            if new_name_input:
+                kh.nama_komoditas = target_name
+            if item.kategori is not None:
+                kh.kategori = item.kategori.strip()
+            if item.satuan is not None:
+                kh.satuan = item.satuan.strip()
+            if item.harga_acuan is not None:
+                kh.harga_terkini = item.harga_acuan
+            if item.het is not None:
+                kh.harga_het = item.het
+    except Exception:
+        pass
+
+    if new_name_input and new_name_input.lower() != clean_old.lower():
+        try:
+            survei_rows = db.query(models.SurveiHarga).filter(models.SurveiHarga.nama_komoditas.ilike(clean_old)).all()
+            for sr in survei_rows:
+                sr.nama_komoditas = target_name
+            het_rows = db.query(models.HETNasional).filter(models.HETNasional.nama_komoditas.ilike(clean_old)).all()
+            for hr in het_rows:
+                hr.nama_komoditas = target_name
+        except Exception:
+            pass
+
+    if item.foto_url is not None or (new_name_input and new_name_input != clean_old):
+        foto_entry = db.query(models.KatalogFoto).filter(
+            models.KatalogFoto.nama_komoditas.ilike(clean_old)
+        ).first()
+        photos_data = _load_json_photos()
+
+        current_url = item.foto_url if item.foto_url is not None else (foto_entry.foto_url if foto_entry else photos_data.get(clean_old.lower()))
+
+        if new_name_input and new_name_input != clean_old:
+            photos_data.pop(clean_old.lower(), None)
+
+        if current_url:
+            photos_data[target_name.lower()] = current_url
+            if foto_entry:
+                foto_entry.nama_komoditas = target_name
+                if item.foto_url is not None:
+                    foto_entry.foto_url = item.foto_url
+            else:
+                db.add(models.KatalogFoto(nama_komoditas=target_name, foto_url=current_url))
+        _save_json_photos(photos_data)
+
+    db.commit()
+    return {"status": "success", "message": f"Katalog '{target_name}' berhasil diperbarui di database!", "nama_komoditas": target_name}
+
+
+@router.delete("/admin/manajemen-katalog/{name}", tags=["Manajemen Katalog"])
+def delete_master_katalog(
+    name: str,
+    current_admin: models.Admin = Depends(get_admin_sekarang),
+    db: Session = Depends(get_db)
+):
+    """Menghapus komoditas dari katalog database permanen (otomatis terhapus dari seluruh halaman user)."""
+    clean_nama = name.strip()
+
+    db.query(models.Komoditas).filter(models.Komoditas.nama_bahan.ilike(clean_nama)).delete(synchronize_session=False)
+
+    try:
+        db.query(models.KiosHarga).filter(models.KiosHarga.nama_komoditas.ilike(clean_nama)).delete(synchronize_session=False)
+    except Exception:
+        pass
+
+    try:
+        db.query(models.KatalogFoto).filter(models.KatalogFoto.nama_komoditas.ilike(clean_nama)).delete(synchronize_session=False)
+    except Exception:
+        pass
+
+    photos_data = _load_json_photos()
+    photos_data.pop(clean_nama.lower(), None)
+    _save_json_photos(photos_data)
+
+    db.commit()
+    return {"status": "success", "message": f"Komoditas '{clean_nama}' berhasil dihapus dari database katalog!", "nama_komoditas": clean_nama}
+
+
+# ==============================================================================
 # ENDPOINT EKSPOR LAPORAN RESMI DKPP (CSV / EXCEL COMPATIBLE)
 # ==============================================================================
 

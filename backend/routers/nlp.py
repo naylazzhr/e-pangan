@@ -171,6 +171,7 @@ def submit_suara_lapangan(
 async def upload_suara_lapangan(
     file: UploadFile = File(..., description="File rekaman suara (MP3, WAV, OGG, M4A, WEBM)"),
     default_pasar: Optional[str] = Form(None, description="Pilihan pasar dari formulir / dropdown"),
+    default_kios: Optional[str] = Form(None, description="Pilihan kios dari formulir / dropdown"),
 ):
     """
     Endpoint Upload Rekaman Suara Lapangan (Speech-to-Text):
@@ -258,10 +259,10 @@ async def upload_suara_lapangan(
     if not transkrip:
         transkrip = "Ini dari pasar Gios Bu City harga kulat 1 kg 15.000 rupiah"
 
-    # Tahap 3 & 4: Pre-processing Teks & Ekstraksi NLP (Memperhatikan default_pasar pilihan user)
+    # Tahap 3 & 4: Pre-processing Teks & Ekstraksi NLP (Memperhatikan default_pasar & default_kios pilihan user)
     parsed = nlp_parser.parse_suara_lapangan(transkrip, default_pasar=default_pasar)
-    final_pasar = parsed.get("pasar") or default_pasar or "Pasar Babat"
-    final_kios = parsed.get("kios") or "Kios Bu Siti"
+    final_pasar = default_pasar or parsed.get("pasar") or "Pasar Babat"
+    final_kios = default_kios or parsed.get("kios") or "Kios Bu Siti"
 
     extracted_items = [
         {

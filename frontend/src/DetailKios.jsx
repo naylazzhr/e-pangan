@@ -9,15 +9,11 @@ import {
   Clock,
   Store,
   ShieldCheck,
-  Plus,
-  X,
-  CheckCircle2,
   Calendar,
   Sparkles,
   Tag,
   Phone,
 } from "lucide-react";
-import { tambahKomoditasKios } from "./api";
 
 export default function DetailKios({ kios, onBack }) {
   const [selectedCategory, setSelectedCategory] = useState("Semua");
@@ -26,27 +22,6 @@ export default function DetailKios({ kios, onBack }) {
   // Data lengkap kios (termasuk katalog) dari backend
   const [detail, setDetail] = useState(null);
   const [loadingKatalog, setLoadingKatalog] = useState(false);
-
-  // State Modal Tambah Komoditas
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [extraKatalog, setExtraKatalog] = useState([]);
-  const [toastMsg, setToastMsg] = useState(null);
-
-  const [formTambah, setFormTambah] = useState({
-    nama_bahan: "",
-    kategori: "Kebutuhan Pokok",
-    harga: "",
-    satuan: "kg",
-    stok_fisik: "Tersedia",
-    varian_keterangan: "Standar Pasar",
-    status_label: "Sesuai HET",
-  });
-
-  const triggerToast = (msg, type = "success") => {
-    setToastMsg({ text: msg, type });
-    setTimeout(() => setToastMsg(null), 3000);
-  };
 
   useEffect(() => {
     const idKios = kios?.id || kios?.id_kios || kios?.kios_id;
@@ -77,14 +52,12 @@ export default function DetailKios({ kios, onBack }) {
 
   // Pakai data dari detail kalau sudah ada, kalau belum pakai data dari daftar
   const sumber = detail || kios || {};
-  const rawKatalog = [
-    ...extraKatalog,
-    ...(detail && Array.isArray(detail.katalog) && detail.katalog.length > 0
+  const rawKatalog =
+    detail && Array.isArray(detail.katalog) && detail.katalog.length > 0
       ? detail.katalog
       : Array.isArray(sumber.katalog) && sumber.katalog.length > 0
       ? sumber.katalog
-      : []),
-  ];
+      : [];
 
   const getEmojiForProduct = (nama) => {
     const n = (nama || "").toLowerCase();
@@ -156,69 +129,6 @@ export default function DetailKios({ kios, onBack }) {
     const matchSearch = itemName.toLowerCase().includes(searchQuery.toLowerCase());
     return matchCategory && matchSearch;
   });
-
-  const handleTambahSubmit = async (e) => {
-    e.preventDefault();
-    if (!formTambah.nama_bahan.trim()) {
-      triggerToast("Nama komoditas bahan pangan wajib diisi!", "error");
-      return;
-    }
-    const hargaNum = parseFloat(formTambah.harga);
-    if (!hargaNum || hargaNum <= 0) {
-      triggerToast("Harga komoditas harus berupa angka di atas 0!", "error");
-      return;
-    }
-
-    setIsSubmitting(true);
-    const idKios = dataKios.id;
-
-    const baru = {
-      id_komoditas: Date.now(),
-      nama_bahan: formTambah.nama_bahan.trim(),
-      kategori: formTambah.kategori,
-      harga: hargaNum,
-      satuan: formTambah.satuan || "kg",
-      stok_fisik: formTambah.stok_fisik || "Tersedia",
-      status_label: formTambah.status_label || "Sesuai HET",
-      varian_keterangan: formTambah.varian_keterangan || "Standar Pasar",
-      image: getEmojiForProduct(formTambah.nama_bahan),
-      updated_at: "Baru saja",
-    };
-
-    // Tambah optimis ke katalog lokal
-    setExtraKatalog((prev) => [baru, ...prev]);
-
-    try {
-      if (idKios) {
-        await tambahKomoditasKios(idKios, {
-          nama_bahan: baru.nama_bahan,
-          kategori: baru.kategori,
-          harga: baru.harga,
-          satuan: baru.satuan,
-          stok_fisik: baru.stok_fisik,
-          status_label: baru.status_label,
-          varian_keterangan: baru.varian_keterangan,
-        });
-      }
-      triggerToast(`Komoditas "${baru.nama_bahan}" berhasil ditambahkan ke kios!`, "success");
-      setShowAddModal(false);
-      setFormTambah({
-        nama_bahan: "",
-        kategori: "Kebutuhan Pokok",
-        harga: "",
-        satuan: "kg",
-        stok_fisik: "Tersedia",
-        varian_keterangan: "Standar Pasar",
-        status_label: "Sesuai HET",
-      });
-    } catch (err) {
-      console.warn("API add note:", err.message);
-      triggerToast(`Komoditas "${baru.nama_bahan}" tersimpan ke katalog kios!`, "success");
-      setShowAddModal(false);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   return (
     <div
@@ -385,31 +295,6 @@ export default function DetailKios({ kios, onBack }) {
         }
       `}</style>
 
-      {/* TOAST NOTIFIKASI */}
-      {toastMsg && (
-        <div
-          style={{
-            position: "fixed",
-            bottom: "24px",
-            right: "24px",
-            zIndex: 99999,
-            backgroundColor: toastMsg.type === "error" ? "#dc2626" : "#1b4332",
-            color: "#ffffff",
-            padding: "12px 20px",
-            borderRadius: "14px",
-            fontWeight: "700",
-            fontSize: "13.5px",
-            boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-          }}
-        >
-          <CheckCircle2 size={16} />
-          <span>{toastMsg.text}</span>
-        </div>
-      )}
-
       {/* HERO SECTION */}
       <div className="dk-hero">
         <div className="dk-container">
@@ -422,14 +307,6 @@ export default function DetailKios({ kios, onBack }) {
                 <Clock size={13} color="#2d6a4f" />
                 Update: <strong style={{ color: "#112216" }}>{dataKios.terakhirDiupdate}</strong>
               </span>
-              <button
-                type="button"
-                onClick={() => setShowAddModal(true)}
-                className="dk-btn-tambah"
-                title="Tambah Komoditas ke Kios"
-              >
-                <Plus size={15} /> + Tambah Komoditas
-              </button>
             </div>
           </div>
 
@@ -513,15 +390,15 @@ export default function DetailKios({ kios, onBack }) {
               </div>
 
               <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", width: "100%", maxWidth: "380px" }}>
-                <div className="dk-search-box" style={{ flex: 1 }}>
-                  <Search size={15} color="#4e6754" style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)" }} />
+                <div className="dk-search-box" style={{ flex: 1, position: "relative" }}>
+                  <Search size={15} color="#4e6754" style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
                   <input
                     type="text"
                     placeholder="Cari komoditas di kios ini..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     style={{
-                      padding: "9px 12px 9px 34px",
+                      padding: "9px 14px 9px 38px",
                       borderRadius: "999px",
                       border: "1px solid #d2ded7",
                       fontSize: "13px",
@@ -535,14 +412,6 @@ export default function DetailKios({ kios, onBack }) {
                     }}
                   />
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(true)}
-                  className="dk-btn-tambah"
-                  style={{ whiteSpace: "nowrap" }}
-                >
-                  <Plus size={14} /> + Tambah
-                </button>
               </div>
             </div>
 
@@ -585,16 +454,9 @@ export default function DetailKios({ kios, onBack }) {
                   <h4 style={{ margin: "0 0 6px 0", color: "#0f1d14", fontSize: "15px", fontWeight: "800" }}>
                     Belum Ada Komoditas yang Cocok
                   </h4>
-                  <p style={{ margin: "0 0 16px 0", fontSize: "13px", color: "#4e6754" }}>
+                  <p style={{ margin: "0", fontSize: "13px", color: "#4e6754" }}>
                     {searchQuery ? `Tidak ada komoditas dengan kata kunci "${searchQuery}".` : "Kios ini belum memiliki daftar komoditas pada kategori ini."}
                   </p>
-                  <button
-                    type="button"
-                    onClick={() => setShowAddModal(true)}
-                    className="dk-btn-tambah"
-                  >
-                    <Plus size={15} /> Tambah Komoditas Sekarang
-                  </button>
                 </div>
               )}
 
@@ -721,314 +583,10 @@ export default function DetailKios({ kios, onBack }) {
               );
             })}
 
-            {/* Quick Action Tambah Komoditas di Aside */}
-            <div style={{ marginTop: "16px", paddingTop: "14px", borderTop: "1px dashed #d8e2dc" }}>
-              <button
-                type="button"
-                onClick={() => setShowAddModal(true)}
-                style={{
-                  width: "100%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  gap: "6px",
-                  padding: "10px",
-                  borderRadius: "14px",
-                  border: "1.5px dashed #2d6a4f",
-                  backgroundColor: "#f4faf6",
-                  color: "#1b4332",
-                  fontWeight: "800",
-                  fontSize: "13px",
-                  cursor: "pointer",
-                  fontFamily: "inherit",
-                  transition: "all 0.15s ease",
-                }}
-              >
-                <Plus size={15} color="#2d6a4f" /> + Tambah Komoditas Baru
-              </button>
-            </div>
           </aside>
         </div>
       </div>
 
-      {/* MODAL TAMBAH KOMODITAS KE KIOS */}
-      {showAddModal && (
-        <div
-          onClick={() => setShowAddModal(false)}
-          style={{
-            position: "fixed",
-            inset: 0,
-            backgroundColor: "rgba(15, 29, 20, 0.5)",
-            backdropFilter: "blur(4px)",
-            zIndex: 99999,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "16px",
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              backgroundColor: "#ffffff",
-              borderRadius: "24px",
-              width: "100%",
-              maxWidth: "520px",
-              boxShadow: "0 24px 60px rgba(0,0,0,0.2)",
-              border: "1px solid #d2ded7",
-              overflow: "hidden",
-              maxHeight: "90vh",
-              display: "flex",
-              flexDirection: "column",
-            }}
-          >
-            {/* Header Modal */}
-            <div
-              style={{
-                padding: "18px 24px",
-                borderBottom: "1px solid #e6eee9",
-                backgroundColor: "#f4f8f5",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <div>
-                <h3 style={{ margin: "0 0 2px 0", fontSize: "16px", fontWeight: "800", color: "#0f2419" }}>
-                  Tambah Komoditas ke Kios
-                </h3>
-                <span style={{ fontSize: "12px", color: "#4a6550", fontWeight: "600" }}>
-                  {dataKios.nama} · {dataKios.pasar}
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowAddModal(false)}
-                style={{
-                  background: "#e2ede6",
-                  border: "none",
-                  borderRadius: "50%",
-                  width: "28px",
-                  height: "28px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  cursor: "pointer",
-                  color: "#1b4332",
-                }}
-              >
-                <X size={16} />
-              </button>
-            </div>
-
-            {/* Form Input */}
-            <form onSubmit={handleTambahSubmit} style={{ padding: "24px", overflowY: "auto", flex: 1 }}>
-              <div style={{ marginBottom: "16px" }}>
-                <label style={{ display: "block", fontSize: "12px", fontWeight: "800", color: "#1b4332", marginBottom: "6px" }}>
-                  Nama Bahan / Komoditas Pangan *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Contoh: Beras Premium, Cabai Rawit, Minyak Goreng"
-                  value={formTambah.nama_bahan}
-                  onChange={(e) => setFormTambah({ ...formTambah, nama_bahan: e.target.value })}
-                  style={{
-                    width: "100%",
-                    padding: "10px 14px",
-                    borderRadius: "12px",
-                    border: "1.5px solid #cfe3d6",
-                    fontSize: "13px",
-                    fontWeight: "600",
-                    fontFamily: "inherit",
-                    boxSizing: "border-box",
-                    outline: "none",
-                  }}
-                />
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "16px" }}>
-                <div>
-                  <label style={{ display: "block", fontSize: "12px", fontWeight: "800", color: "#1b4332", marginBottom: "6px" }}>
-                    Kategori Pangan
-                  </label>
-                  <select
-                    value={formTambah.kategori}
-                    onChange={(e) => setFormTambah({ ...formTambah, kategori: e.target.value })}
-                    style={{
-                      width: "100%",
-                      padding: "10px 14px",
-                      borderRadius: "12px",
-                      border: "1.5px solid #cfe3d6",
-                      fontSize: "13px",
-                      fontWeight: "600",
-                      fontFamily: "inherit",
-                      boxSizing: "border-box",
-                      outline: "none",
-                      backgroundColor: "#fff",
-                      cursor: "pointer",
-                    }}
-                  >
-                    <option value="Kebutuhan Pokok">Kebutuhan Pokok</option>
-                    <option value="Bumbu Dapur">Bumbu Dapur</option>
-                    <option value="Minyak Goreng">Minyak Goreng</option>
-                    <option value="Protein Hewani">Protein Hewani</option>
-                    <option value="Produksi Daerah">Produksi Daerah</option>
-                    <option value="Bahan Baku">Bahan Baku</option>
-                    <option value="Sayur & Jamur">Sayur & Jamur</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label style={{ display: "block", fontSize: "12px", fontWeight: "800", color: "#1b4332", marginBottom: "6px" }}>
-                    Harga Satuan (Rp) *
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    min="1"
-                    placeholder="Contoh: 14500"
-                    value={formTambah.harga}
-                    onChange={(e) => setFormTambah({ ...formTambah, harga: e.target.value })}
-                    style={{
-                      width: "100%",
-                      padding: "10px 14px",
-                      borderRadius: "12px",
-                      border: "1.5px solid #cfe3d6",
-                      fontSize: "13px",
-                      fontWeight: "700",
-                      fontFamily: "inherit",
-                      boxSizing: "border-box",
-                      outline: "none",
-                    }}
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px", marginBottom: "16px" }}>
-                <div>
-                  <label style={{ display: "block", fontSize: "12px", fontWeight: "800", color: "#1b4332", marginBottom: "6px" }}>
-                    Satuan Ukuran
-                  </label>
-                  <select
-                    value={formTambah.satuan}
-                    onChange={(e) => setFormTambah({ ...formTambah, satuan: e.target.value })}
-                    style={{
-                      width: "100%",
-                      padding: "10px 14px",
-                      borderRadius: "12px",
-                      border: "1.5px solid #cfe3d6",
-                      fontSize: "13px",
-                      fontWeight: "600",
-                      fontFamily: "inherit",
-                      boxSizing: "border-box",
-                      outline: "none",
-                      backgroundColor: "#fff",
-                      cursor: "pointer",
-                    }}
-                  >
-                    <option value="kg">kg (Kilogram)</option>
-                    <option value="liter">liter (Liter)</option>
-                    <option value="butir">butir (Butir / Biji)</option>
-                    <option value="ikat">ikat (Ikat)</option>
-                    <option value="kemasan">kemasan (Pack / Botol)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label style={{ display: "block", fontSize: "12px", fontWeight: "800", color: "#1b4332", marginBottom: "6px" }}>
-                    Status Ketersediaan Stok
-                  </label>
-                  <select
-                    value={formTambah.stok_fisik}
-                    onChange={(e) => setFormTambah({ ...formTambah, stok_fisik: e.target.value })}
-                    style={{
-                      width: "100%",
-                      padding: "10px 14px",
-                      borderRadius: "12px",
-                      border: "1.5px solid #cfe3d6",
-                      fontSize: "13px",
-                      fontWeight: "600",
-                      fontFamily: "inherit",
-                      boxSizing: "border-box",
-                      outline: "none",
-                      backgroundColor: "#fff",
-                      cursor: "pointer",
-                    }}
-                  >
-                    <option value="Tersedia">Tersedia (Normal)</option>
-                    <option value="Melimpah">Melimpah</option>
-                    <option value="Terbatas">Terbatas</option>
-                    <option value="Habis">Habis</option>
-                  </select>
-                </div>
-              </div>
-
-              <div style={{ marginBottom: "20px" }}>
-                <label style={{ display: "block", fontSize: "12px", fontWeight: "800", color: "#1b4332", marginBottom: "6px" }}>
-                  Varian / Mutu / Keterangan
-                </label>
-                <input
-                  type="text"
-                  placeholder="Contoh: Kualitas Bulog Premium, Grade A Super"
-                  value={formTambah.varian_keterangan}
-                  onChange={(e) => setFormTambah({ ...formTambah, varian_keterangan: e.target.value })}
-                  style={{
-                    width: "100%",
-                    padding: "10px 14px",
-                    borderRadius: "12px",
-                    border: "1.5px solid #cfe3d6",
-                    fontSize: "13px",
-                    fontWeight: "600",
-                    fontFamily: "inherit",
-                    boxSizing: "border-box",
-                    outline: "none",
-                  }}
-                />
-              </div>
-
-              {/* Tombol Aksi Form */}
-              <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", paddingTop: "12px", borderTop: "1px solid #eef3f0" }}>
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  style={{
-                    padding: "10px 20px",
-                    borderRadius: "999px",
-                    border: "1px solid #d2ded7",
-                    backgroundColor: "#ffffff",
-                    color: "#4e6754",
-                    fontWeight: "700",
-                    fontSize: "13px",
-                    cursor: "pointer",
-                    fontFamily: "inherit",
-                  }}
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  style={{
-                    padding: "10px 24px",
-                    borderRadius: "999px",
-                    border: "none",
-                    backgroundColor: "#1b4332",
-                    color: "#ffffff",
-                    fontWeight: "800",
-                    fontSize: "13px",
-                    cursor: isSubmitting ? "wait" : "pointer",
-                    fontFamily: "inherit",
-                    boxShadow: "0 4px 14px rgba(27,67,50,0.2)",
-                  }}
-                >
-                  {isSubmitting ? "Menyimpan..." : "+ Simpan ke Katalog"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

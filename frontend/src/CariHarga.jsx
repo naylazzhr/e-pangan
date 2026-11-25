@@ -189,10 +189,10 @@ export default function CariHarga({ setActivePage, setSelectedKios }) {
   };
 
   const sebaranPasar = [
-    { nama: "Pasar Babat", harga: "Rp13.000", kios: "18 Kios Pantau" },
-    { nama: "Pasar Sidoharjo", harga: "Rp13.500", kios: "14 Kios Pantau" },
-    { nama: "Pasar Sukodadi", harga: "Rp13.400", kios: "9 Kios Pantau" },
-    { nama: "Pasar Lamongan Kota", harga: "Rp14.000", kios: "7 Kios Pantau" },
+    { nama: "Pasar Babat", komoditas: "Beras", harga: "Rp13.000", kios: "18 Kios Pantau" },
+    { nama: "Pasar Sidoharjo", komoditas: "Beras", harga: "Rp13.500", kios: "14 Kios Pantau" },
+    { nama: "Pasar Sukodadi", komoditas: "Beras", harga: "Rp13.400", kios: "9 Kios Pantau" },
+    { nama: "Pasar Lamongan Kota", komoditas: "Beras", harga: "Rp14.000", kios: "7 Kios Pantau" },
   ];
 
   return (
@@ -435,9 +435,6 @@ export default function CariHarga({ setActivePage, setSelectedKios }) {
               <h1 className="ch-title">
                 Direktori &amp; Pantau Harga Kios Pangan
               </h1>
-              <p className="ch-desc">
-                Akses data fluktuasi komoditas harian secara transparan langsung dari katalog pedagang pasar rakyat terdekat.
-              </p>
             </div>
           </div>
 
@@ -505,27 +502,6 @@ export default function CariHarga({ setActivePage, setSelectedKios }) {
       </div>
 
       <div className="ch-container">
-        <div className="ch-banner">
-          <div>
-            <span style={{ display: "block", fontSize: "11px", fontWeight: "800", letterSpacing: "0.06em", color: "#74c69d", marginBottom: "6px" }}>
-              INFO STABILITAS HARGA
-            </span>
-            <h2 style={{ fontSize: "1.3rem", margin: 0, fontWeight: "800" }}>
-              Rata-Rata Komoditas Pokok Wilayah Babat &amp; Sekitarnya
-            </h2>
-          </div>
-          <div style={{ display: "flex", gap: "32px" }}>
-            <div>
-              <div style={{ fontSize: "11px", opacity: 0.8, fontWeight: "600", marginBottom: "2px" }}>RATA-RATA PASAR</div>
-              <div style={{ fontSize: "1.25rem", fontWeight: "800", color: "#b7efc5" }}>Rp13.150/kg</div>
-            </div>
-            <div style={{ borderLeft: "1px solid rgba(255,255,255,0.2)", paddingLeft: "32px" }}>
-              <div style={{ fontSize: "11px", opacity: 0.8, fontWeight: "600", marginBottom: "2px" }}>HET NASIONAL</div>
-              <div style={{ fontSize: "1.25rem", fontWeight: "800" }}>Rp13.500/kg</div>
-            </div>
-          </div>
-        </div>
-
         <div className="ch-list-head">
           <h2 style={{ margin: 0, fontSize: "1.4rem", fontWeight: "800" }}>Daftar Kios Terdekat</h2>
           <span
@@ -557,34 +533,7 @@ export default function CariHarga({ setActivePage, setSelectedKios }) {
               gap: "22px",
             }}
           >
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "1px solid #d8e2dc", paddingBottom: "14px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", fontWeight: "800", fontSize: "15px" }}>
-                <SlidersHorizontal size={16} color="#2d6a4f" />
-                <span>Filter Presisi</span>
-              </div>
-              <button
-                onClick={handleReset}
-                style={{ border: "none", background: "none", color: "#4a6550", fontSize: "12px", cursor: "pointer", fontWeight: "700", fontFamily: "inherit" }}
-              >
-                Reset
-              </button>
-            </div>
-
-            <div
-              style={{
-                backgroundColor: "#e2f5ea",
-                padding: "14px 16px",
-                borderRadius: "16px",
-                fontSize: "12px",
-                color: "#1b4332",
-                lineHeight: "1.5",
-              }}
-            >
-              <strong style={{ display: "block", marginBottom: "4px", fontWeight: "800" }}>Kios Binaan Resmi</strong>
-              Telah bersertifikasi uji timbang &amp; pengawasan berkala DKPP Lamongan.
-            </div>
-
-            <div style={{ borderTop: "1px solid #d8e2dc", paddingTop: "20px", display: "flex", flexDirection: "column", gap: "12px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
               <div>
                 <h3 style={{ fontSize: "16px", fontWeight: "800", margin: "0 0 2px 0" }}>Sebaran Harga per Pasar</h3>
                 <span style={{ fontSize: "12px", color: "#4a6550" }}>Pantauan rata-rata harian</span>
@@ -611,7 +560,12 @@ export default function CariHarga({ setActivePage, setSelectedKios }) {
                       cursor: "pointer",
                     }}
                   >
-                    <span style={{ fontSize: "13px", fontWeight: "800" }}>{item.nama}</span>
+                    <div>
+                      <div style={{ fontSize: "13px", fontWeight: "800" }}>{item.nama}</div>
+                      <div style={{ fontSize: "11px", color: "#4a6550", fontWeight: "600", marginTop: "2px" }}>
+                        Harga {item.komoditas || "Beras"}
+                      </div>
+                    </div>
                     <div style={{ textAlign: "right" }}>
                       <div style={{ fontSize: "14px", fontWeight: "800", color: "#1b4332" }}>{item.harga}</div>
                       <div style={{ fontSize: "10.5px", color: "#4a6550", fontWeight: "600" }}>{item.kios}</div>

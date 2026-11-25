@@ -57,13 +57,16 @@ import {
     uploadKomoditasFoto,
     updateKomoditasFotoUrl,
     resetKomoditasFoto,
+    getMasterKatalog,
+    tambahMasterKatalog,
+    updateMasterKatalog,
+    deleteMasterKatalog,
 } from "./api";
 
 // Master Komoditas Bahan Pokok & Katalog Dashboard
 const MASTER_KATALOG_KOMODITAS = [
-    { name: "Beras Medium (IR 64)", kategori: "KEBUTUHAN POKOK", desc: "Beras medium standar Bulog & pasar daerah Lamongan" },
+    { name: "Beras Medium IR 64", kategori: "KEBUTUHAN POKOK", desc: "Beras medium standar pasar daerah Lamongan" },
     { name: "Beras Premium Pandan Wangi", kategori: "KEBUTUHAN POKOK", desc: "Beras premium aroma pandan wangi bulir utuh" },
-    { name: "Beras Bulog SPHP", kategori: "KEBUTUHAN POKOK", desc: "Beras stabilisasi pasokan dan harga pangan Bulog" },
     { name: "Gula Pasir Kristal", kategori: "BAHAN BAKU", desc: "Gula pasir kristal putih higienis kemasan pabrik" },
     { name: "Gula Pasir Curah", kategori: "BAHAN BAKU", desc: "Gula tebu kristal curah terjangkau" },
     { name: "Gula Aren", kategori: "BAHAN BAKU", desc: "Gula aren / gula kelapa tradisional asli daerah" },
@@ -172,6 +175,33 @@ export default function AdminDashboard({
 
     const [showMasterModal, setShowMasterModal] = useState(null);
     const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+    // State Manajemen Master Katalog Komoditas (CRUD Database)
+    const [masterKatalogList, setMasterKatalogList] = useState([]);
+    const [katalogLoading, setKatalogLoading] = useState(false);
+    const [showAddKatalogModal, setShowAddKatalogModal] = useState(false);
+    const [newKatalogForm, setNewKatalogForm] = useState({
+        name: "",
+        kategori: "KEBUTUHAN POKOK",
+        satuan: "1kg",
+        harga_acuan: 13000,
+        het: 14000,
+        foto_url: "",
+        target_pasar: "Semua Pasar",
+        target_kios_id: ""
+    });
+    const [editingKatalogItem, setEditingKatalogItem] = useState(null);
+    const [editKatalogForm, setEditKatalogForm] = useState({
+        old_name: "",
+        name: "",
+        kategori: "",
+        satuan: "",
+        harga_acuan: 0,
+        het: 0,
+        foto_url: ""
+    });
+    const [deletingKatalogName, setDeletingKatalogName] = useState(null);
+    const [isSubmittingKatalog, setIsSubmittingKatalog] = useState(false);
     const currentUser = getCurrentUser();
 
     const mapSurvei = (item) => ({
@@ -245,19 +275,233 @@ export default function AdminDashboard({
         }
     }, []);
 
+    const fetchMasterKatalogData = useCallback(async () => {
+        try {
+            setKatalogLoading(true);
+            const res = await getMasterKatalog();
+            let loadedList = [];
+            if (res && res.data && Array.isArray(res.data) && res.data.length > 0) {
+                loadedList = res.data.map((item, idx) => ({
+                    id: item.id || idx + 1,
+                    name: item.nama_komoditas || item.name || item.nama_bahan,
+                    kategori: item.kategori || "KEBUTUHAN POKOK",
+                    satuan: item.satuan || "1kg",
+                    harga_acuan: item.harga_acuan || item.harga || 0,
+                    het: item.het || item.harga_acuan || 0,
+                    foto_url: item.foto_url || customPhotos[(item.nama_komoditas || item.name || "").toLowerCase()] || "",
+                    daftar_pasar: item.daftar_pasar || [],
+                    total_titik: item.total_titik || 0,
+                }));
+            } else if (products && products.length > 0) {
+                // Ambil daftar komoditas yang sudah ada di database
+                const uniqueMap = new Map();
+                products.forEach((p, idx) => {
+                    const cleanName = (p.name || p.nama_bahan || "").trim();
+                    if (cleanName && !uniqueMap.has(cleanName.toLowerCase())) {
+                        uniqueMap.set(cleanName.toLowerCase(), {
+                            id: p.id || idx + 1,
+                            name: cleanName,
+                            kategori: (p.category || p.kategori || "KEBUTUHAN POKOK").toUpperCase(),
+                            satuan: p.unit || p.satuan || "1kg",
+                            harga_acuan: p.price || p.harga || 13000,
+                            het: p.het || p.price || 14000,
+                            foto_url: p.image || customPhotos[cleanName.toLowerCase()] || "",
+                            daftar_pasar: p.lokasi ? [p.lokasi] : ["Pasar Babat", "Pasar Sidoharjo"],
+                            total_titik: 2
+                        });
+                    }
+                });
+                loadedList = Array.from(uniqueMap.values());
+            }
+
+            // Fallback master komoditas resmi jika belum ada
+            if (loadedList.length === 0) {
+                loadedList = MASTER_KATALOG_KOMODITAS.map((m, idx) => ({
+                    id: idx + 1,
+                    name: m.name,
+                    kategori: m.kategori,
+                    satuan: "1kg",
+                    harga_acuan: 14000,
+                    het: 15000,
+                    foto_url: customPhotos[m.name.toLowerCase()] || "",
+                    daftar_pasar: ["Pasar Babat", "Pasar Sidoharjo"],
+                    total_titik: 2
+                }));
+            }
+
+            setMasterKatalogList(loadedList);
+        } catch (err) {
+            console.error("Gagal memuat master katalog dari database:", err);
+            if (products && products.length > 0) {
+                setMasterKatalogList(products.map((p, idx) => ({
+                    id: p.id || idx + 1,
+                    name: p.name || p.nama_bahan,
+                    kategori: (p.category || p.kategori || "KEBUTUHAN POKOK").toUpperCase(),
+                    satuan: p.unit || "1kg",
+                    harga_acuan: p.price || 13000,
+                    het: p.het || 14000,
+                    foto_url: p.image || ""
+                })));
+            }
+        } finally {
+            setKatalogLoading(false);
+        }
+    }, [products, customPhotos]);
+
+    const handleLogout = useCallback(() => {
+        try {
+            logoutPetugas();
+            sessionStorage.removeItem("epangan_page");
+        } catch (e) {
+            console.warn("Logout error:", e);
+        }
+        if (showToast) showToast("Berhasil keluar dari portal petugas.");
+        setActivePage("dashboard");
+        setMobileSidebarOpen(false);
+    }, [setActivePage, showToast]);
+
     useEffect(() => {
         fetchSurvei();
         fetchDashboard();
         fetchKios();
-    }, [fetchSurvei, fetchDashboard, fetchKios]);
+        fetchMasterKatalogData();
+    }, [fetchSurvei, fetchDashboard, fetchKios, fetchMasterKatalogData]);
 
     useEffect(() => {
         if (activeTab === "Validasi Lapangan") {
             fetchSurvei();
         } else if (activeTab === "Manajemen Kios") {
             fetchKios();
+        } else if (activeTab === "Manajemen Katalog") {
+            fetchMasterKatalogData();
         }
-    }, [activeTab, fetchSurvei, fetchKios]);
+    }, [activeTab, fetchSurvei, fetchKios, fetchMasterKatalogData]);
+
+    const handleFotoUploadFile = (e, isEdit = false) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const dataUrl = event.target.result;
+            if (isEdit) {
+                setEditKatalogForm(prev => ({ ...prev, foto_url: dataUrl }));
+            } else {
+                setNewKatalogForm(prev => ({ ...prev, foto_url: dataUrl }));
+            }
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const handleAddKatalogSubmit = async (e) => {
+        if (e && e.preventDefault) e.preventDefault();
+        if (!newKatalogForm.name.trim()) {
+            if (showToast) showToast("Nama komoditas wajib diisi!");
+            return;
+        }
+        try {
+            setIsSubmittingKatalog(true);
+            await tambahMasterKatalog({
+                nama_komoditas: newKatalogForm.name.trim(),
+                kategori: newKatalogForm.kategori || "KEBUTUHAN POKOK",
+                satuan: newKatalogForm.satuan || "1kg",
+                harga_acuan: Number(newKatalogForm.harga_acuan) || 0,
+                het: Number(newKatalogForm.het) || 0,
+                foto_url: newKatalogForm.foto_url.trim() || undefined
+            });
+
+            // Jika dipilih kios tertentu, tambahkan juga langsung ke kios tersebut
+            if (newKatalogForm.target_kios_id) {
+                try {
+                    await tambahKomoditasKios(newKatalogForm.target_kios_id, {
+                        nama_bahan: newKatalogForm.name.trim(),
+                        kategori: newKatalogForm.kategori || "KEBUTUHAN POKOK",
+                        harga: Number(newKatalogForm.harga_acuan) || 13000,
+                        satuan: newKatalogForm.satuan || "kg",
+                        stok_fisik: "Tersedia",
+                        status_label: "Sesuai HET",
+                        varian_keterangan: "Standar Pasar",
+                    });
+                    await fetchKios();
+                } catch (kiosErr) {
+                    console.warn("Tambah ke kios notice:", kiosErr);
+                }
+            }
+
+            await fetchMasterKatalogData();
+            if (typeof handleFullRefresh === "function") {
+                await handleFullRefresh();
+            }
+            setShowAddKatalogModal(false);
+            setNewKatalogForm({
+                name: "",
+                kategori: "KEBUTUHAN POKOK",
+                satuan: "1kg",
+                harga_acuan: 13000,
+                het: 14000,
+                foto_url: "",
+                target_pasar: "Semua Pasar",
+                target_kios_id: ""
+            });
+            if (showToast) showToast(`Komoditas "${newKatalogForm.name}" berhasil ditambahkan ke database & halaman publik!`);
+        } catch (err) {
+            console.error("Gagal tambah komoditas:", err);
+            const msg = err.response?.data?.detail || "Gagal menambahkan komoditas ke database.";
+            if (showToast) showToast(msg);
+        } finally {
+            setIsSubmittingKatalog(false);
+        }
+    };
+
+    const handleEditKatalogSubmit = async (e) => {
+        if (e && e.preventDefault) e.preventDefault();
+        if (!editKatalogForm.name.trim()) {
+            if (showToast) showToast("Nama komoditas tidak boleh kosong!");
+            return;
+        }
+        try {
+            setIsSubmittingKatalog(true);
+            await updateMasterKatalog(editKatalogForm.old_name, {
+                nama_baru: editKatalogForm.name.trim(),
+                kategori: editKatalogForm.kategori || "KEBUTUHAN POKOK",
+                satuan: editKatalogForm.satuan || "1kg",
+                harga_acuan: Number(editKatalogForm.harga_acuan) || 0,
+                het: Number(editKatalogForm.het) || 0,
+                foto_url: editKatalogForm.foto_url.trim() || undefined
+            });
+            await fetchMasterKatalogData();
+            if (typeof handleFullRefresh === "function") {
+                await handleFullRefresh();
+            }
+            setEditingKatalogItem(null);
+            if (showToast) showToast(`Komoditas "${editKatalogForm.name}" berhasil diperbarui di database & halaman publik!`);
+        } catch (err) {
+            console.error("Gagal update komoditas:", err);
+            const msg = err.response?.data?.detail || err.message || "Gagal memperbarui komoditas.";
+            if (showToast) showToast(msg);
+        } finally {
+            setIsSubmittingKatalog(false);
+        }
+    };
+
+    const handleDeleteKatalogSubmit = async (komoditasName) => {
+        if (!komoditasName) return;
+        try {
+            setIsSubmittingKatalog(true);
+            await deleteMasterKatalog(komoditasName);
+            await fetchMasterKatalogData();
+            if (typeof handleFullRefresh === "function") {
+                await handleFullRefresh();
+            }
+            setDeletingKatalogName(null);
+            if (showToast) showToast(`Komoditas "${komoditasName}" berhasil dihapus dari database & halaman publik!`);
+        } catch (err) {
+            console.error("Gagal hapus komoditas:", err);
+            const msg = err.response?.data?.detail || "Gagal menghapus komoditas.";
+            if (showToast) showToast(msg);
+        } finally {
+            setIsSubmittingKatalog(false);
+        }
+    };
 
     const handleFullRefresh = async () => {
         setIsRefreshing(true);
@@ -634,7 +878,7 @@ export default function AdminDashboard({
                     const next = { ...prev, [cleanKey]: localDataUrl };
                     try {
                         localStorage.setItem("epangan_custom_photos", JSON.stringify(next));
-                    } catch {}
+                    } catch { }
                     return next;
                 });
             }
@@ -646,7 +890,7 @@ export default function AdminDashboard({
                         const next = { ...prev, [cleanKey]: res.foto_url };
                         try {
                             localStorage.setItem("epangan_custom_photos", JSON.stringify(next));
-                        } catch {}
+                        } catch { }
                         return next;
                     });
                 }
@@ -671,7 +915,7 @@ export default function AdminDashboard({
                 delete next[cleanKey];
                 try {
                     localStorage.setItem("epangan_custom_photos", JSON.stringify(next));
-                } catch {}
+                } catch { }
                 return next;
             });
         }
@@ -694,7 +938,7 @@ export default function AdminDashboard({
                 const next = { ...prev, [cleanKey]: cleanUrl };
                 try {
                     localStorage.setItem("epangan_custom_photos", JSON.stringify(next));
-                } catch {}
+                } catch { }
                 return next;
             });
         }
@@ -727,22 +971,159 @@ export default function AdminDashboard({
             position: "relative"
         }}>
 
-            {/* BACKDROP MOBILE */}
+            {/* FLOATING CARD MENU MOBILE ALA SSCASN */}
             {mobileSidebarOpen && (
-                <div
-                    onClick={() => setMobileSidebarOpen(false)}
-                    style={{
-                        position: "fixed",
-                        inset: 0,
-                        backgroundColor: "rgba(0,0,0,0.45)",
-                        zIndex: 998,
-                        backdropFilter: "blur(4px)"
-                    }}
-                />
+                <>
+                    <div
+                        className="admin-mobile-backdrop"
+                        onClick={() => setMobileSidebarOpen(false)}
+                        style={{
+                            position: "fixed",
+                            inset: 0,
+                            backgroundColor: "rgba(15,29,20,0.35)",
+                            zIndex: 1400,
+                            backdropFilter: "blur(2px)"
+                        }}
+                    />
+                    <div
+                        className="admin-mobile-floating-menu"
+                        style={{
+                            position: "fixed",
+                            top: "56px",
+                            right: "12px",
+                            width: "245px",
+                            maxWidth: "calc(100vw - 24px)",
+                            backgroundColor: "#ffffff",
+                            borderRadius: "16px",
+                            boxShadow: "0 12px 36px rgba(15, 29, 20, 0.22)",
+                            border: "1px solid #d2ded7",
+                            padding: "14px 12px",
+                            zIndex: 1500,
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: "6px"
+                        }}
+                    >
+                        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 6px 8px 6px", borderBottom: "1px solid #eef3f0", marginBottom: "4px" }}>
+                            <div style={{ fontSize: "12px", fontWeight: "800", color: "#1b4332", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                                Menu Petugas
+                            </div>
+                            <button
+                                onClick={() => setMobileSidebarOpen(false)}
+                                style={{ background: "none", border: "none", cursor: "pointer", color: "#4e6754", padding: "2px" }}
+                            >
+                                <X size={16} />
+                            </button>
+                        </div>
+
+                        {[
+                            { name: "Ringkasan Pasar", icon: Store },
+                            { name: "Input Suara (NLP)", icon: Mic },
+                            { name: "Validasi Lapangan", icon: CheckCircle2, badge: surveyLogs.filter(x => x.status === "Menunggu Cek").length },
+                            { name: "Manajemen Kios", icon: Users },
+                            { name: "Manajemen Katalog", icon: Package },
+                        ].map((menu) => {
+                            const Icon = menu.icon;
+                            const isActive = activeTab === menu.name;
+                            return (
+                                <button
+                                    key={menu.name}
+                                    onClick={() => {
+                                        setActiveTab(menu.name);
+                                        setMobileSidebarOpen(false);
+                                    }}
+                                    style={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "space-between",
+                                        padding: "10px 12px",
+                                        borderRadius: "10px",
+                                        border: "none",
+                                        backgroundColor: isActive ? "#1b4332" : "transparent",
+                                        color: isActive ? "#ffffff" : "#2d4436",
+                                        fontWeight: isActive ? "800" : "600",
+                                        fontSize: "13px",
+                                        cursor: "pointer",
+                                        textAlign: "left",
+                                        transition: "all 0.15s"
+                                    }}
+                                >
+                                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                                        <Icon size={16} color={isActive ? "#ffffff" : "#2d6a4f"} />
+                                        <span>{menu.name}</span>
+                                    </div>
+                                    {menu.badge > 0 && (
+                                        <span style={{
+                                            backgroundColor: isActive ? "#ffffff" : "#eef8f2",
+                                            color: isActive ? "#1b4332" : "#2d6a4f",
+                                            fontSize: "11px",
+                                            fontWeight: "800",
+                                            padding: "2px 7px",
+                                            borderRadius: "99px",
+                                            border: isActive ? "none" : "1px solid #b7efc5"
+                                        }}>
+                                            {menu.badge}
+                                        </span>
+                                    )}
+                                </button>
+                            );
+                        })}
+
+                        <div style={{ height: "1px", backgroundColor: "#eef3f0", margin: "6px 0" }} />
+
+                        <button
+                            onClick={handleLogout}
+                            style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "8px",
+                                padding: "9px 12px",
+                                borderRadius: "10px",
+                                border: "1px solid #fecaca",
+                                backgroundColor: "#fef2f2",
+                                color: "#dc2626",
+                                fontWeight: "700",
+                                fontSize: "12px",
+                                cursor: "pointer",
+                                width: "100%",
+                                justifyContent: "center"
+                            }}
+                        >
+                            <LogOut size={14} /> Keluar Portal
+                        </button>
+
+                        <button
+                            onClick={() => {
+                                setActivePage("dashboard");
+                                setMobileSidebarOpen(false);
+                            }}
+                            style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "8px",
+                                padding: "9px 12px",
+                                borderRadius: "10px",
+                                border: "1px solid #d2ded7",
+                                backgroundColor: "#ffffff",
+                                color: "#4e6754",
+                                fontWeight: "700",
+                                fontSize: "12px",
+                                cursor: "pointer",
+                                width: "100%",
+                                justifyContent: "center",
+                                marginTop: "4px"
+                            }}
+                        >
+                            <ArrowLeft size={14} /> Layanan Publik
+                        </button>
+                    </div>
+                </>
             )}
 
-            {/* SIDEBAR */}
-            <aside className={`admin-sidebar ${mobileSidebarOpen ? "mobile-open" : ""}`} style={{
+            {/* BACKDROP MOBILE - DIHAPUS DUPLIKAT, sudah ada di floating menu atas */}
+
+            {/* SIDEBAR DESKTOP */}
+            <aside className="admin-sidebar" style={{
                 width: "280px",
                 backgroundColor: "#ffffff",
                 borderRight: "1px solid #d2ded7",
@@ -790,7 +1171,7 @@ export default function AdminDashboard({
                             { name: "Input Suara (NLP)", icon: Mic },
                             { name: "Validasi Lapangan", icon: CheckCircle2, badge: surveyLogs.filter(x => x.status === "Menunggu Cek").length },
                             { name: "Manajemen Kios", icon: Users },
-                            { name: "Foto Katalog", icon: ImageIcon, badge: Object.keys(customPhotos || {}).length },
+                            { name: "Manajemen Katalog", icon: Package },
                         ].map((menu) => {
                             const Icon = menu.icon;
                             const isActive = activeTab === menu.name;
@@ -836,7 +1217,7 @@ export default function AdminDashboard({
 
                 {/* Footer Sidebar */}
                 <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginTop: "auto", paddingTop: "24px" }}>
-                    <button onClick={() => { logoutPetugas(); setActivePage("dashboard"); }} style={{
+                    <button onClick={handleLogout} style={{
                         display: "flex", alignItems: "center", justifyContent: "center", gap: "8px",
                         padding: "11px", borderRadius: "14px", border: "1px solid #fecaca",
                         backgroundColor: "#fef2f2", color: "#dc2626", fontWeight: "700", fontSize: "13px", cursor: "pointer"
@@ -865,34 +1246,29 @@ export default function AdminDashboard({
 
                 {/* NAVBAR ATAS */}
                 <header className="admin-topbar">
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                        <button
-                            className="admin-hamburger-btn"
-                            onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
-                            aria-label="Buka Menu"
-                            title="Buka Menu Navigasi"
-                        >
-                            <Menu size={20} />
-                        </button>
-
-                        {/* Brand Logo Khusus Tampilan Layar HP */}
+                    {/* Brand Logo Resmi Sisi Kiri */}
+                    <div className="admin-topbar-left" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
                         <div
                             className="admin-mobile-brand"
                             onClick={() => setActivePage("dashboard")}
                             title="Ke Beranda E-Pangan"
+                            style={{ cursor: "pointer", display: "flex", alignItems: "center" }}
                         >
                             <img
                                 src={logoEpangan}
                                 alt="E-Pangan"
-                                style={{ height: "32px", width: "auto", objectFit: "contain", display: "block" }}
+                                style={{ height: "34px", width: "auto", objectFit: "contain", display: "block" }}
                             />
                         </div>
 
-                        <div className="admin-status-badge">
+                        <div className="admin-status-badge desktop-only-badge">
                             <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#2d6a4f" }}></span>
                             SISTEM PEMANTAUAN REALTIME
                         </div>
+                    </div>
 
+                    {/* Sisi Kanan: Refresh, User Pill, & Tombol Hamburger SSCASN */}
+                    <div className="admin-topbar-right" style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                         <button
                             className="admin-refresh-btn"
                             onClick={handleFullRefresh}
@@ -900,210 +1276,26 @@ export default function AdminDashboard({
                             title="Sinkronisasi Data"
                         >
                             <RefreshCw size={14} className={isRefreshing ? "spin" : ""} />
-                            <span className="admin-refresh-text">{isRefreshing ? "Sinkron..." : "Refresh"}</span>
-                            <span className="admin-sync-time" style={{ color: "#4e6754" }}>• {lastSyncTime}</span>
+                            <span className="admin-refresh-text desktop-only-text">{isRefreshing ? "Sinkron..." : "Refresh"}</span>
+                            <span className="admin-sync-time desktop-only-text" style={{ color: "#4e6754" }}>• {lastSyncTime}</span>
                         </button>
-                    </div>
 
-                    <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                        <div style={{ position: "relative" }}>
-                            <button
-                                className="admin-notif-btn"
-                                onClick={() => setShowNotifications(!showNotifications)}
-                                title="Notifikasi"
-                            >
-                                <Bell size={18} />
-                                {unreadCount > 0 && (
-                                    <span className="admin-notif-badge">{unreadCount}</span>
-                                )}
-                            </button>
-
-                            {showNotifications && (
-                                <>
-                                    {/* Backdrop untuk klik di luar menutup panel */}
-                                    <div
-                                        onClick={() => setShowNotifications(false)}
-                                        style={{ position: "fixed", inset: 0, zIndex: 1040, background: "rgba(0,0,0,0.15)" }}
-                                    />
-
-                                    <div className="admin-notif-panel" style={{
-                                        position: "absolute",
-                                        right: 0,
-                                        top: "50px",
-                                        width: "360px",
-                                        maxWidth: "calc(100vw - 16px)",
-                                        backgroundColor: "#ffffff",
-                                        borderRadius: "20px",
-                                        boxShadow: "0 18px 40px rgba(15,29,20,0.22)",
-                                        border: "1px solid #d2ded7",
-                                        zIndex: 1050,
-                                        overflow: "hidden"
-                                    }}>
-                                        {/* Header Notifikasi */}
-                                        <div style={{ padding: "14px 18px", borderBottom: "1px solid #e2ede6", backgroundColor: "#f4f8f5", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                                            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                                                <span style={{ fontWeight: "800", fontSize: "14px", color: "#0f1d14" }}>Notifikasi Petugas</span>
-                                                {unreadCount > 0 && (
-                                                    <span style={{ fontSize: "11px", color: "#1b4332", fontWeight: "800", background: "#b7efc5", padding: "2px 8px", borderRadius: "99px" }}>
-                                                        {unreadCount} baru
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                                                {unreadCount > 0 && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => {
-                                                            setNotifications(prev => prev.map(item => ({ ...item, read: true })));
-                                                            if (showToast) showToast("Semua notifikasi ditandai dibaca", "info");
-                                                        }}
-                                                        style={{ background: "none", border: "none", color: "#2d6a4f", fontSize: "11px", fontWeight: "800", cursor: "pointer", display: "flex", alignItems: "center", gap: "3px", padding: "4px 8px", borderRadius: "6px" }}
-                                                        title="Tandai semua dibaca"
-                                                    >
-                                                        <CheckCheck size={13} /> Baca Semua
-                                                    </button>
-                                                )}
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setShowNotifications(false)}
-                                                    style={{ background: "#e2ede6", border: "none", borderRadius: "50%", width: "24px", height: "24px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: "#1b4332", padding: 0 }}
-                                                    title="Tutup Notifikasi"
-                                                >
-                                                    <X size={14} />
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        {/* Filter Tab: Semua / Belum Dibaca */}
-                                        <div style={{ display: "flex", borderBottom: "1px solid #eef3f0", backgroundColor: "#fafdfb", padding: "6px 12px", gap: "6px" }}>
-                                            <button
-                                                type="button"
-                                                onClick={() => setNotifFilter("all")}
-                                                style={{
-                                                    flex: 1, padding: "5px 10px", borderRadius: "99px", border: "none",
-                                                    fontSize: "11.5px", fontWeight: "800", cursor: "pointer",
-                                                    backgroundColor: notifFilter === "all" ? "#1b4332" : "transparent",
-                                                    color: notifFilter === "all" ? "#ffffff" : "#4e6754"
-                                                }}
-                                            >
-                                                Semua ({notifications.length})
-                                            </button>
-                                            <button
-                                                type="button"
-                                                onClick={() => setNotifFilter("unread")}
-                                                style={{
-                                                    flex: 1, padding: "5px 10px", borderRadius: "99px", border: "none",
-                                                    fontSize: "11.5px", fontWeight: "800", cursor: "pointer",
-                                                    backgroundColor: notifFilter === "unread" ? "#1b4332" : "transparent",
-                                                    color: notifFilter === "unread" ? "#ffffff" : "#4e6754"
-                                                }}
-                                            >
-                                                Belum Dibaca ({unreadCount})
-                                            </button>
-                                        </div>
-
-                                        {/* Daftar List Notifikasi Interaktif */}
-                                        <div style={{ maxHeight: "300px", overflowY: "auto" }}>
-                                            {(() => {
-                                                const displayedNotifs = notifFilter === "unread"
-                                                    ? notifications.filter(n => !n.read)
-                                                    : notifications;
-
-                                                if (displayedNotifs.length === 0) {
-                                                    return (
-                                                        <div style={{ padding: "30px 20px", textAlign: "center", color: "#6b7280", fontSize: "12.5px" }}>
-                                                            <CheckCircle2 size={24} color="#74c69d" style={{ margin: "0 auto 8px auto" }} />
-                                                            <div>Tidak ada notifikasi {notifFilter === "unread" ? "baru" : ""}.</div>
-                                                        </div>
-                                                    );
-                                                }
-
-                                                return displayedNotifs.map((n) => {
-                                                    const isUnread = !n.read;
-                                                    return (
-                                                        <div
-                                                            key={n.id}
-                                                            onClick={() => {
-                                                                setNotifications(prev => prev.map(item => item.id === n.id ? { ...item, read: true } : item));
-                                                                setShowNotifications(false);
-                                                                if (n.type === "pending" || n.title.toLowerCase().includes("survei") || n.title.toLowerCase().includes("validasi")) {
-                                                                    setActiveTab("Validasi Lapangan");
-                                                                    setStatusFilter("pending");
-                                                                    if (showToast) showToast("Membuka survei yang perlu dicek...", "info");
-                                                                } else if (n.type === "kios" || n.title.toLowerCase().includes("kios")) {
-                                                                    setActiveTab("Manajemen Kios");
-                                                                    if (showToast) showToast("Membuka direktori kios mitra...", "info");
-                                                                } else if (n.type === "anomali" || n.title.toLowerCase().includes("anomali")) {
-                                                                    setActiveTab("Validasi Lapangan");
-                                                                    if (showToast) showToast("Membuka laporan fluktuasi harga...", "info");
-                                                                } else {
-                                                                    setActiveTab("Ringkasan Pasar");
-                                                                    if (showToast) showToast(n.title, "info");
-                                                                }
-                                                            }}
-                                                            style={{
-                                                                padding: "12px 18px",
-                                                                borderBottom: "1px solid #f0f5f2",
-                                                                backgroundColor: isUnread ? "#f0f9f3" : "#ffffff",
-                                                                cursor: "pointer",
-                                                                display: "flex",
-                                                                gap: "12px",
-                                                                alignItems: "flex-start",
-                                                                transition: "background 0.15s ease"
-                                                            }}
-                                                        >
-                                                            <div style={{
-                                                                width: "30px", height: "30px", borderRadius: "50%",
-                                                                backgroundColor: n.type === "anomali" ? "#fee2e2" : n.type === "pending" ? "#fef3c7" : "#e2f5ea",
-                                                                display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, marginTop: "2px"
-                                                            }}>
-                                                                {n.type === "anomali" ? (
-                                                                    <AlertTriangle size={15} color="#dc2626" />
-                                                                ) : n.type === "pending" ? (
-                                                                    <Clock size={15} color="#d97706" />
-                                                                ) : (
-                                                                    <Store size={15} color="#2d6a4f" />
-                                                                )}
-                                                            </div>
-                                                            <div style={{ flex: 1, minWidth: 0 }}>
-                                                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "6px" }}>
-                                                                    <div style={{ fontSize: "12.5px", fontWeight: isUnread ? "800" : "700", color: "#0f1d14" }}>
-                                                                        {n.title}
-                                                                    </div>
-                                                                    <span style={{ fontSize: "10.5px", color: isUnread ? "#2d6a4f" : "#6b7280", fontWeight: "600", whiteSpace: "nowrap" }}>
-                                                                        {n.time}
-                                                                    </span>
-                                                                </div>
-                                                                <div style={{ fontSize: "12px", color: "#4e6754", marginTop: "2px", lineHeight: "1.4" }}>
-                                                                    {n.desc}
-                                                                </div>
-                                                            </div>
-                                                            {isUnread && (
-                                                                <span style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: "#2d6a4f", flexShrink: 0, marginTop: "6px" }} />
-                                                            )}
-                                                        </div>
-                                                    );
-                                                });
-                                            })()}
-                                        </div>
-                                    </div>
-                                </>
-                            )}
+                        <div className="admin-user-pill desktop-only-user">
+                            <div className="admin-avatar">
+                                <User size={16} />
+                            </div>
+                            <span className="admin-user-name">{currentUser?.nama || "Petugas Lapangan"}</span>
                         </div>
 
-                        <div className="admin-user-pill">
-                            <div className="admin-user-avatar">
-                                {currentUser?.nama?.charAt(0) || "A"}
-                            </div>
-                            <div className="admin-user-text">
-                                <div className="admin-user-name">
-                                    {currentUser?.nama || "Admin DKPP"}
-                                </div>
-                                <div className="admin-user-role">
-                                    {currentUser?.role === "superadmin" ? "Super Admin" : "Dinas Ketahanan Pangan"}
-                                </div>
-                            </div>
-                        </div>
+                        {/* Tombol Hamburger di Sisi KANAN Paling Ujung Ala SSCASN (Kecil & Rapi) */}
+                        <button
+                            className="admin-hamburger-btn"
+                            onClick={() => setMobileSidebarOpen(!mobileSidebarOpen)}
+                            aria-label="Buka Menu"
+                            title={mobileSidebarOpen ? "Tutup Menu" : "Buka Menu Petugas"}
+                        >
+                            {mobileSidebarOpen ? <X size={18} color="#1b4332" /> : <Menu size={18} color="#1b4332" />}
+                        </button>
                     </div>
                 </header>
 
@@ -1127,7 +1319,7 @@ export default function AdminDashboard({
                                     NIP: {currentUser?.nip || "19820516 200801 1 009"} • {currentUser?.jabatan || "Petugas Resmi DKPP"}
                                 </div>
                                 <div style={{ fontSize: "11.5px", color: "#2d6a4f", fontWeight: "700", marginTop: "2px" }}>
-                                    📍 Wilayah Pantau: {currentUser?.wilayah_pantau || "Pasar Sidoharjo & Pasar Lamongan"}
+                                    Wilayah Pantau: {currentUser?.wilayah_pantau || "Pasar Sidoharjo & Pasar Lamongan"}
                                 </div>
                             </div>
                         </div>
@@ -1176,40 +1368,40 @@ export default function AdminDashboard({
 
                                 <div className="admin-tabel-wrap">
                                     <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", minWidth: "540px" }}>
-                                    <thead>
-                                        <tr style={{ backgroundColor: "#f2f7f4", borderBottom: "1px solid #d2ded7" }}>
-                                            <th style={{ padding: "14px 16px", fontSize: "11px", fontWeight: "800", color: "#1b4332" }}>KOMODITAS</th>
-                                            <th style={{ padding: "14px 16px", fontSize: "11px", fontWeight: "800", color: "#1b4332" }}>KIOS &amp; LOKASI</th>
-                                            <th style={{ padding: "14px 16px", fontSize: "11px", fontWeight: "800", color: "#1b4332" }}>HARGA</th>
-                                            <th style={{ padding: "14px 16px", fontSize: "11px", fontWeight: "800", color: "#1b4332" }}>STATUS</th>
-                                            <th style={{ padding: "14px 16px", fontSize: "11px", fontWeight: "800", color: "#1b4332", textAlign: "center" }}>AKSI</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {filteredLogs.map((item) => (
-                                            <tr key={item.id} style={{ borderBottom: "1px solid #f2f7f4" }}>
-                                                <td style={{ padding: "14px 16px", fontWeight: "800", color: "#0f1d14" }}>{item.name} <div style={{ fontSize: "11px", color: "#4e6754", fontWeight: "600" }}>{item.subtitle}</div></td>
-                                                <td style={{ padding: "14px 16px", fontWeight: "700", color: "#0f1d14" }}>{item.kios} <div style={{ fontSize: "11px", color: "#4e6754", fontWeight: "600" }}>{item.lokasi}</div></td>
-                                                <td style={{ padding: "14px 16px", fontWeight: "800", color: "#0f1d14" }}>Rp {item.price.toLocaleString("id-ID")} /{item.unit}</td>
-                                                <td style={{ padding: "14px 16px" }}>
-                                                    {item.status === "Terverifikasi" ? (
-                                                        <span style={{ backgroundColor: "#eef8f2", color: "#1b4332", padding: "5px 12px", borderRadius: "99px", fontSize: "11px", fontWeight: "800", border: "1px solid #b7efc5" }}>Terverifikasi</span>
-                                                    ) : (
-                                                        <span style={{ backgroundColor: "#fef3c7", color: "#b45309", padding: "5px 12px", borderRadius: "99px", fontSize: "11px", fontWeight: "800", border: "1px solid #fde68a" }}>Menunggu Cek</span>
-                                                    )}
-                                                </td>
-                                                <td style={{ padding: "14px 16px", textAlign: "center" }}>
-                                                    <div style={{ display: "flex", justifyContent: "center", gap: "8px" }}>
-                                                        {item.status === "Menunggu Cek" && (
-                                                            <button onClick={() => handleValidate(item.id)} style={{ backgroundColor: "#2d6a4f", color: "#fff", border: "none", padding: "6px 12px", borderRadius: "99px", fontSize: "11px", fontWeight: "800", cursor: "pointer" }}>Validasi</button>
-                                                        )}
-                                                        <button onClick={() => handleDeleteLog(item.id)} style={{ background: "#fee2e2", border: "1px solid #fca5a5", padding: "7px", borderRadius: "50%", cursor: "pointer", color: "#ef4444" }}><Trash2 size={13} /></button>
-                                                    </div>
-                                                </td>
+                                        <thead>
+                                            <tr style={{ backgroundColor: "#f2f7f4", borderBottom: "1px solid #d2ded7" }}>
+                                                <th style={{ padding: "14px 16px", fontSize: "11px", fontWeight: "800", color: "#1b4332" }}>KOMODITAS</th>
+                                                <th style={{ padding: "14px 16px", fontSize: "11px", fontWeight: "800", color: "#1b4332" }}>KIOS &amp; LOKASI</th>
+                                                <th style={{ padding: "14px 16px", fontSize: "11px", fontWeight: "800", color: "#1b4332" }}>HARGA</th>
+                                                <th style={{ padding: "14px 16px", fontSize: "11px", fontWeight: "800", color: "#1b4332" }}>STATUS</th>
+                                                <th style={{ padding: "14px 16px", fontSize: "11px", fontWeight: "800", color: "#1b4332", textAlign: "center" }}>AKSI</th>
                                             </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                                        </thead>
+                                        <tbody>
+                                            {filteredLogs.map((item) => (
+                                                <tr key={item.id} style={{ borderBottom: "1px solid #f2f7f4" }}>
+                                                    <td style={{ padding: "14px 16px", fontWeight: "800", color: "#0f1d14" }}>{item.name} <div style={{ fontSize: "11px", color: "#4e6754", fontWeight: "600" }}>{item.subtitle}</div></td>
+                                                    <td style={{ padding: "14px 16px", fontWeight: "700", color: "#0f1d14" }}>{item.kios} <div style={{ fontSize: "11px", color: "#4e6754", fontWeight: "600" }}>{item.lokasi}</div></td>
+                                                    <td style={{ padding: "14px 16px", fontWeight: "800", color: "#0f1d14" }}>Rp {item.price.toLocaleString("id-ID")} /{item.unit}</td>
+                                                    <td style={{ padding: "14px 16px" }}>
+                                                        {item.status === "Terverifikasi" ? (
+                                                            <span style={{ backgroundColor: "#eef8f2", color: "#1b4332", padding: "5px 12px", borderRadius: "99px", fontSize: "11px", fontWeight: "800", border: "1px solid #b7efc5" }}>Terverifikasi</span>
+                                                        ) : (
+                                                            <span style={{ backgroundColor: "#fef3c7", color: "#b45309", padding: "5px 12px", borderRadius: "99px", fontSize: "11px", fontWeight: "800", border: "1px solid #fde68a" }}>Menunggu Cek</span>
+                                                        )}
+                                                    </td>
+                                                    <td style={{ padding: "14px 16px", textAlign: "center" }}>
+                                                        <div style={{ display: "flex", justifyContent: "center", gap: "8px" }}>
+                                                            {item.status === "Menunggu Cek" && (
+                                                                <button onClick={() => handleValidate(item.id)} style={{ backgroundColor: "#2d6a4f", color: "#fff", border: "none", padding: "6px 12px", borderRadius: "99px", fontSize: "11px", fontWeight: "800", cursor: "pointer" }}>Validasi</button>
+                                                            )}
+                                                            <button onClick={() => handleDeleteLog(item.id)} style={{ background: "#fee2e2", border: "1px solid #fca5a5", padding: "7px", borderRadius: "50%", cursor: "pointer", color: "#ef4444" }}><Trash2 size={13} /></button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                         </>
@@ -1217,7 +1409,12 @@ export default function AdminDashboard({
 
                     {/* TAB 2: NLP AUDIO */}
                     {activeTab === "Input Suara (NLP)" && (
-                        <NlpAudioUpload onSuccessSave={handleFullRefresh} showToast={showToast} onNavigateTab={setActiveTab} />
+                        <NlpAudioUpload
+                            onSuccessSave={handleFullRefresh}
+                            showToast={showToast}
+                            onNavigateTab={setActiveTab}
+                            kiosList={kiosList}
+                        />
                     )}
 
                     {/* TAB 3: VALIDASI */}
@@ -1435,12 +1632,12 @@ export default function AdminDashboard({
                                                         </div>
 
                                                         <div style={{ fontSize: "13px", color: "#4e6754", fontWeight: "600", marginBottom: "6px" }}>
-                                                            📍 <strong>{item.kios}</strong> — {item.lokasi}
+                                                             <strong>{item.kios}</strong> — {item.lokasi}
                                                         </div>
 
                                                         {item.catatan && (
                                                             <div style={{ fontSize: "12px", color: "#6b7280", fontStyle: "italic", backgroundColor: "#f2f7f4", padding: "6px 12px", borderRadius: "10px", display: "inline-block", maxWidth: "100%" }}>
-                                                                💬 {item.catatan}
+                                                                Catatan:  {item.catatan}
                                                             </div>
                                                         )}
                                                     </div>
@@ -1680,8 +1877,9 @@ export default function AdminDashboard({
                                                             <div style={{ fontWeight: "800", fontSize: "17px", color: "#0f1d14" }}>
                                                                 {kios.nama_kios}
                                                             </div>
-                                                            <div style={{ fontSize: "12.5px", color: "#4e6754", fontWeight: "600", marginTop: "2px" }}>
-                                                                👤 {kios.pemilik || "Pedagang Binaan"}
+                                                            <div style={{ fontSize: "12.5px", color: "#4e6754", fontWeight: "600", marginTop: "2px", display: "flex", alignItems: "center", gap: "5px" }}>
+                                                                <User size={13} color="#2d6a4f" />
+                                                                <span>{kios.pemilik || "Pedagang Binaan"}</span>
                                                             </div>
                                                         </div>
                                                         <span style={{
@@ -1736,7 +1934,7 @@ export default function AdminDashboard({
                                                         }}
                                                     >
                                                         <Eye size={13} color="#2d6a4f" />
-                                                        <span>📦 {kios.total_katalog || 0} Komoditas</span>
+                                                        <span>{kios.total_katalog || 0} Komoditas</span>
                                                     </button>
 
                                                     <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
@@ -1789,643 +1987,491 @@ export default function AdminDashboard({
                         );
                     })()}
 
-                    {/* TAB 5: MANAJEMEN FOTO KATALOG KOMODITAS */}
-                    {activeTab === "Foto Katalog" && (() => {
-                        const kategoriPills = [
-                            "Semua",
-                            "KEBUTUHAN POKOK",
-                            "BAHAN BAKU",
-                            "BUMBU DAPUR",
-                            "PROTEIN HEWANI",
-                            "MINYAK GORENG",
-                            "SAYUR & JAMUR",
-                        ];
-
-                        const filteredKatalog = combinedKatalog.filter((item) => {
-                            const clean = item.name.toLowerCase();
-                            const matchSearch = clean.includes(fotoSearch.toLowerCase().trim());
-                            const matchCategory =
-                                fotoCategoryFilter === "Semua" ||
-                                (item.kategori || "").toUpperCase().includes(fotoCategoryFilter.toUpperCase());
-                            const isCustom = Boolean(customPhotos[clean]);
-                            const matchKustom = !hanyaKustomFilter || isCustom;
-                            return matchSearch && matchCategory && matchKustom;
-                        });
-
-                        const totalKustomCount = Object.keys(customPhotos || {}).length;
+                    {/* TAB 5: MANAJEMEN KATALOG KOMODITAS (CRUD DATABASE) */}
+                    {activeTab === "Manajemen Katalog" && (() => {
+                        const filteredMasterKatalog = masterKatalogList.filter(item =>
+                            (item.name || "").toLowerCase().includes(fotoSearch.toLowerCase()) ||
+                            (item.kategori || "").toLowerCase().includes(fotoSearch.toLowerCase())
+                        );
 
                         return (
-                            <div style={{ display: "flex", flexDirection: "column", gap: "22px" }}>
-                                {/* HEADER BANNER PENJELASAN */}
+                            <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
+                                {/* Header Banner */}
                                 <div style={{
                                     backgroundColor: "#ffffff",
                                     borderRadius: "24px",
-                                    padding: "26px 30px",
+                                    padding: "24px 28px",
                                     border: "1px solid #d2ded7",
                                     boxShadow: "0 4px 20px rgba(27,67,50,0.04)",
                                     display: "flex",
                                     justifyContent: "space-between",
                                     alignItems: "center",
                                     flexWrap: "wrap",
-                                    gap: "18px"
+                                    gap: "16px"
                                 }}>
-                                    <div style={{ maxWidth: "680px" }}>
+                                    <div>
                                         <div style={{
-                                            display: "inline-flex",
-                                            alignItems: "center",
-                                            gap: "8px",
-                                            backgroundColor: "#eef8f2",
-                                            padding: "5px 14px",
-                                            borderRadius: "99px",
-                                            marginBottom: "10px",
-                                            border: "1px solid #b7efc5"
+                                            display: "inline-flex", alignItems: "center", gap: "8px",
+                                            backgroundColor: "#eef8f2", padding: "5px 14px",
+                                            borderRadius: "99px", marginBottom: "10px", border: "1px solid #b7efc5"
                                         }}>
-                                            <Camera size={14} color="#2d6a4f" />
+                                            <Package size={14} color="#2d6a4f" />
                                             <span style={{ fontSize: "11px", fontWeight: "800", color: "#1b4332", letterSpacing: "0.04em" }}>
-                                                PENGATURAN FOTO KATALOG DASHBOARD
+                                                MANAJEMEN KATALOG KOMODITAS
                                             </span>
                                         </div>
-                                        <h2 style={{ fontSize: "21px", fontWeight: "800", color: "#0f1d14", margin: "0 0 6px 0", letterSpacing: "-0.02em" }}>
-                                            Kelola Foto Katalog Komoditas Beranda
+                                        <h2 style={{ fontSize: "21px", fontWeight: "800", color: "#0f1d14", margin: "0 0 6px 0" }}>
+                                            Kelola Data Katalog Komoditas
                                         </h2>
                                         <p style={{ margin: 0, fontSize: "13px", color: "#4e6754", lineHeight: "1.6" }}>
-                                            Admin dapat mengganti dan mengunggah foto komoditas kapan saja langsung dari portal ini tanpa perlu mengedit kode program. Foto yang diganti akan otomatis tersimpan permanen dan langsung tampil di halaman Beranda (Dashboard Publik).
+                                            Tambah, edit, dan hapus komoditas. Perubahan langsung tersinkron ke halaman publik dan database.
                                         </p>
                                     </div>
-
-                                    {/* Stat Ringkasan Foto */}
-                                    <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-                                        <div style={{
-                                            backgroundColor: "#f2f7f4",
-                                            padding: "12px 18px",
-                                            borderRadius: "16px",
-                                            border: "1px solid #d2ded7",
-                                            textAlign: "center",
-                                            minWidth: "110px"
-                                        }}>
-                                            <div style={{ fontSize: "10.5px", fontWeight: "800", color: "#4e6754", letterSpacing: "0.04em" }}>TOTAL KATALOG</div>
-                                            <div style={{ fontSize: "22px", fontWeight: "800", color: "#1b4332", marginTop: "2px" }}>
-                                                {combinedKatalog.length}
-                                            </div>
-                                        </div>
-                                        <div style={{
-                                            backgroundColor: totalKustomCount > 0 ? "#eef8f2" : "#f2f7f4",
-                                            padding: "12px 18px",
-                                            borderRadius: "16px",
-                                            border: totalKustomCount > 0 ? "1px solid #b7efc5" : "1px solid #d2ded7",
-                                            textAlign: "center",
-                                            minWidth: "110px"
-                                        }}>
-                                            <div style={{ fontSize: "10.5px", fontWeight: "800", color: totalKustomCount > 0 ? "#2d6a4f" : "#4e6754", letterSpacing: "0.04em" }}>FOTO KUSTOM</div>
-                                            <div style={{ fontSize: "22px", fontWeight: "800", color: totalKustomCount > 0 ? "#2d6a4f" : "#4e6754", marginTop: "2px" }}>
-                                                {totalKustomCount}
-                                            </div>
-                                        </div>
-                                    </div>
+                                    <button
+                                        onClick={() => setShowAddKatalogModal(true)}
+                                        style={{
+                                            display: "inline-flex", alignItems: "center", gap: "8px",
+                                            padding: "11px 22px", borderRadius: "99px", border: "none",
+                                            backgroundColor: "#1b4332", color: "#ffffff",
+                                            fontWeight: "800", fontSize: "13px", cursor: "pointer",
+                                            boxShadow: "0 6px 18px rgba(27,67,50,0.25)", flexShrink: 0
+                                        }}
+                                    >
+                                        <Plus size={16} /> Tambah Komoditas Baru
+                                    </button>
                                 </div>
 
-                                {/* TOOLBAR PENCARIAN & FILTER KATEGORI */}
+                                {/* Toolbar: search + filter */}
                                 <div style={{
-                                    backgroundColor: "#ffffff",
-                                    borderRadius: "24px",
-                                    padding: "20px 24px",
-                                    border: "1px solid #d2ded7",
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    gap: "16px",
-                                    boxShadow: "0 4px 16px rgba(27,67,50,0.03)"
+                                    backgroundColor: "#ffffff", borderRadius: "18px",
+                                    padding: "16px 20px", border: "1px solid #d2ded7",
+                                    display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap"
                                 }}>
-                                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px" }}>
-                                        {/* Input Cari */}
-                                        <div style={{ position: "relative", width: "100%", maxWidth: "380px" }}>
-                                            <Search size={16} color="#4e6754" style={{ position: "absolute", left: "14px", top: "12px" }} />
-                                            <input
-                                                type="text"
-                                                placeholder="Cari komoditas (misal: Gula Aren, Jagung, Telur)..."
-                                                value={fotoSearch}
-                                                onChange={(e) => setFotoSearch(e.target.value)}
-                                                style={{
-                                                    padding: "10px 14px 10px 38px",
-                                                    borderRadius: "99px",
-                                                    border: "1px solid #d2ded7",
-                                                    fontSize: "13px",
-                                                    outline: "none",
-                                                    backgroundColor: "#f2f7f4",
-                                                    fontWeight: "600",
-                                                    width: "100%",
-                                                    boxSizing: "border-box"
-                                                }}
-                                            />
-                                            {fotoSearch && (
-                                                <button
-                                                    onClick={() => setFotoSearch("")}
-                                                    style={{ position: "absolute", right: "12px", top: "10px", background: "none", border: "none", cursor: "pointer", color: "#4e6754" }}
-                                                >
-                                                    <X size={15} />
-                                                </button>
-                                            )}
-                                        </div>
-
-                                        {/* Filter Kustom Toggle */}
-                                        <button
-                                            type="button"
-                                            onClick={() => setHanyaKustomFilter(!hanyaKustomFilter)}
+                                    <div style={{ position: "relative", flex: "1 1 220px", minWidth: "180px" }}>
+                                        <Search size={15} color="#4e6754" style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)" }} />
+                                        <input
+                                            type="text"
+                                            placeholder="Cari komoditas..."
+                                            value={fotoSearch}
+                                            onChange={e => setFotoSearch(e.target.value)}
                                             style={{
-                                                padding: "9px 18px",
-                                                borderRadius: "99px",
-                                                border: hanyaKustomFilter ? "1.5px solid #2d6a4f" : "1px solid #d2ded7",
-                                                backgroundColor: hanyaKustomFilter ? "#1b4332" : "#ffffff",
-                                                color: hanyaKustomFilter ? "#ffffff" : "#4e6754",
-                                                fontSize: "12.5px",
-                                                fontWeight: "800",
-                                                cursor: "pointer",
-                                                display: "inline-flex",
-                                                alignItems: "center",
-                                                gap: "8px",
-                                                transition: "all 0.15s"
+                                                width: "100%", padding: "9px 12px 9px 36px",
+                                                borderRadius: "99px", border: "1px solid #d2ded7",
+                                                fontSize: "13px", fontWeight: "600", outline: "none",
+                                                boxSizing: "border-box"
                                             }}
-                                        >
-                                            <Camera size={14} />
-                                            <span>Hanya Foto Kustom ({totalKustomCount})</span>
-                                        </button>
+                                        />
                                     </div>
-
-                                    {/* Kategori Filter Pills */}
-                                    <div style={{ display: "flex", gap: "8px", overflowX: "auto", paddingBottom: "4px" }}>
-                                        {kategoriPills.map((kat) => {
-                                            const isActive = fotoCategoryFilter === kat;
-                                            return (
-                                                <button
-                                                    key={kat}
-                                                    type="button"
-                                                    onClick={() => setFotoCategoryFilter(kat)}
-                                                    style={{
-                                                        padding: "6px 14px",
-                                                        borderRadius: "99px",
-                                                        border: isActive ? "1.5px solid #2d6a4f" : "1px solid #d2ded7",
-                                                        backgroundColor: isActive ? "#eef8f2" : "#ffffff",
-                                                        color: isActive ? "#1b4332" : "#4e6754",
-                                                        fontSize: "11.5px",
-                                                        fontWeight: isActive ? "800" : "600",
-                                                        cursor: "pointer",
-                                                        whiteSpace: "nowrap",
-                                                        transition: "all 0.15s"
-                                                    }}
-                                                >
-                                                    {kat}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
+                                    <span style={{ fontSize: "12px", fontWeight: "700", color: "#4e6754" }}>
+                                        {katalogLoading ? "Memuat..." : `${filteredMasterKatalog.length} komoditas`}
+                                    </span>
                                 </div>
 
-                                {/* GRID DAFTAR KOMODITAS & FOTONYA */}
-                                {filteredKatalog.length === 0 ? (
+                                {/* Grid Katalog */}
+                                {katalogLoading ? (
+                                    <div style={{ textAlign: "center", padding: "48px", color: "#4e6754" }}>
+                                        <Loader2 size={32} className="spin" color="#2d6a4f" />
+                                        <p style={{ marginTop: "12px", fontSize: "14px", fontWeight: "700" }}>Memuat data katalog...</p>
+                                    </div>
+                                ) : filteredMasterKatalog.length === 0 ? (
                                     <div style={{
-                                        backgroundColor: "#ffffff",
-                                        borderRadius: "24px",
-                                        padding: "48px 20px",
-                                        textAlign: "center",
+                                        textAlign: "center", padding: "48px 24px",
+                                        backgroundColor: "#ffffff", borderRadius: "24px",
                                         border: "1px solid #d2ded7"
                                     }}>
-                                        <Camera size={36} color="#9ca3af" style={{ margin: "0 auto 12px" }} />
-                                        <h4 style={{ margin: "0 0 6px 0", fontSize: "16px", fontWeight: "800", color: "#0f1d14" }}>
-                                            Komoditas Tidak Ditemukan
-                                        </h4>
-                                        <p style={{ margin: 0, fontSize: "13px", color: "#4e6754" }}>
-                                            Coba ubah kata kunci pencarian atau pilih kategori lain.
+                                        <Package size={40} color="#b7efc5" />
+                                        <p style={{ marginTop: "12px", fontSize: "15px", fontWeight: "800", color: "#1b4332" }}>
+                                            {fotoSearch ? "Komoditas tidak ditemukan" : "Belum ada katalog komoditas"}
                                         </p>
+                                        <p style={{ fontSize: "13px", color: "#4e6754", marginTop: "6px" }}>
+                                            {fotoSearch ? "Coba kata kunci lain" : "Klik \"Tambah Komoditas Baru\" untuk mulai menambahkan."}
+                                        </p>
+                                        {!fotoSearch && (
+                                            <button
+                                                onClick={() => setShowAddKatalogModal(true)}
+                                                style={{
+                                                    marginTop: "16px", padding: "10px 24px",
+                                                    borderRadius: "99px", border: "none",
+                                                    backgroundColor: "#1b4332", color: "#ffffff",
+                                                    fontWeight: "800", fontSize: "13px", cursor: "pointer"
+                                                }}
+                                            >
+                                                + Tambah Komoditas Pertama
+                                            </button>
+                                        )}
                                     </div>
                                 ) : (
-                                    <div style={{
-                                        display: "grid",
-                                        gridTemplateColumns: "repeat(auto-fill, minmax(290px, 1fr))",
-                                        gap: "20px"
-                                    }}>
-                                        {filteredKatalog.map((item, idx) => {
-                                            const cleanKey = item.name.toLowerCase().trim();
-                                            const isCustom = Boolean(customPhotos[cleanKey]);
-                                            const currentImg =
-                                                customPhotos[cleanKey] ||
-                                                (getKomoditasImage ? getKomoditasImage(item.name) : null);
-                                            const isUploadingThis = uploadingName === item.name;
-
-                                            return (
-                                                <div
-                                                    key={item.name}
-                                                    style={{
-                                                        backgroundColor: "#ffffff",
-                                                        borderRadius: "24px",
-                                                        padding: "18px",
-                                                        border: isCustom ? "2px solid #52b788" : "1px solid #d2ded7",
-                                                        boxShadow: isCustom
-                                                            ? "0 6px 20px rgba(82, 183, 136, 0.12)"
-                                                            : "0 2px 12px rgba(27,67,50,0.03)",
-                                                        display: "flex",
-                                                        flexDirection: "column",
-                                                        justifyContent: "space-between",
-                                                        gap: "14px",
-                                                        position: "relative",
-                                                        transition: "all 0.2s"
-                                                    }}
-                                                >
-                                                    {/* Hidden File Input untuk komoditas ini */}
-                                                    <input
-                                                        type="file"
-                                                        id={`upload-foto-item-${idx}`}
-                                                        accept="image/jpeg,image/png,image/jpg,image/webp,image/svg+xml"
-                                                        style={{ display: "none" }}
-                                                        onChange={(e) => {
-                                                            const file = e.target.files?.[0];
-                                                            if (file) handleUploadPhoto(item.name, file);
-                                                            e.target.value = "";
-                                                        }}
-                                                    />
-
-                                                    {/* Header Card: Kategori & Status Badge */}
-                                                    <div>
-                                                        <div style={{
-                                                            display: "flex",
-                                                            justifyContent: "space-between",
-                                                            alignItems: "center",
-                                                            gap: "8px",
-                                                            marginBottom: "12px",
-                                                            flexWrap: "wrap"
-                                                        }}>
-                                                            <span style={{
-                                                                fontSize: "10px",
-                                                                fontWeight: "800",
-                                                                color: "#2d6a4f",
-                                                                backgroundColor: "#eef8f2",
-                                                                padding: "4px 10px",
-                                                                borderRadius: "99px",
-                                                                letterSpacing: "0.04em",
-                                                                border: "1px solid #b7efc5"
-                                                            }}>
-                                                                {item.kategori || "KEBUTUHAN POKOK"}
-                                                            </span>
-
-                                                            {isCustom ? (
-                                                                <span style={{
-                                                                    fontSize: "10.5px",
-                                                                    fontWeight: "800",
-                                                                    color: "#1b4332",
-                                                                    backgroundColor: "#b7efc5",
-                                                                    padding: "4px 10px",
-                                                                    borderRadius: "99px",
-                                                                    display: "inline-flex",
-                                                                    alignItems: "center",
-                                                                    gap: "4px"
-                                                                }}>
-                                                                    ⭐ Foto Kustom
-                                                                </span>
-                                                            ) : (
-                                                                <span style={{
-                                                                    fontSize: "10.5px",
-                                                                    fontWeight: "700",
-                                                                    color: "#6b8f71",
-                                                                    backgroundColor: "#f4f8f5",
-                                                                    padding: "4px 10px",
-                                                                    borderRadius: "99px"
-                                                                }}>
-                                                                    Bawaan
-                                                                </span>
-                                                            )}
-                                                        </div>
-
-                                                        {/* Preview Gambar Box */}
-                                                        <div
-                                                            onClick={() => {
-                                                                const el = document.getElementById(`upload-foto-item-${idx}`);
-                                                                if (el) el.click();
-                                                            }}
-                                                            title="Klik untuk mengganti foto komoditas ini"
-                                                            style={{
-                                                                width: "100%",
-                                                                height: "175px",
-                                                                borderRadius: "16px",
-                                                                overflow: "hidden",
-                                                                backgroundColor: "#f2f7f4",
-                                                                position: "relative",
-                                                                cursor: "pointer",
-                                                                border: "1px solid #e2ece6",
-                                                                display: "flex",
-                                                                alignItems: "center",
-                                                                justifyContent: "center"
-                                                            }}
-                                                        >
-                                                            {currentImg ? (
-                                                                <img
-                                                                    src={currentImg}
-                                                                    alt={item.name}
-                                                                    style={{
-                                                                        width: "100%",
-                                                                        height: "100%",
-                                                                        objectFit: "cover",
-                                                                        display: "block",
-                                                                        transition: "transform 0.25s"
-                                                                    }}
-                                                                />
-                                                            ) : (
-                                                                <div style={{ textAlign: "center", padding: "16px", color: "#6b8f71" }}>
-                                                                    <Camera size={32} style={{ margin: "0 auto 6px", opacity: 0.5 }} />
-                                                                    <div style={{ fontSize: "11px", fontWeight: "700" }}>Pilih Foto</div>
-                                                                </div>
-                                                            )}
-
-                                                            {/* Overlay jika sedang mengunggah */}
-                                                            {isUploadingThis && (
-                                                                <div style={{
-                                                                    position: "absolute",
-                                                                    inset: 0,
-                                                                    backgroundColor: "rgba(27,67,50,0.85)",
-                                                                    display: "flex",
-                                                                    flexDirection: "column",
-                                                                    alignItems: "center",
-                                                                    justifyContent: "center",
-                                                                    color: "#ffffff",
-                                                                    gap: "8px",
-                                                                    backdropFilter: "blur(2px)"
-                                                                }}>
-                                                                    <Loader2 size={24} style={{ animation: "ch-spin 1s linear infinite" }} />
-                                                                    <span style={{ fontSize: "12px", fontWeight: "800" }}>Mengunggah...</span>
-                                                                </div>
-                                                            )}
-
-                                                            {/* Hover prompt kecil di pojok kanan bawah */}
-                                                            <div style={{
-                                                                position: "absolute",
-                                                                right: "8px",
-                                                                bottom: "8px",
-                                                                backgroundColor: "rgba(17, 34, 22, 0.8)",
-                                                                backdropFilter: "blur(4px)",
-                                                                color: "#ffffff",
-                                                                borderRadius: "99px",
-                                                                padding: "4px 10px",
-                                                                fontSize: "10.5px",
-                                                                fontWeight: "800",
-                                                                display: "flex",
-                                                                alignItems: "center",
-                                                                gap: "5px"
-                                                            }}>
-                                                                <Camera size={12} />
-                                                                <span>Ganti</span>
-                                                            </div>
-                                                        </div>
-
-                                                        {/* Judul & Keterangan Bahan */}
-                                                        <div style={{ marginTop: "12px" }}>
-                                                            <h3 style={{
-                                                                margin: "0 0 4px 0",
-                                                                fontSize: "15px",
-                                                                fontWeight: "800",
-                                                                color: "#0f1d14",
-                                                                lineHeight: "1.3"
-                                                            }}>
-                                                                {item.name}
-                                                            </h3>
-                                                            <p style={{
-                                                                margin: 0,
-                                                                fontSize: "11.5px",
-                                                                color: "#4e6754",
-                                                                lineHeight: "1.4"
-                                                            }}>
-                                                                {item.desc || "Komoditas pangan resmi pantauan pasar DKPP Lamongan"}
-                                                            </p>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Tombol Aksi */}
-                                                    <div style={{
-                                                        borderTop: "1px solid #f2f7f4",
-                                                        paddingTop: "12px",
-                                                        display: "flex",
-                                                        alignItems: "center",
-                                                        gap: "8px"
-                                                    }}>
-                                                        {/* Tombol Unggah Langsung dari Komputer/HP */}
-                                                        <button
-                                                            type="button"
-                                                            disabled={isUploadingThis}
-                                                            onClick={() => {
-                                                                const el = document.getElementById(`upload-foto-item-${idx}`);
-                                                                if (el) el.click();
-                                                            }}
-                                                            style={{
-                                                                flex: 1,
-                                                                backgroundColor: "#1b4332",
-                                                                color: "#ffffff",
-                                                                border: "none",
-                                                                borderRadius: "12px",
-                                                                padding: "9px 12px",
-                                                                fontSize: "12px",
-                                                                fontWeight: "800",
-                                                                cursor: "pointer",
-                                                                display: "flex",
-                                                                alignItems: "center",
-                                                                justifyContent: "center",
-                                                                gap: "6px",
-                                                                fontFamily: "inherit",
-                                                                transition: "all 0.15s"
-                                                            }}
-                                                        >
-                                                            <UploadCloud size={14} />
-                                                            <span>Upload Foto</span>
-                                                        </button>
-
-                                                        {/* Tombol Link URL */}
-                                                        <button
-                                                            type="button"
-                                                            title="Masukkan URL Gambar Web"
-                                                            onClick={() => {
-                                                                setUrlModalItem(item);
-                                                                setUrlInputVal(customPhotos[cleanKey] || "");
-                                                            }}
-                                                            style={{
-                                                                backgroundColor: "#ffffff",
-                                                                color: "#1b4332",
-                                                                border: "1px solid #d2ded7",
-                                                                borderRadius: "12px",
-                                                                padding: "9px 11px",
-                                                                fontSize: "12px",
-                                                                fontWeight: "700",
-                                                                cursor: "pointer",
-                                                                display: "flex",
-                                                                alignItems: "center",
-                                                                justifyContent: "center",
-                                                                transition: "all 0.15s"
-                                                            }}
-                                                        >
-                                                            <LinkIcon size={14} />
-                                                        </button>
-
-                                                        {/* Tombol Reset ke Default (Hanya jika sedang memakai foto kustom) */}
-                                                        {isCustom && (
-                                                            <button
-                                                                type="button"
-                                                                title="Reset ke Foto Bawaan"
-                                                                onClick={() => handleResetPhoto(item.name)}
-                                                                style={{
-                                                                    backgroundColor: "#fef2f2",
-                                                                    color: "#dc2626",
-                                                                    border: "1px solid #fecaca",
-                                                                    borderRadius: "12px",
-                                                                    padding: "9px 11px",
-                                                                    fontSize: "12px",
-                                                                    fontWeight: "700",
-                                                                    cursor: "pointer",
-                                                                    display: "flex",
-                                                                    alignItems: "center",
-                                                                    justifyContent: "center",
-                                                                    transition: "all 0.15s"
-                                                                }}
-                                                            >
-                                                                <RotateCcw size={14} />
-                                                            </button>
-                                                        )}
-                                                    </div>
+                                    <div className="admin-katalog-grid">
+                                        {filteredMasterKatalog.map((item, idx) => (
+                                            <div key={item.id || idx} className="admin-katalog-card">
+                                                {/* Foto */}
+                                                <div className="admin-katalog-img-wrap">
+                                                    {(() => {
+                                                        const imgSource = item.foto_url || (getKomoditasImage && getKomoditasImage(item.name)) || customPhotos[(item.name || "").toLowerCase()] || "";
+                                                        return imgSource ? (
+                                                            <img
+                                                                src={imgSource}
+                                                                alt={item.name}
+                                                                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                                                onError={e => { e.target.style.display = "none"; }}
+                                                            />
+                                                        ) : (
+                                                            <Package size={28} color="#b7efc5" />
+                                                        );
+                                                    })()}
                                                 </div>
-                                            );
-                                        })}
+                                                {/* Info */}
+                                                <div>
+                                                    <span className="admin-katalog-badge">
+                                                        {item.kategori || "UMUM"}
+                                                    </span>
+                                                    <h3 className="admin-katalog-name">
+                                                        {item.name}
+                                                    </h3>
+                                                    <p className="admin-katalog-price">
+                                                        {item.satuan || "kg"} • Rp {Number(item.harga_acuan || 0).toLocaleString("id-ID")}
+                                                    </p>
+                                                </div>
+                                                {/* Action Buttons */}
+                                                <div style={{ display: "flex", gap: "6px", marginTop: "auto" }}>
+                                                    <button
+                                                        onClick={() => {
+                                                            setEditingKatalogItem(item);
+                                                            setEditKatalogForm({
+                                                                old_name: item.name,
+                                                                name: item.name,
+                                                                kategori: item.kategori || "KEBUTUHAN POKOK",
+                                                                satuan: item.satuan || "1kg",
+                                                                harga_acuan: item.harga_acuan || 0,
+                                                                het: item.het || 0,
+                                                                foto_url: item.foto_url || ""
+                                                            });
+                                                        }}
+                                                        className="admin-katalog-btn-edit"
+                                                    >
+                                                        <Edit2 size={13} /> Edit
+                                                    </button>
+                                                    <button
+                                                        onClick={() => {
+                                                            if (window.confirm(`Hapus "${item.name}" dari katalog?\n\nData di halaman publik juga akan terhapus.`)) {
+                                                                handleDeleteKatalogSubmit(item.name);
+                                                            }
+                                                        }}
+                                                        className="admin-katalog-btn-del"
+                                                    >
+                                                        <Trash2 size={13} /> Hapus
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
                                 )}
 
-                                {/* MODAL INPUT URL GAMBAR */}
-                                {urlModalItem && (
-                                    <div
-                                        className="admin-modal-overlay"
-                                        style={{
-                                            position: "fixed",
-                                            top: 0,
-                                            left: 0,
-                                            right: 0,
-                                            bottom: 0,
-                                            backgroundColor: "rgba(15, 23, 42, 0.6)",
-                                            backdropFilter: "blur(4px)",
-                                            display: "flex",
-                                            alignItems: "center",
-                                            justifyContent: "center",
-                                            zIndex: 2000,
-                                            padding: "16px"
-                                        }}
-                                    >
-                                        <div
-                                            className="admin-modal-card"
-                                            style={{
-                                                backgroundColor: "#ffffff",
-                                                borderRadius: "28px",
-                                                maxWidth: "480px",
-                                                width: "100%",
-                                                padding: "28px 30px",
-                                                border: "1px solid #d2ded7",
-                                                boxShadow: "0 20px 45px rgba(0,0,0,0.2)"
-                                            }}
-                                        >
-                                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "18px" }}>
-                                                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                                                    <LinkIcon size={18} color="#2d6a4f" />
-                                                    <h3 style={{ fontSize: "17px", fontWeight: "800", color: "#0f1d14", margin: 0 }}>
-                                                        Setel URL Foto Komoditas
+                                 {/* MODAL TAMBAH KATALOG */}
+                                {showAddKatalogModal && (
+                                    <div style={{
+                                        position: "fixed", inset: 0,
+                                        backgroundColor: "rgba(15,23,42,0.65)",
+                                        backdropFilter: "blur(4px)",
+                                        display: "flex", alignItems: "center", justifyContent: "center",
+                                        zIndex: 1200, padding: "16px"
+                                    }}>
+                                        <div style={{
+                                            backgroundColor: "#ffffff", borderRadius: "24px",
+                                            maxWidth: "540px", width: "100%", padding: "28px",
+                                            border: "1px solid #d2ded7", maxHeight: "90vh", overflowY: "auto"
+                                        }}>
+                                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+                                                <div>
+                                                    <h3 style={{ margin: 0, fontSize: "18px", fontWeight: "800", color: "#0f1d14" }}>
+                                                        Tambah Komoditas Baru
                                                     </h3>
+                                                    <span style={{ fontSize: "12px", color: "#4e6754", fontWeight: "600" }}>
+                                                        Daftarkan komoditas ke master database & kios pasar
+                                                    </span>
                                                 </div>
-                                                <button
-                                                    onClick={() => { setUrlModalItem(null); setUrlInputVal(""); }}
-                                                    style={{ background: "none", border: "none", cursor: "pointer", color: "#4e6754" }}
-                                                >
+                                                <button onClick={() => setShowAddKatalogModal(false)}
+                                                    style={{ background: "#f2f7f4", border: "none", borderRadius: "50%", padding: "8px", cursor: "pointer", color: "#4e6754" }}>
                                                     <X size={18} />
                                                 </button>
                                             </div>
+                                            <form onSubmit={handleAddKatalogSubmit}>
+                                                <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                                                    <div>
+                                                        <label style={{ display: "block", fontSize: "12px", fontWeight: "800", color: "#1b4332", marginBottom: "6px" }}>Nama Komoditas Pangan *</label>
+                                                        <input required type="text" value={newKatalogForm.name}
+                                                            onChange={e => setNewKatalogForm({ ...newKatalogForm, name: e.target.value })}
+                                                            placeholder="Contoh: Beras Premium Pandan Wangi"
+                                                            style={{ width: "100%", padding: "10px 14px", borderRadius: "12px", border: "1px solid #d2ded7", fontSize: "13px", fontWeight: "600", outline: "none", boxSizing: "border-box" }} />
+                                                    </div>
 
-                                            <div style={{ marginBottom: "16px" }}>
-                                                <span style={{ fontSize: "11px", fontWeight: "800", color: "#2d6a4f", textTransform: "uppercase" }}>
-                                                    Komoditas:
-                                                </span>
-                                                <h4 style={{ margin: "2px 0 10px 0", fontSize: "16px", fontWeight: "800", color: "#0f1d14" }}>
-                                                    {urlModalItem.name}
-                                                </h4>
-                                                <label style={{ display: "block", fontSize: "12px", fontWeight: "700", color: "#4e6754", marginBottom: "6px" }}>
-                                                    Tautan URL Gambar (https://... atau /uploads/...)
-                                                </label>
-                                                <input
-                                                    type="url"
-                                                    placeholder="https://example.com/foto-komoditas.jpg"
-                                                    value={urlInputVal}
-                                                    onChange={(e) => setUrlInputVal(e.target.value)}
-                                                    style={{
-                                                        width: "100%",
-                                                        boxSizing: "border-box",
-                                                        padding: "12px 16px",
-                                                        borderRadius: "14px",
-                                                        border: "1px solid #d2ded7",
-                                                        fontSize: "13px",
-                                                        fontWeight: "600",
-                                                        fontFamily: "inherit",
-                                                        outline: "none",
-                                                        backgroundColor: "#f4f8f5"
-                                                    }}
-                                                />
-                                            </div>
+                                                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                                                        <div>
+                                                            <label style={{ display: "block", fontSize: "12px", fontWeight: "800", color: "#1b4332", marginBottom: "6px" }}>Kategori Bahan *</label>
+                                                            <select value={newKatalogForm.kategori}
+                                                                onChange={e => setNewKatalogForm({ ...newKatalogForm, kategori: e.target.value })}
+                                                                style={{ width: "100%", padding: "10px 14px", borderRadius: "12px", border: "1px solid #d2ded7", fontSize: "13px", fontWeight: "700", color: "#1b4332", outline: "none", backgroundColor: "#ffffff", boxSizing: "border-box" }}>
+                                                                <option value="KEBUTUHAN POKOK">Kebutuhan Pokok</option>
+                                                                <option value="BAHAN BAKU">Bahan Baku</option>
+                                                                <option value="BUMBU DAPUR">Bumbu Dapur</option>
+                                                                <option value="PROTEIN HEWANI">Protein Hewani</option>
+                                                                <option value="MINYAK GORENG">Minyak Goreng</option>
+                                                                <option value="SAYUR & JAMUR">Sayur & Jamur</option>
+                                                            </select>
+                                                        </div>
+                                                        <div>
+                                                            <label style={{ display: "block", fontSize: "12px", fontWeight: "800", color: "#1b4332", marginBottom: "6px" }}>Satuan</label>
+                                                            <input type="text" value={newKatalogForm.satuan}
+                                                                onChange={e => setNewKatalogForm({ ...newKatalogForm, satuan: e.target.value })}
+                                                                placeholder="1kg / 1liter"
+                                                                style={{ width: "100%", padding: "10px 14px", borderRadius: "12px", border: "1px solid #d2ded7", fontSize: "13px", fontWeight: "600", outline: "none", boxSizing: "border-box" }} />
+                                                        </div>
+                                                    </div>
 
-                                            {/* Preview URL jika terisi */}
-                                            {urlInputVal && (
-                                                <div style={{ marginBottom: "18px", textAlign: "center" }}>
-                                                    <span style={{ display: "block", fontSize: "11px", fontWeight: "700", color: "#4e6754", marginBottom: "6px" }}>
-                                                        Preview Gambar:
-                                                    </span>
-                                                    <div style={{
-                                                        width: "100%",
-                                                        height: "140px",
-                                                        borderRadius: "14px",
-                                                        overflow: "hidden",
-                                                        backgroundColor: "#f2f7f4",
-                                                        border: "1px solid #d2ded7"
-                                                    }}>
-                                                        <img
-                                                            src={urlInputVal}
-                                                            alt="Preview"
-                                                            onError={(e) => { e.target.style.display = "none"; }}
-                                                            onLoad={(e) => { e.target.style.display = "block"; }}
-                                                            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                                    {/* PILIHAN PASAR & KIOS TUJUAN */}
+                                                    <div style={{ backgroundColor: "#f4f9f6", padding: "14px", borderRadius: "14px", border: "1px solid #cfe8d8" }}>
+                                                        <div style={{ fontSize: "12px", fontWeight: "800", color: "#1b4332", marginBottom: "10px", display: "flex", alignItems: "center", gap: "6px" }}>
+                                                            <MapPin size={14} color="#2d6a4f" />
+                                                            <span>PILIHAN PASAR & KIOS TUJUAN</span>
+                                                        </div>
+                                                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                                                            <div>
+                                                                <label style={{ display: "block", fontSize: "11px", fontWeight: "700", color: "#4e6754", marginBottom: "4px" }}>Pilih Pasar</label>
+                                                                <select
+                                                                    value={newKatalogForm.target_pasar}
+                                                                    onChange={e => setNewKatalogForm({ ...newKatalogForm, target_pasar: e.target.value, target_kios_id: "" })}
+                                                                    style={{ width: "100%", padding: "8px 10px", borderRadius: "10px", border: "1px solid #d2ded7", fontSize: "12px", fontWeight: "700", color: "#1b4332", backgroundColor: "#ffffff" }}
+                                                                >
+                                                                    <option value="Semua Pasar">Semua Pasar (Seluruh Daerah)</option>
+                                                                    <option value="Pasar Babat">Pasar Babat</option>
+                                                                    <option value="Pasar Sidoharjo">Pasar Sidoharjo</option>
+                                                                    <option value="Pasar Mantup">Pasar Mantup</option>
+                                                                    <option value="Pasar Blimbing">Pasar Blimbing</option>
+                                                                    <option value="Pasar Sukodadi">Pasar Sukodadi</option>
+                                                                    <option value="Pasar Sendangrejo">Pasar Sendangrejo</option>
+                                                                </select>
+                                                            </div>
+                                                            <div>
+                                                                <label style={{ display: "block", fontSize: "11px", fontWeight: "700", color: "#4e6754", marginBottom: "4px" }}>Pilih Kios (Opsional)</label>
+                                                                <select
+                                                                    value={newKatalogForm.target_kios_id}
+                                                                    onChange={e => setNewKatalogForm({ ...newKatalogForm, target_kios_id: e.target.value })}
+                                                                    style={{ width: "100%", padding: "8px 10px", borderRadius: "10px", border: "1px solid #d2ded7", fontSize: "12px", fontWeight: "600", color: "#1b4332", backgroundColor: "#ffffff" }}
+                                                                >
+                                                                    <option value="">Semua Kios Terkait</option>
+                                                                    {kiosList
+                                                                        .filter(k => newKatalogForm.target_pasar === "Semua Pasar" || (k.lokasi_pasar || "").toLowerCase().includes(newKatalogForm.target_pasar.toLowerCase()))
+                                                                        .map(k => (
+                                                                            <option key={k.id || k.id_kios} value={k.id || k.id_kios}>
+                                                                                {k.nama_kios} ({k.lokasi_pasar})
+                                                                            </option>
+                                                                        ))
+                                                                    }
+                                                                </select>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                                                        <div>
+                                                            <label style={{ display: "block", fontSize: "12px", fontWeight: "800", color: "#1b4332", marginBottom: "6px" }}>Harga Acuan (Rp)</label>
+                                                            <input type="number" value={newKatalogForm.harga_acuan}
+                                                                onChange={e => setNewKatalogForm({ ...newKatalogForm, harga_acuan: parseInt(e.target.value) || 0 })}
+                                                                style={{ width: "100%", padding: "10px 14px", borderRadius: "12px", border: "1px solid #d2ded7", fontSize: "13px", fontWeight: "600", outline: "none", boxSizing: "border-box" }} />
+                                                        </div>
+                                                        <div>
+                                                            <label style={{ display: "block", fontSize: "12px", fontWeight: "800", color: "#1b4332", marginBottom: "6px" }}>HET Resmi Pemkab (Rp)</label>
+                                                            <input type="number" value={newKatalogForm.het}
+                                                                onChange={e => setNewKatalogForm({ ...newKatalogForm, het: parseInt(e.target.value) || 0 })}
+                                                                style={{ width: "100%", padding: "10px 14px", borderRadius: "12px", border: "1px solid #d2ded7", fontSize: "13px", fontWeight: "600", outline: "none", boxSizing: "border-box" }} />
+                                                        </div>
+                                                    </div>
+
+                                                    {/* UPLOAD FOTO LANGSUNG DARI PERANGKAT */}
+                                                    <div>
+                                                        <label style={{ display: "block", fontSize: "12px", fontWeight: "800", color: "#1b4332", marginBottom: "6px" }}>
+                                                            Foto Komoditas (Pilih Berkas Foto Langsung)
+                                                        </label>
+                                                        <input
+                                                            type="file"
+                                                            accept="image/*"
+                                                            onChange={e => handleFotoUploadFile(e, false)}
+                                                            style={{
+                                                                width: "100%",
+                                                                padding: "9px 12px",
+                                                                borderRadius: "12px",
+                                                                border: "1.5px dashed #2d6a4f",
+                                                                backgroundColor: "#f4f9f6",
+                                                                fontSize: "12px",
+                                                                fontWeight: "600",
+                                                                color: "#1b4332",
+                                                                cursor: "pointer",
+                                                                boxSizing: "border-box"
+                                                            }}
+                                                        />
+                                                        {newKatalogForm.foto_url && (
+                                                            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "8px", backgroundColor: "#eef8f2", padding: "8px 12px", borderRadius: "10px", border: "1px solid #b7efc5" }}>
+                                                                <img
+                                                                    src={newKatalogForm.foto_url}
+                                                                    alt="Preview"
+                                                                    style={{ width: "42px", height: "42px", objectFit: "cover", borderRadius: "8px" }}
+                                                                />
+                                                                <span style={{ fontSize: "11.5px", color: "#1b4332", fontWeight: "700" }}>
+                                                                    Foto berhasil dimuat &amp; siap disimpan
+                                                                </span>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setNewKatalogForm(prev => ({ ...prev, foto_url: "" }))}
+                                                                    style={{ marginLeft: "auto", background: "none", border: "none", color: "#dc2626", cursor: "pointer", fontSize: "11px", fontWeight: "700" }}
+                                                                >
+                                                                    Hapus
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                        <input
+                                                            type="text"
+                                                            value={newKatalogForm.foto_url.startsWith("data:") ? "" : newKatalogForm.foto_url}
+                                                            onChange={e => setNewKatalogForm({ ...newKatalogForm, foto_url: e.target.value })}
+                                                            placeholder="Atau tempel tautan URL gambar disini..."
+                                                            style={{ width: "100%", marginTop: "6px", padding: "8px 12px", borderRadius: "10px", border: "1px solid #d2ded7", fontSize: "11.5px", outline: "none", boxSizing: "border-box" }}
                                                         />
                                                     </div>
                                                 </div>
-                                            )}
+                                                <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "22px" }}>
+                                                    <button type="button" onClick={() => setShowAddKatalogModal(false)}
+                                                        style={{ padding: "10px 20px", borderRadius: "99px", border: "1px solid #d2ded7", backgroundColor: "#ffffff", color: "#4e6754", fontWeight: "700", fontSize: "13px", cursor: "pointer" }}>
+                                                        Batal
+                                                    </button>
+                                                    <button type="submit"
+                                                        style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 24px", borderRadius: "99px", border: "none", backgroundColor: "#1b4332", color: "#ffffff", fontWeight: "800", fontSize: "13px", cursor: "pointer" }}>
+                                                        <CheckCircle2 size={15} /> Simpan ke Database
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                )}
 
-                                            <div style={{ display: "flex", gap: "10px", justifyContent: "flex-end" }}>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => { setUrlModalItem(null); setUrlInputVal(""); }}
-                                                    style={{
-                                                        padding: "10px 18px",
-                                                        borderRadius: "99px",
-                                                        border: "1px solid #d2ded7",
-                                                        backgroundColor: "#ffffff",
-                                                        color: "#4e6754",
-                                                        fontSize: "13px",
-                                                        fontWeight: "700",
-                                                        cursor: "pointer"
-                                                    }}
-                                                >
-                                                    Batal
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    disabled={!urlInputVal.trim()}
-                                                    onClick={() => handleSaveUrlPhoto(urlModalItem.name, urlInputVal)}
-                                                    style={{
-                                                        padding: "10px 22px",
-                                                        borderRadius: "99px",
-                                                        border: "none",
-                                                        backgroundColor: "#1b4332",
-                                                        color: "#ffffff",
-                                                        fontSize: "13px",
-                                                        fontWeight: "800",
-                                                        cursor: "pointer"
-                                                    }}
-                                                >
-                                                    Simpan Foto
+                                {/* MODAL EDIT KATALOG */}
+                                {editingKatalogItem && (
+                                    <div style={{
+                                        position: "fixed", inset: 0,
+                                        backgroundColor: "rgba(15,23,42,0.65)",
+                                        backdropFilter: "blur(4px)",
+                                        display: "flex", alignItems: "center", justifyContent: "center",
+                                        zIndex: 1200, padding: "16px"
+                                    }}>
+                                        <div style={{
+                                            backgroundColor: "#ffffff", borderRadius: "24px",
+                                            maxWidth: "540px", width: "100%", padding: "28px",
+                                            border: "1px solid #d2ded7", maxHeight: "90vh", overflowY: "auto"
+                                        }}>
+                                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px" }}>
+                                                <h3 style={{ margin: 0, fontSize: "18px", fontWeight: "800", color: "#0f1d14" }}>
+                                                    Edit: {editingKatalogItem.name}
+                                                </h3>
+                                                <button onClick={() => setEditingKatalogItem(null)}
+                                                    style={{ background: "#f2f7f4", border: "none", borderRadius: "50%", padding: "8px", cursor: "pointer", color: "#4e6754" }}>
+                                                    <X size={18} />
                                                 </button>
                                             </div>
+                                            <form onSubmit={handleEditKatalogSubmit}>
+                                                <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+                                                    <div>
+                                                        <label style={{ display: "block", fontSize: "12px", fontWeight: "800", color: "#1b4332", marginBottom: "6px" }}>Nama Komoditas *</label>
+                                                        <input required type="text" value={editKatalogForm.name}
+                                                            onChange={e => setEditKatalogForm({ ...editKatalogForm, name: e.target.value })}
+                                                            style={{ width: "100%", padding: "10px 14px", borderRadius: "12px", border: "1px solid #d2ded7", fontSize: "13px", fontWeight: "600", outline: "none", boxSizing: "border-box" }} />
+                                                    </div>
+                                                    <div>
+                                                        <label style={{ display: "block", fontSize: "12px", fontWeight: "800", color: "#1b4332", marginBottom: "6px" }}>Kategori *</label>
+                                                        <select value={editKatalogForm.kategori}
+                                                            onChange={e => setEditKatalogForm({ ...editKatalogForm, kategori: e.target.value })}
+                                                            style={{ width: "100%", padding: "10px 14px", borderRadius: "12px", border: "1px solid #d2ded7", fontSize: "13px", fontWeight: "700", color: "#1b4332", outline: "none", backgroundColor: "#ffffff", boxSizing: "border-box" }}>
+                                                            <option value="KEBUTUHAN POKOK">Kebutuhan Pokok</option>
+                                                            <option value="BAHAN BAKU">Bahan Baku</option>
+                                                            <option value="BUMBU DAPUR">Bumbu Dapur</option>
+                                                            <option value="PROTEIN HEWANI">Protein Hewani</option>
+                                                            <option value="MINYAK GORENG">Minyak Goreng</option>
+                                                            <option value="SAYUR & JAMUR">Sayur & Jamur</option>
+                                                        </select>
+                                                    </div>
+                                                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+                                                        <div>
+                                                            <label style={{ display: "block", fontSize: "12px", fontWeight: "800", color: "#1b4332", marginBottom: "6px" }}>Satuan</label>
+                                                            <input type="text" value={editKatalogForm.satuan}
+                                                                onChange={e => setEditKatalogForm({ ...editKatalogForm, satuan: e.target.value })}
+                                                                style={{ width: "100%", padding: "10px 14px", borderRadius: "12px", border: "1px solid #d2ded7", fontSize: "13px", fontWeight: "600", outline: "none", boxSizing: "border-box" }} />
+                                                        </div>
+                                                        <div>
+                                                            <label style={{ display: "block", fontSize: "12px", fontWeight: "800", color: "#1b4332", marginBottom: "6px" }}>Harga Acuan (Rp)</label>
+                                                            <input type="number" value={editKatalogForm.harga_acuan}
+                                                                onChange={e => setEditKatalogForm({ ...editKatalogForm, harga_acuan: parseInt(e.target.value) || 0 })}
+                                                                style={{ width: "100%", padding: "10px 14px", borderRadius: "12px", border: "1px solid #d2ded7", fontSize: "13px", fontWeight: "600", outline: "none", boxSizing: "border-box" }} />
+                                                        </div>
+                                                    </div>
+
+                                                    {/* UPLOAD FOTO LANGSUNG DI MODAL EDIT */}
+                                                    <div>
+                                                        <label style={{ display: "block", fontSize: "12px", fontWeight: "800", color: "#1b4332", marginBottom: "6px" }}>
+                                                            Ubah Foto (Pilih Berkas Foto Langsung)
+                                                        </label>
+                                                        <input
+                                                            type="file"
+                                                            accept="image/*"
+                                                            onChange={e => handleFotoUploadFile(e, true)}
+                                                            style={{
+                                                                width: "100%",
+                                                                padding: "9px 12px",
+                                                                borderRadius: "12px",
+                                                                border: "1.5px dashed #0284c7",
+                                                                backgroundColor: "#f0f9ff",
+                                                                fontSize: "12px",
+                                                                fontWeight: "600",
+                                                                color: "#0369a1",
+                                                                cursor: "pointer",
+                                                                boxSizing: "border-box"
+                                                            }}
+                                                        />
+                                                        {editKatalogForm.foto_url && (
+                                                            <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "8px", backgroundColor: "#f0f9ff", padding: "8px 12px", borderRadius: "10px", border: "1px solid #bae6fd" }}>
+                                                                <img
+                                                                    src={editKatalogForm.foto_url}
+                                                                    alt="Preview"
+                                                                    style={{ width: "42px", height: "42px", objectFit: "cover", borderRadius: "8px" }}
+                                                                />
+                                                                <span style={{ fontSize: "11.5px", color: "#0369a1", fontWeight: "700" }}>
+                                                                    Foto siap diperbarui
+                                                                </span>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setEditKatalogForm(prev => ({ ...prev, foto_url: "" }))}
+                                                                    style={{ marginLeft: "auto", background: "none", border: "none", color: "#dc2626", cursor: "pointer", fontSize: "11px", fontWeight: "700" }}
+                                                                >
+                                                                    Hapus
+                                                                </button>
+                                                            </div>
+                                                        )}
+                                                        <input
+                                                            type="text"
+                                                            value={editKatalogForm.foto_url.startsWith("data:") ? "" : editKatalogForm.foto_url}
+                                                            onChange={e => setEditKatalogForm({ ...editKatalogForm, foto_url: e.target.value })}
+                                                            placeholder="Atau tempel tautan URL gambar disini..."
+                                                            style={{ width: "100%", marginTop: "6px", padding: "8px 12px", borderRadius: "10px", border: "1px solid #d2ded7", fontSize: "11.5px", outline: "none", boxSizing: "border-box" }}
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "22px" }}>
+                                                    <button type="button" onClick={() => setEditingKatalogItem(null)}
+                                                        style={{ padding: "10px 20px", borderRadius: "99px", border: "1px solid #d2ded7", backgroundColor: "#ffffff", color: "#4e6754", fontWeight: "700", fontSize: "13px", cursor: "pointer" }}>
+                                                        Batal
+                                                    </button>
+                                                    <button type="submit"
+                                                        style={{ display: "flex", alignItems: "center", gap: "8px", padding: "10px 24px", borderRadius: "99px", border: "none", backgroundColor: "#0284c7", color: "#ffffff", fontWeight: "800", fontSize: "13px", cursor: "pointer" }}>
+                                                        <CheckCircle2 size={15} /> Simpan Perubahan
+                                                    </button>
+                                                </div>
+                                            </form>
                                         </div>
                                     </div>
                                 )}
@@ -3048,7 +3094,7 @@ export default function AdminDashboard({
                                         KATALOG KOMODITAS KIOS
                                     </span>
                                     <span style={{ backgroundColor: "#eef8f2", color: "#1b4332", fontSize: "11px", fontWeight: "700", padding: "3px 10px", borderRadius: "99px", border: "1px solid #b7efc5" }}>
-                                        📍 {viewingKiosDetail.lokasi_pasar} {viewingKiosDetail.blok_stan ? `(${viewingKiosDetail.blok_stan})` : ""}
+                                         {viewingKiosDetail.lokasi_pasar} {viewingKiosDetail.blok_stan ? `(${viewingKiosDetail.blok_stan})` : ""}
                                     </span>
                                 </div>
                                 <h3 style={{ fontSize: "22px", fontWeight: "800", color: "#0f1d14", margin: 0 }}>
@@ -3100,7 +3146,7 @@ export default function AdminDashboard({
                         {showAddKomoditasForm && (
                             <form onSubmit={handleTambahKomoditasSubmit} style={{ backgroundColor: "#eef8f2", border: "1px solid #b7efc5", borderRadius: "18px", padding: "20px", marginBottom: "20px" }}>
                                 <div style={{ fontWeight: "800", fontSize: "13.5px", color: "#1b4332", marginBottom: "12px" }}>
-                                    ➕ Tambahkan Komoditas Baru ke Kios Ini:
+                                    + Tambahkan Komoditas Baru ke Kios Ini:
                                 </div>
                                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "12px" }}>
                                     <div>
@@ -3207,7 +3253,7 @@ export default function AdminDashboard({
                             <form onSubmit={handleUpdateKomoditasSubmit} style={{ backgroundColor: "#eff6ff", border: "1.5px solid #93c5fd", borderRadius: "18px", padding: "20px", marginBottom: "20px" }}>
                                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
                                     <div style={{ fontWeight: "800", fontSize: "13.5px", color: "#1e3a8a" }}>
-                                        ✏️ Edit Data Komoditas: <span style={{ color: "#2563eb" }}>{editingKomoditas.nama_bahan}</span>
+                                        ï¸ Edit Data Komoditas: <span style={{ color: "#2563eb" }}>{editingKomoditas.nama_bahan}</span>
                                     </div>
                                     <button
                                         type="button"
