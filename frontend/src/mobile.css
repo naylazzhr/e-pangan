@@ -1135,33 +1135,72 @@
    13. DETAIL KIOS — KHUSUS DEVICE
    -------------------------------------------------------------------------- */
 @media (max-width: 768px) {
+  .dk-page-wrapper {
+    padding-bottom: 85px !important;
+  }
+
   .dk-container {
     padding: 0 12px !important;
   }
 
   .dk-title {
-    font-size: 1.2rem !important;
+    font-size: 1.25rem !important;
     line-height: 1.25 !important;
   }
 
   .dk-hero {
-    padding: 14px 0 20px !important;
-    margin-bottom: 14px !important;
+    padding: 12px 0 16px !important;
+    margin-bottom: 12px !important;
   }
 
   .dk-topbar {
+    display: flex !important;
     flex-direction: row !important;
     justify-content: space-between !important;
     align-items: center !important;
-    flex-wrap: wrap !important;
+    flex-wrap: nowrap !important;
     gap: 8px !important;
-    margin-bottom: 12px !important;
+    margin-bottom: 10px !important;
+  }
+
+  .dk-btn-back {
+    padding: 5px 12px !important;
+    font-size: 11px !important;
+    gap: 5px !important;
   }
 
   .dk-hero-grid {
     flex-direction: column !important;
     align-items: stretch !important;
-    gap: 12px !important;
+    gap: 10px !important;
+  }
+
+  .dk-stat-card {
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    padding: 9px 14px !important;
+    border-radius: 12px !important;
+    min-width: unset !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  .dk-stat-label {
+    font-size: 9.5px !important;
+    margin-bottom: 2px !important;
+  }
+
+  .dk-stat-sublabel {
+    display: block !important;
+    font-size: 9px !important;
+    color: #a7d7be !important;
+    font-weight: 500 !important;
+  }
+
+  .dk-stat-value {
+    font-size: 1.25rem !important;
+    font-weight: 800 !important;
   }
 
   .dk-main-grid {
@@ -1169,9 +1208,64 @@
     gap: 12px !important;
   }
 
+  .dk-katalog-box {
+    padding: 14px 12px !important;
+    border-radius: 18px !important;
+  }
+
+  .dk-katalog-header {
+    margin-bottom: 10px !important;
+    gap: 8px !important;
+  }
+
+  .dk-katalog-title {
+    font-size: 1.1rem !important;
+    gap: 6px !important;
+  }
+
+  .dk-katalog-subtitle {
+    font-size: 11px !important;
+  }
+
+  .dk-search-wrapper {
+    max-width: 100% !important;
+  }
+
+  .dk-search-input {
+    padding: 7px 12px 7px 34px !important;
+    font-size: 12px !important;
+  }
+
+  .dk-cat-wrapper {
+    display: flex !important;
+    gap: 5px !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    padding-bottom: 6px !important;
+    margin-bottom: 12px !important;
+  }
+
+  .dk-cat-btn {
+    padding: 5px 11px !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+  }
+
   .dk-product-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
+    grid-template-columns: 1fr !important;
     gap: 10px !important;
+  }
+
+  .dk-product-card {
+    padding: 12px 14px !important;
+    border-radius: 16px !important;
+  }
+
+  .dk-info-aside {
+    padding: 16px 14px !important;
+    border-radius: 18px !important;
   }
 }
 

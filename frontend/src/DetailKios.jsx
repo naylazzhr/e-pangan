@@ -122,6 +122,16 @@ export default function DetailKios({ kios, onBack }) {
 
   const categories = ["Semua", ...new Set(katalog.map((item) => item.kategori).filter(Boolean))];
 
+  const formatCategory = (cat) => {
+    if (!cat) return "";
+    if (cat === "Semua") return "Semua";
+    return cat
+      .toLowerCase()
+      .split(" ")
+      .map((w) => (w === "&" ? "&" : w.charAt(0).toUpperCase() + w.slice(1)))
+      .join(" ");
+  };
+
   const filteredProducts = katalog.filter((item) => {
     const itemName = item.nama_bahan || "";
     const itemKat = item.kategori || "";
@@ -132,10 +142,11 @@ export default function DetailKios({ kios, onBack }) {
 
   return (
     <div
+      className="dk-page-wrapper"
       style={{
         backgroundColor: "#f4f7f5",
         minHeight: "100vh",
-        paddingBottom: "5rem",
+        paddingBottom: "85px",
         fontFamily: "'Plus Jakarta Sans', sans-serif",
         color: "#112216",
       }}
@@ -145,13 +156,13 @@ export default function DetailKios({ kios, onBack }) {
           width: 100%;
           max-width: 1240px;
           margin: 0 auto;
-          padding: 0 1.5rem 3rem;
+          padding: 0 1.5rem 2rem;
           box-sizing: border-box;
         }
         .dk-hero {
           background: linear-gradient(180deg, #d8eedf 0%, #e8f5ec 100%);
-          padding: 24px 0 36px;
-          margin-bottom: 28px;
+          padding: 24px 0 32px;
+          margin-bottom: 24px;
           border-bottom: 1px solid #cfe3d6;
         }
         .dk-topbar {
@@ -159,7 +170,7 @@ export default function DetailKios({ kios, onBack }) {
           justify-content: space-between;
           align-items: center;
           gap: 12px;
-          margin-bottom: 20px;
+          margin-bottom: 18px;
           flex-wrap: wrap;
         }
         .dk-hero-grid {
@@ -177,9 +188,93 @@ export default function DetailKios({ kios, onBack }) {
         .dk-katalog-box {
           background-color: #ffffff;
           border-radius: 28px;
-          padding: 30px 32px;
+          padding: 26px 28px;
           border: 1px solid #d8e6dc;
           box-shadow: 0 4px 20px rgba(27,67,50,0.04);
+        }
+        .dk-katalog-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 16px;
+          flex-wrap: wrap;
+          gap: 14px;
+        }
+        .dk-katalog-title {
+          margin: 0 0 4px 0;
+          color: #0a2116;
+          font-size: 1.3rem;
+          font-weight: 800;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .dk-katalog-subtitle {
+          margin: 0;
+          font-size: 13px;
+          color: #4e6754;
+          font-weight: 600;
+        }
+        .dk-search-wrapper {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-wrap: wrap;
+          width: 100%;
+          max-width: 360px;
+        }
+        .dk-search-box {
+          position: relative;
+          width: 100%;
+        }
+        .dk-search-input {
+          padding: 9px 14px 9px 38px;
+          border-radius: 999px;
+          border: 1px solid #d2ded7;
+          font-size: 13px;
+          width: 100%;
+          box-sizing: border-box;
+          outline: none;
+          background-color: #f9fcfb;
+          font-weight: 600;
+          color: #112216;
+          font-family: inherit;
+        }
+        .dk-cat-wrapper {
+          display: flex;
+          gap: 8px;
+          overflow-x: auto;
+          padding-bottom: 8px;
+          margin-bottom: 16px;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: thin;
+          scrollbar-color: #b7efc5 transparent;
+        }
+        .dk-cat-wrapper::-webkit-scrollbar {
+          height: 4px;
+        }
+        .dk-cat-wrapper::-webkit-scrollbar-thumb {
+          background: #b7efc5;
+          border-radius: 4px;
+        }
+        .dk-cat-btn {
+          padding: 6px 14px;
+          border-radius: 999px;
+          border: 1px solid #d2ded7;
+          font-size: 12px;
+          font-weight: 700;
+          font-family: inherit;
+          cursor: pointer;
+          background-color: #ffffff;
+          color: #4a6550;
+          transition: all 0.15s;
+          white-space: nowrap;
+          flex-shrink: 0;
+        }
+        .dk-cat-btn.active {
+          border: 1.5px solid #1b4332;
+          background-color: #1b4332;
+          color: #ffffff;
         }
         .dk-product-grid {
           display: grid;
@@ -202,7 +297,7 @@ export default function DetailKios({ kios, onBack }) {
           border-color: #b7efc5;
         }
         .dk-title {
-          font-size: clamp(1.4rem, 4vw, 2.3rem);
+          font-size: clamp(1.3rem, 3.5vw, 2.1rem);
           font-weight: 800;
           margin: 0;
           letter-spacing: -0.02em;
@@ -215,10 +310,10 @@ export default function DetailKios({ kios, onBack }) {
           gap: 8px;
           background-color: #ffffff;
           border: 1px solid #cfe3d6;
-          padding: 8px 18px;
+          padding: 7px 16px;
           border-radius: 999px;
           font-weight: 700;
-          font-size: 13px;
+          font-size: 12.5px;
           font-family: inherit;
           cursor: pointer;
           color: #1b4332;
@@ -227,70 +322,132 @@ export default function DetailKios({ kios, onBack }) {
         .dk-btn-back:hover {
           background-color: #f2f7f4;
         }
-        .dk-btn-tambah {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
+        .dk-stat-card {
           background-color: #1b4332;
           color: #ffffff;
-          border: none;
-          padding: 9px 18px;
-          border-radius: 999px;
+          border-radius: 18px;
+          padding: 14px 20px;
+          min-width: 150px;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+        }
+        .dk-stat-label {
+          display: block;
+          font-size: 10px;
           font-weight: 800;
-          font-size: 13px;
-          font-family: inherit;
-          cursor: pointer;
-          transition: background 0.15s, transform 0.15s;
-          box-shadow: 0 4px 14px rgba(27,67,50,0.18);
+          letter-spacing: 0.05em;
+          color: #74c69d;
+          margin-bottom: 3px;
         }
-        .dk-btn-tambah:hover {
-          background-color: #143326;
-          transform: translateY(-1px);
+        .dk-stat-sublabel {
+          display: none;
         }
-        .dk-btn-tambah:active {
-          transform: translateY(0);
-        }
-        .dk-search-box {
-          position: relative;
-          width: 250px;
+        .dk-stat-value {
+          font-size: 1.75rem;
+          font-weight: 800;
+          line-height: 1;
         }
         .dk-info-aside {
           background-color: #ffffff;
           border-radius: 24px;
           border: 1px solid #d8e2dc;
-          padding: 24px;
+          padding: 22px;
           box-shadow: 0 4px 20px rgba(27,67,50,0.04);
         }
 
         /* Responsive Breakpoint Khusus Mode HP / Smartphone */
         @media (max-width: 900px) {
           .dk-container { padding: 0 16px 2rem !important; }
-          .dk-hero { padding: 18px 0 24px !important; margin-bottom: 20px !important; }
-          .dk-hero-grid { flex-direction: column !important; align-items: stretch !important; gap: 14px !important; }
-          .dk-main-grid { grid-template-columns: 1fr !important; gap: 20px !important; }
+          .dk-hero { padding: 16px 0 20px !important; margin-bottom: 18px !important; }
+          .dk-hero-grid { flex-direction: column !important; align-items: stretch !important; gap: 12px !important; }
+          .dk-main-grid { grid-template-columns: 1fr !important; gap: 16px !important; }
         }
         @media (max-width: 600px) {
-          .dk-container { padding: 0 14px 2rem !important; }
-          .dk-hero { padding: 16px 0 20px !important; margin-bottom: 16px !important; }
+          .dk-container { padding: 0 12px 1.5rem !important; }
+          .dk-hero { padding: 12px 0 16px !important; margin-bottom: 14px !important; }
           .dk-topbar {
-            flex-direction: column !important;
-            align-items: flex-start !important;
-            gap: 10px !important;
+            flex-direction: row !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+            flex-wrap: nowrap !important;
+            gap: 8px !important;
+            margin-bottom: 10px !important;
+          }
+          .dk-btn-back {
+            padding: 5px 12px !important;
+            font-size: 11px !important;
+            gap: 5px !important;
+          }
+          .dk-title {
+            font-size: 1.25rem !important;
+            line-height: 1.2 !important;
+          }
+          .dk-stat-card {
+            flex-direction: row !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            padding: 9px 14px !important;
+            border-radius: 12px !important;
+            min-width: unset !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+          }
+          .dk-stat-label {
+            font-size: 9.5px !important;
+            margin-bottom: 2px !important;
+          }
+          .dk-stat-sublabel {
+            display: block !important;
+            font-size: 9px !important;
+            color: #a7d7be !important;
+            font-weight: 500 !important;
+          }
+          .dk-stat-value {
+            font-size: 1.25rem !important;
           }
           .dk-katalog-box {
-            padding: 18px 14px !important;
-            border-radius: 20px !important;
+            padding: 14px 12px !important;
+            border-radius: 18px !important;
+          }
+          .dk-katalog-header {
+            margin-bottom: 10px !important;
+            gap: 8px !important;
+          }
+          .dk-katalog-title {
+            font-size: 1.1rem !important;
+            gap: 6px !important;
+          }
+          .dk-katalog-subtitle {
+            font-size: 11px !important;
+          }
+          .dk-search-wrapper {
+            max-width: 100% !important;
+          }
+          .dk-search-input {
+            padding: 7px 12px 7px 34px !important;
+            font-size: 12px !important;
+          }
+          .dk-cat-wrapper {
+            gap: 5px !important;
+            padding-bottom: 6px !important;
+            margin-bottom: 12px !important;
+          }
+          .dk-cat-btn {
+            padding: 5px 11px !important;
+            font-size: 11px !important;
           }
           .dk-product-grid {
             grid-template-columns: 1fr !important;
-            gap: 12px !important;
+            gap: 10px !important;
           }
-          .dk-search-box {
-            width: 100% !important;
+          .dk-product-card {
+            padding: 12px 14px !important;
+            border-radius: 16px !important;
           }
           .dk-info-aside {
-            padding: 18px 16px !important;
-            border-radius: 20px !important;
+            padding: 16px 14px !important;
+            border-radius: 18px !important;
           }
         }
       `}</style>
@@ -300,11 +457,11 @@ export default function DetailKios({ kios, onBack }) {
         <div className="dk-container">
           <div className="dk-topbar">
             <button onClick={onBack} className="dk-btn-back">
-              <ArrowLeft size={16} /> Kembali ke Direktori
+              <ArrowLeft size={15} /> Kembali ke Direktori
             </button>
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-              <span style={{ fontSize: "12px", color: "#4a6550", fontWeight: "600", display: "inline-flex", alignItems: "center", gap: "5px" }}>
-                <Clock size={13} color="#2d6a4f" />
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+              <span style={{ fontSize: "11.5px", color: "#4a6550", fontWeight: "600", display: "inline-flex", alignItems: "center", gap: "5px" }}>
+                <Clock size={12} color="#2d6a4f" />
                 Update: <strong style={{ color: "#112216" }}>{dataKios.terakhirDiupdate}</strong>
               </span>
             </div>
@@ -312,20 +469,20 @@ export default function DetailKios({ kios, onBack }) {
 
           <div className="dk-hero-grid">
             <div>
-              <div style={{ display: "flex", gap: "8px", marginBottom: "10px", flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: "8px", marginBottom: "8px", flexWrap: "wrap" }}>
                 <div
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
                     gap: "6px",
                     backgroundColor: "#e2f5ea",
-                    padding: "4px 12px",
+                    padding: "4px 10px",
                     borderRadius: "999px",
                     border: "1px solid #b7efc5",
                   }}
                 >
                   <span style={{ width: "6px", height: "6px", borderRadius: "50%", backgroundColor: "#2d6a4f" }}></span>
-                  <span style={{ fontSize: "11px", fontWeight: "800", color: "#1b4332", letterSpacing: "0.04em", textTransform: "uppercase" }}>
+                  <span style={{ fontSize: "10.5px", fontWeight: "800", color: "#1b4332", letterSpacing: "0.04em", textTransform: "uppercase" }}>
                     {dataKios.statusIzin}
                   </span>
                 </div>
@@ -335,39 +492,29 @@ export default function DetailKios({ kios, onBack }) {
                     alignItems: "center",
                     gap: "6px",
                     backgroundColor: "#ffffff",
-                    padding: "4px 12px",
+                    padding: "4px 10px",
                     borderRadius: "999px",
                     border: "1px solid #cfe3d6",
                   }}
                 >
-                  <MapPin size={12} color="#2d6a4f" />
-                  <span style={{ fontSize: "11px", fontWeight: "800", color: "#1b4332", letterSpacing: "0.04em", textTransform: "uppercase" }}>
+                  <MapPin size={11} color="#2d6a4f" />
+                  <span style={{ fontSize: "10.5px", fontWeight: "800", color: "#1b4332", letterSpacing: "0.04em", textTransform: "uppercase" }}>
                     {dataKios.pasar}
                   </span>
                 </div>
               </div>
               <h1 className="dk-title">{dataKios.nama}</h1>
-              <p style={{ margin: "6px 0 0 0", fontSize: "13px", color: "#4a6550", fontWeight: "600" }}>
-                Pedagang resmi binaan DKPP Kabupaten Lamongan · Blok {dataKios.blok}
+              <p style={{ margin: "4px 0 0 0", fontSize: "12.5px", color: "#4a6550", fontWeight: "600" }}>
+                Pedagang resmi binaan DKPP Kabupaten Lamongan · {dataKios.blok && (dataKios.blok.toLowerCase().startsWith("blok") ? dataKios.blok : `Blok ${dataKios.blok}`)}
               </p>
             </div>
 
-            <div
-              style={{
-                backgroundColor: "#1b4332",
-                color: "#ffffff",
-                borderRadius: "20px",
-                padding: "16px 24px",
-                minWidth: "160px",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "center",
-              }}
-            >
-              <span style={{ display: "block", fontSize: "10.5px", fontWeight: "800", letterSpacing: "0.06em", color: "#74c69d", marginBottom: "4px" }}>
-                KOMODITAS TERPANTAU
-              </span>
-              <div style={{ fontSize: "1.9rem", fontWeight: "800", lineHeight: 1 }}>{dataKios.totalKomoditas} Item</div>
+            <div className="dk-stat-card">
+              <div>
+                <span className="dk-stat-label">KOMODITAS TERPANTAU</span>
+                <span className="dk-stat-sublabel">Data resmi enumerator DKPP</span>
+              </div>
+              <div className="dk-stat-value">{dataKios.totalKomoditas} Item</div>
             </div>
           </div>
         </div>
@@ -379,65 +526,44 @@ export default function DetailKios({ kios, onBack }) {
 
           {/* KATALOG INVENTARIS */}
           <div className="dk-katalog-box">
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "18px", flexWrap: "wrap", gap: "14px" }}>
+            <div className="dk-katalog-header">
               <div>
-                <h3 style={{ margin: "0 0 4px 0", color: "#0a2116", fontSize: "1.35rem", fontWeight: "800", display: "flex", alignItems: "center", gap: "8px" }}>
-                  <Package size={22} color="#2d6a4f" /> Katalog Bahan Pangan Kios
+                <h3 className="dk-katalog-title">
+                  <Package size={20} color="#2d6a4f" /> Katalog Bahan Pangan Kios
                 </h3>
-                <p style={{ margin: 0, fontSize: "13px", color: "#4e6754", fontWeight: "600" }}>
+                <p className="dk-katalog-subtitle">
                   Daftar komoditas pangan yang tersedia dan dijual di kios ini
                 </p>
               </div>
 
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", width: "100%", maxWidth: "380px" }}>
-                <div className="dk-search-box" style={{ flex: 1, position: "relative" }}>
-                  <Search size={15} color="#4e6754" style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
+              <div className="dk-search-wrapper">
+                <div className="dk-search-box">
+                  <Search size={14} color="#4e6754" style={{ position: "absolute", left: "13px", top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
                   <input
                     type="text"
                     placeholder="Cari komoditas di kios ini..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    style={{
-                      padding: "9px 14px 9px 38px",
-                      borderRadius: "999px",
-                      border: "1px solid #d2ded7",
-                      fontSize: "13px",
-                      width: "100%",
-                      boxSizing: "border-box",
-                      outline: "none",
-                      backgroundColor: "#f9fcfb",
-                      fontWeight: "600",
-                      color: "#112216",
-                      fontFamily: "inherit",
-                    }}
+                    className="dk-search-input"
                   />
                 </div>
               </div>
             </div>
 
             {/* Filter Kategori */}
-            <div style={{ display: "flex", gap: "6px", overflowX: "auto", paddingBottom: "10px", marginBottom: "16px" }}>
-              {categories.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
-                  style={{
-                    padding: "6px 14px",
-                    borderRadius: "999px",
-                    border: selectedCategory === cat ? "1.5px solid #1b4332" : "1px solid #d2ded7",
-                    fontSize: "12px",
-                    fontWeight: "700",
-                    fontFamily: "inherit",
-                    cursor: "pointer",
-                    backgroundColor: selectedCategory === cat ? "#1b4332" : "#ffffff",
-                    color: selectedCategory === cat ? "#ffffff" : "#4a6550",
-                    transition: "all 0.15s",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {cat}
-                </button>
-              ))}
+            <div className="dk-cat-wrapper">
+              {categories.map((cat) => {
+                const isSelected = selectedCategory === cat;
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`dk-cat-btn ${isSelected ? "active" : ""}`}
+                  >
+                    {formatCategory(cat)}
+                  </button>
+                );
+              })}
             </div>
 
             {/* Grid Komoditas */}
